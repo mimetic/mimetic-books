@@ -48,7 +48,8 @@ We use some of the WP fields for our own purposes:
 
 		
 		// Create a new book object
-		$mb = new Mimetic_Book($book_id, $title, $author, $publisher_id);
+		$options = array ('tempDir' => $mb_api->tempDir);
+		$mb = new Mimetic_Book($book_id, $title, $author, $publisher_id, $style, $options);
 		
 		
 		extract($mb_api->query->get(array('category_id', 'category_slug' )));
@@ -70,10 +71,36 @@ We use some of the WP fields for our own purposes:
 			$mb->convert_chapter($chapter);
 		}
 		
-		return $mb->book;
-		
+		//Remove MB temp directory
+		//$mb->cleanup();
 
+		// Return the book object
+		return $mb;
 	}
+	
+	
+	
+	/*
+	 * Convert book to an XML string.
+	 */
+	public function get_book_xml() {
+		global $mb_api;
+
+		$mb = $this->build_book();
+		$xml = $mb->book_to_xml();
+		
+		// get localized copies of the style files: stylesheets, formats, etc.
+		$mb->get_style_files();
+		
+		
+		$path = $mb->tempDir;
+		$filename = "book.xml";
+		
+		file_put_contents ( $path.DIRECTORY_SEPARATOR.$filename , $xml, LOCK_EX );
+		//return $xml;
+	}
+	
+	
 	/*
 	 * get_book_info
 	 * Return an array of the book settings from the plugin

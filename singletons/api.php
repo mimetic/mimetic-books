@@ -6,7 +6,14 @@ class MB_API {
     $this->query = new MB_API_Query();
     $this->introspector = new MB_API_Introspector();
     $this->response = new MB_API_Response();
-    add_action('template_redirect', array(&$this, 'template_redirect'));
+	
+	// Create the temp dir for building book packages
+	$uploads = wp_upload_dir();
+	$this->tempDir = $uploads['basedir'] . DIRECTORY_SEPARATOR . 'mb-api-temp';
+	if(! is_dir($this->tempDir))
+		mkdir($this->tempDir);
+
+	add_action('template_redirect', array(&$this, 'template_redirect'));
     add_action('admin_menu', array(&$this, 'admin_menu'));
     add_action('update_option_mb_api_base', array(&$this, 'flush_rewrite_rules'));
     add_action('update_option_mb_mb_api_book_title', array(&$this, 'flush_rewrite_rules'));
