@@ -44,12 +44,12 @@ We use some of the WP fields for our own purposes:
 		$book_id = get_option('mb_api_book_id', "mb_".uniqid() );
 		$publisher_id = get_option('mb_api_book_publisher_id', '?');
 		*/
-		list($book_id, $title, $author, $publisher_id) = $this->get_book_info();
+		list($book_id, $title, $author, $theme, $publisher_id) = $this->get_book_info();
 
 		
 		// Create a new book object
 		$options = array ('tempDir' => $mb_api->tempDir);
-		$mb = new Mimetic_Book($book_id, $title, $author, $publisher_id, $style, $options);
+		$mb = new Mimetic_Book($book_id, $title, $author, $publisher_id, $theme, $options);
 		
 		
 		extract($mb_api->query->get(array('category_id', 'category_slug' )));
@@ -81,23 +81,58 @@ We use some of the WP fields for our own purposes:
 	
 	
 	/*
-	 * Convert book to an XML string.
+	 * Convert blog posts to a complete book package.
+	 * Looks for the theme in the book settings
 	 */
-	public function get_book_xml() {
+	public function build_book_package() {
 		global $mb_api;
-
+		
+		// Build the book object from the posts
 		$mb = $this->build_book();
+		
+		// We want to minimize loading this...it can be slow.
+		if (!$mb_api->themes->themes) {
+			$mb_api->load_themes();
+		}
+		
+		// Set build directory
+		$build_dir = $mb->build_dir;
+		$build_files_dir = $mb->build_files_dir;
+		
+		$theme_id = $mb->book['theme_id'];
+		$mb->get_theme_files( $theme_id , $build_files_dir );
+		
+		// Write the XML to the book.xml file.
 		$xml = $mb->book_to_xml();
-		
-		// get localized copies of the style files: stylesheets, formats, etc.
-		$mb->get_style_files();
-		
-		
-		$path = $mb->tempDir;
 		$filename = "book.xml";
+		file_put_contents ( $build_files_dir.DIRECTORY_SEPARATOR.$filename , $xml, LOCK_EX );		
+
+		// Build the tar file from the files, ready for sending.
+		//$success = $mb_api->funx->tar_dir($mb->tempDir, "{$mb->id}.tar");
+		$tarfilename = "$build_dir{$mb->id}.tar";
+		try {
+			$tarfile = new PharData("$build_dir{$mb->id}.tar");
+			$tarfile->buildFromDirectory($build_files_dir);
+		} catch (Exception $e) {
+			$mb_api->error("$e: Unable to create tar file: $tarfilename");
+		}
 		
-		file_put_contents ( $path.DIRECTORY_SEPARATOR.$filename , $xml, LOCK_EX );
-		//return $xml;
+		// Do something with the tar file package
+		
+		// Delete the build files
+		//$mb->cleanup();
+
+	}
+	
+
+	/*
+	 * Send a converted tar file book to somewhere.
+	 * We build locally and send to a central library, right?
+	 */
+	public function send_book_package() {
+
+		
+		
 	}
 	
 	
@@ -108,12 +143,22 @@ We use some of the WP fields for our own purposes:
 	 * $book_id, $title, $author, $publisher_id
 	 */
 	public function get_book_info() {
+		global $mb_api;
+
 		$title = get_option('mb_api_book_title', 'Untitled');
 		$author = get_option('mb_api_book_author', 'Anonymous');
 		$book_id = get_option('mb_api_book_id', "mb_".uniqid() );
-		$publisher_id = get_option('mb_api_book_publisher_id', '?');
 		
-		return array ($book_id, $title, $author, $publisher_id);
+		$theme_id =  (string)get_option('mb_api_book_theme', 1);
+		// We want to minimize loading this...it can be slow.
+		if (!$mb_api->themes->themes) {
+			$mb_api->load_themes();
+		}
+		$theme = $mb_api->themes->themes[$theme_id];
+		
+		$publisher_id = (string)get_option('mb_api_book_publisher_id', '?');
+		
+		return array ($book_id, $title, $author, $theme, $publisher_id);
 	}
 	
 

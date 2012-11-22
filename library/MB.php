@@ -118,23 +118,25 @@ class Mimetic_Book
     *                                   bubble up with an error, so all return values
     *                                   from encode() should be checked with isError()
     */
-    function Mimetic_Book($id, $title, $author, $publisher_id, $style, $options = array() )
+    function Mimetic_Book($id, $title, $author, $publisher_id, $theme, $options = array() )
     {
+
     	$this->id = ($id ? $id : "mb_".uniqid() );
     	$this->title = ($title ? $title : "Untitled");
     	$this->author = ($author ? $author : "Anonymous");
     	$this->publisher_id = $publisher_id;
+		$this->theme = $theme;
 		$this->book = array();
 		
 		$this->book['title'] = ($title ? $title : "Untitled");
-    	$this->book['uniqueid'] = ($id ? $id : "mb_".uniqid() );
+    	$this->book['uniqueid'] = (string) ($id ? $id : "mb_".uniqid() );
     	$this->book['author'] = ($author ? $author : "Anonymous");
     	$this->book['publisher_id'] = $publisher_id;
-		$this->book['style'] = $style;
+		$this->book['theme_id'] = $theme->id;
 		
         $this->options = $options;
 		
-		$this->make_temp_dir($options['tempDir']);
+		$this->make_build_dir($options['tempDir']);
 		
     }
 	
@@ -142,11 +144,13 @@ class Mimetic_Book
 	/*
 	 * Get copies of the styling files
 	 * These files are: settings.xml, templates.xml, textstyles.txt
-	 * We should have multiple styles stored with this plugin, each of which has its styling files.
+	 * We should have multiple themes stored with this plugin, each of which has its styling files.
 	 */
-	public function get_style_files()
+	public function get_theme_files($path)
 	{
-		
+		$theme_id = $this->theme->id;
+		$path = $this->theme->path;
+		$this->dircopy($path, $this->build_files_dir);
 	}
 	
 	
@@ -160,23 +164,27 @@ class Mimetic_Book
 		return rmdir($dir);
 	}
 	
-	private function make_temp_dir($tempdir)
+	private function make_build_dir($tempdir)
 	{
 		$tempdir || $tempdir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'mimetic-book-temp' . DIRECTORY_SEPARATOR;
 		if(! is_dir($tempdir)) {
 			mkdir($tempdir);
 		}
 		//make sure that if two users export different project from same site, they don't clobber each other
-		$this->tempDir =  $tempdir . DIRECTORY_SEPARATOR . sha1(microtime()) . DIRECTORY_SEPARATOR;
-		if(! is_dir($this->tempDir)) {
-			mkdir($this->tempDir);
+		$this->build_dir =  $tempdir . DIRECTORY_SEPARATOR . sha1(microtime()) . DIRECTORY_SEPARATOR ;
+		if(! is_dir($this->build_dir)) {
+			mkdir($this->build_dir);
+		}
+		$this->build_files_dir =  $this->build_dir . "files" . DIRECTORY_SEPARATOR;
+		if(! is_dir($this->build_files_dir)) {
+			mkdir($this->build_files_dir);
 		}
    }
 	
    private function remove_temp_dir()
    {
-	   if (!$this->delTree($this->tempDir)) {
-		   $this->isError($this->tempDir);
+	   if (!$this->delTree($this->build_dir)) {
+		   $this->isError($this->build_dir);
 	   }
    }
 	
@@ -613,7 +621,7 @@ class Mimetic_Book
 	private function copy_audio_file($src)
 	{
 
-		$dir = $this->tempDir . $this->audioFolder;
+		$dir = $this->build_files_dir . $this->audioFolder;
 		if(! is_dir($dir)) {
 			mkdir($dir);
 		}
@@ -640,7 +648,7 @@ class Mimetic_Book
 	 */
 	private function convert_img($src, $width, $height) {
 		
-		$dir = $this->tempDir . $this->pictureFolder;
+		$dir = $this->build_files_dir . $this->pictureFolder;
 		if(! is_dir($dir)) {
 			mkdir($dir);
 		}
@@ -810,6 +818,59 @@ class Mimetic_Book
 
         return false;
     }
+	
+	
+		// removes files and non-empty directories
+	private function rrmdir($dir) {
+		if (is_dir($dir)) {
+			$files = scandir($dir);
+			foreach ($files as $file)
+			if ($file != "." && $file != "..") 
+				$this->rrmdir("$dir/$file");
+			rmdir($dir);
+		}
+		else if (file_exists($dir)) unlink($dir);
+	} 
+	
+	
+	// copies contents of a directory into another directory
+	private function dircopy($src, $dst) {
+		if ( !(file_exists($src) && file_exists($dst)) ) {
+			return false;
+		}
+		
+		(substr($src, -1) == "/") || $src = $src."/";
+		(substr($dst, -1) == "/") || $dst = $dst."/";
+		$files = scandir($src);
+		foreach ($files as $file) {
+			if ($file != "." && $file != "..") 
+				$this->rcopy($src.$file, $dst.$file);
+		}
+	}
+	
+	// copies files and non-empty directories
+	private function rcopy($src, $dst) {
+		if (file_exists($dst))
+			$this->rrmdir($dst);
+		if (is_dir($src)) {
+			mkdir($dst);
+			$files = scandir($src);
+			foreach ($files as $file)
+			if ($file != "." && $file != "..") 
+				$this->rcopy("$src/$file", "$dst/$file"); 
+		}
+		else if (file_exists($src)) copy($src, $dst);
+	}
+
+	
+	private function tar_dir($src) {
+		$script = "tar -cf $src";
+		$results = exec($script, $res);
+		return $res;
+	}
+
+	
+	
 }
 
 
@@ -831,7 +892,12 @@ class Mimetic_Book
 	  * Errors
 	  */
 
-
+	
+	
+	
+	
+	 
+	 
 if (class_exists('PEAR_Error')) {
 
     class Services_MB_Error extends PEAR_Error
@@ -856,6 +922,7 @@ if (class_exists('PEAR_Error')) {
 
         }
     }
+
 
 }
    

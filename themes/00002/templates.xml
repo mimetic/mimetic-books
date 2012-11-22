@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<book>
+	<chapter>
+
+
+		<page id="gallery">
+			<pictures>
+				<picture filename="" zoomedScale="1" x="750" y="180" />
+			</pictures>
+			<overlay></overlay>
+			<overlaytitle></overlaytitle>
+			<overlaytext></overlaytext>
+			<texttitle></texttitle>
+			<textblock fittotext="true" x="50" y="center" width="550" ></textblock>
+			<imagefile></imagefile>
+			<caption></caption>
+			<date></date>
+			<sublocation></sublocation>
+			<gps/>
+			<city></city>
+			<state></state>
+			<country></country>
+			<headline></headline>
+			<order></order>
+		</page>
+
+
+		<page id="image">
+			<pictures>
+				<picture filename="" zoomedScale="1" x="750" y="180" />
+				<picture filename="" zoomedScale="1" x="750" y="580" />
+			</pictures>
+			<overlay></overlay>
+			<overlaytitle></overlaytitle>
+			<overlaytext></overlaytext>
+			<texttitle></texttitle>
+			<textblock fittotext="true" x="50" y="center" width="550" ></textblock>
+			<imagefile></imagefile>
+			<caption></caption>
+			<date></date>
+			<sublocation></sublocation>
+			<gps/>
+			<city></city>
+			<state></state>
+			<country></country>
+			<headline></headline>
+			<order></order>
+		</page>
+
+
+
+
+		<page id="textleft">
+			<pictures>
+				<picture filename="" scale="0.3" zoomedScale="1" x="650" y="180" />
+			</pictures>
+			<overlay></overlay>
+			<overlaytitle></overlaytitle>
+			<overlaytext></overlaytext>
+			<texttitle></texttitle>
+			<textblock fittotext="true" x="50" y="center" width="550" ></textblock>
+			<imagefile></imagefile>
+			<caption></caption>
+			<date></date>
+			<sublocation></sublocation>
+			<gps/>
+			<city></city>
+			<state></state>
+			<country></country>
+			<headline></headline>
+			<order></order>
+		</page>
+
+
+		<page id="textright">
+			<pictures>
+				<picture filename="" scale="0.3" zoomedScale="1" x="50" y="180" />
+			</pictures>
+			<overlay></overlay>
+			<overlaytitle></overlaytitle>
+			<overlaytext></overlaytext>
+			<texttitle></texttitle>
+			<textblock fittotext="true" x="400" y="center" width="550" ></textblock>
+			<imagefile></imagefile>
+			<caption></caption>
+			<date></date>
+			<sublocation></sublocation>
+			<gps/>
+			<city></city>
+			<state></state>
+			<country></country>
+			<headline></headline>
+			<order></order>
+		</page>
+
+	</chapter>
+</book>

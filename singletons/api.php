@@ -6,6 +6,8 @@ class MB_API {
     $this->query = new MB_API_Query();
     $this->introspector = new MB_API_Introspector();
     $this->response = new MB_API_Response();
+	$this->funx = new MB_API_Funx();
+	$this->themes = new MB_API_Themes();
 	
 	// Create the temp dir for building book packages
 	$uploads = wp_upload_dir();
@@ -16,11 +18,13 @@ class MB_API {
 	add_action('template_redirect', array(&$this, 'template_redirect'));
     add_action('admin_menu', array(&$this, 'admin_menu'));
     add_action('update_option_mb_api_base', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_mb_api_book_title', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_mb_api_book_author', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_mb_api_book_id', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_mb_api_book_publisher_id', array(&$this, 'flush_rewrite_rules'));
+    add_action('update_option_mb_api_book_title', array(&$this, 'flush_rewrite_rules'));
+    add_action('update_option_mb_api_book_author', array(&$this, 'flush_rewrite_rules'));
+    add_action('update_option_mb_api_book_id', array(&$this, 'flush_rewrite_rules'));
+    add_action('update_option_mb_api_book_theme_id', array(&$this, 'flush_rewrite_rules'));
+    add_action('update_option_mb_api_book_publisher_id', array(&$this, 'flush_rewrite_rules'));
     add_action('pre_update_option_mb_api_controllers', array(&$this, 'update_controllers'));
+    
   }
   
   function template_redirect() {
@@ -130,6 +134,9 @@ class MB_API {
       if (isset($_REQUEST['mb_api_book_id'])) {
         $this->save_option('mb_api_book_id', $_REQUEST['mb_api_book_id']);
       }
+      if (isset($_REQUEST['mb_api_book_theme_id'])) {
+        $this->save_option('mb_api_book_theme_id', $_REQUEST['mb_api_book_theme_id']);
+      }
       if (isset($_REQUEST['mb_api_book_publisher_id'])) {
         $this->save_option('mb_api_book_publisher_id', $_REQUEST['mb_api_book_publisher_id']);
       }
@@ -222,6 +229,7 @@ class MB_API {
         <?php } ?>
       </tbody>
     </table>
+    
     <?php $this->print_controller_actions('action2'); ?>
     <h3>Book Settings</h3>
     <p>Book settings.</p>
@@ -243,6 +251,16 @@ class MB_API {
         <td><input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', '123'); ?>" size="64" /></td>
       </tr>
     </table>
+
+    <h3>Theme</h3>
+    <p>Choose a theme for your book.</p>
+    <table class="form-table">
+      <tr valign="top">
+        <th scope="row">Theme</th>
+        <td><? echo $this->theme_popup_menu() ?> </td>
+      </tr>
+    </table>
+
 
     <h3>Address</h3>
     <p>Specify a base URL for MB API. For example, using <code>api</code> as your API base URL would enable the following <code><?php bloginfo('url'); ?>/api/get_recent_posts/</code>. If you assign a blank value the API will only be available by setting a <code>mb</code> query variable.</p>
@@ -410,6 +428,36 @@ class MB_API {
   function include_value($key) {
     return $this->response->is_value_included($key);
   }
+  
+  
+  function theme_popup_menu() {
+    $dir = mb_api_dir();
+	
+	// We want to minimize loading this...it can be slow.
+	$this->load_themes();
+	$values = $this->themes->themes_list;
+	
+	// Default theme is 1;
+	$checked = get_option('mb_api_book_theme_id', '1');
+	$listname = "mb_api_book_theme_id";
+	$sort = true;
+	$size = true;
+	$extrahtml = "";
+	$extraline = array();
+	
+	$menu = $this->funx->OptionListFromArray ($values, $listname, $checked, $sort, $size, $extrahtml, $extraline);
+
+	return $menu;
+
+  }
+  
+	function load_themes() {
+		$dir = mb_api_dir();
+		$themes_dir = "$dir/themes";
+		
+		$this->themes->LoadAllThemes ($themes_dir);
+	}
+
   
 }
 
