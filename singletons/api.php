@@ -18,13 +18,29 @@ class MB_API {
 	add_action('template_redirect', array(&$this, 'template_redirect'));
     add_action('admin_menu', array(&$this, 'admin_menu'));
     add_action('update_option_mb_api_base', array(&$this, 'flush_rewrite_rules'));
+    add_action('update_option_mb_api_book_info_post_id', array(&$this, 'flush_rewrite_rules'));
     add_action('update_option_mb_api_book_title', array(&$this, 'flush_rewrite_rules'));
     add_action('update_option_mb_api_book_author', array(&$this, 'flush_rewrite_rules'));
     add_action('update_option_mb_api_book_id', array(&$this, 'flush_rewrite_rules'));
     add_action('update_option_mb_api_book_theme_id', array(&$this, 'flush_rewrite_rules'));
     add_action('update_option_mb_api_book_publisher_id', array(&$this, 'flush_rewrite_rules'));
+    add_action('update_option_mb_api_book_icon', array(&$this, 'flush_rewrite_rules'));
+    add_action('update_option_mb_api_book_poster', array(&$this, 'flush_rewrite_rules'));
     add_action('pre_update_option_mb_api_controllers', array(&$this, 'update_controllers'));
-    
+
+	// Image uploading:
+	
+	add_action('admin_print_scripts', array(&$this, 'image_uploader_scripts'));
+	add_action('admin_print_styles', array(&$this, 'image_uploader_styles'));
+	
+	// Initialize Theme options
+	/*
+	add_action( 'after_setup_theme', array(&$this, 'wp_plugin_image_options_init'));
+	add_action( 'admin_init', array(&$this, 'wp_plugin_image_options_setup'));
+	add_action( 'admin_enqueue_scripts', array(&$this, 'wp_plugin_image_options_enqueue_scripts'));
+	add_action( 'admin_init', array(&$this, 'wp_plugin_image_options_settings_init'));
+	*/
+
   }
   
   function template_redirect() {
@@ -140,6 +156,12 @@ class MB_API {
       if (isset($_REQUEST['mb_api_book_publisher_id'])) {
         $this->save_option('mb_api_book_publisher_id', $_REQUEST['mb_api_book_publisher_id']);
       }
+      
+      print_r($_REQUEST);
+      
+      if (isset($_REQUEST['mb_api_book_info_post_id'])) {
+        $this->save_option('mb_api_book_info_post_id', $_REQUEST['mb_api_book_info_post_id']);
+      }
     }
     
     ?>
@@ -231,25 +253,58 @@ class MB_API {
     </table>
     
     <?php $this->print_controller_actions('action2'); ?>
+
+    <h3>Book Settings From Page</h3>
+    <p>Choose your book information page, where you have set the title, icons, etc.</p>
+    <table class="form-table">
+      <tr valign="top">
+        <th scope="row">Book Info Page:</th>
+        <td>
+			<?php $args = array(
+				'name' => 'mb_api_book_info_post_id', 
+				'selected' => get_option('mb_api_book_info_post_id') );
+			wp_dropdown_pages($args);
+			?>
+		</td>
+      </tr>
+    </table>
+
     <h3>Book Settings</h3>
     <p>Book settings.</p>
     <table class="form-table">
-      <tr valign="top">
-        <th scope="row">Title</th>
-        <td><input type="text" name="mb_api_book_title" value="<?php echo get_option('mb_api_book_title', 'Untitled'); ?>" size="64" /></td>
-      </tr>
-      <tr valign="top">
-        <th scope="row">Author(s)</th>
-        <td><input type="text" name="mb_api_book_author" value="<?php echo get_option('mb_api_book_author', 'Anonymous'); ?>" size="64" /></td>
-      </tr>
-      <tr valign="top">
-        <th scope="row">Book ID</th>
-        <td><input type="text" name="mb_api_book_id" value="<?php echo get_option('mb_api_book_id', "mb_".uniqid()); ?>" size="64" /></td>
-      </tr>
+    	<!--
+		<tr valign="top">
+		<th scope="row">Title</th>
+		<td><input type="text" name="mb_api_book_title" value="<?php echo get_option('mb_api_book_title', 'Untitled'); ?>" size="64" /></td>
+		</tr>
+		<tr valign="top">
+		<th scope="row">Author(s)</th>
+		<td><input type="text" name="mb_api_book_author" value="<?php echo get_option('mb_api_book_author', 'Anonymous'); ?>" size="64" /></td>
+		</tr>
+		<tr valign="top">
+		<th scope="row">Book ID</th>
+		<td><input type="text" name="mb_api_book_id" value="<?php echo get_option('mb_api_book_id', "mb_".uniqid()); ?>" size="64" /></td>
+		</tr>
+      -->
       <tr valign="top">
         <th scope="row">Publisher ID</th>
         <td><input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', '123'); ?>" size="64" /></td>
       </tr>
+
+	<!--
+      <tr valign="top">
+        <th scope="row">Icon</th>
+        <td>
+			<label for="upload_image">
+			<input id="upload_image" type="text" size="36" name="upload_image" value="" />
+			<input id="upload_image_button" type="button" value="Upload Image" />
+			<br />
+			Enter an URL or upload an image for the banner.
+			</label>
+		</td>
+      </tr>
+	-->
+	
     </table>
 
     <h3>Theme</h3>
@@ -458,7 +513,221 @@ class MB_API {
 		$this->themes->LoadAllThemes ($themes_dir);
 	}
 
-  
+
+/*
+ * ========== upload images to the plugin options ============
+ */
+ 
+ /*
+	 function wp_plugin_image_get_default_options() {
+		$options = array(
+			'logo' => ''
+		);
+		return $options;
+	}
+	
+	
+	function wp_plugin_image_options_init() {
+		 $wp_plugin_image_options = get_option( 'theme_wp_plugin_image_options' );
+		 
+		 // Are our options saved in the DB?
+		 if ( false === $wp_plugin_image_options ) {
+			  // If not, we'll save our default options
+			  $wp_plugin_image_options = wp_plugin_image_get_default_options();
+			  add_option( 'theme_wp_plugin_image_options', $wp_plugin_image_options );
+		 }
+		 
+		 // In other case we don't need to update the DB
+	}
+
+	function wp_plugin_image_options_setup() {
+		global $pagenow;
+		if ('media-upload.php' == $pagenow || 'async-upload.php' == $pagenow) {
+			// Now we'll replace the 'Insert into Post Button inside Thickbox' 
+			add_filter( 'gettext', 'replace_thickbox_text' , 1, 2 );
+		}
+	}
+ 
+
+	function replace_thickbox_text($translated_text, $text ) {	
+		if ( 'Insert into Post' == $text ) {
+			$referer = strpos( wp_get_referer(), 'wp_plugin_image-settings' );
+			if ( $referer != '' ) {
+				return __('I want this to be my logo!', 'wp_plugin_image' );
+			}
+		}
+	
+		return $translated_text;
+	}
+	
+	function wp_plugin_image_admin_options_page() {
+		?>
+			<!-- 'wrap','submit','icon32','button-primary' and 'button-secondary' are classes 
+			for a good WP Admin Panel viewing and are predefined by WP CSS -->
+			
+			
+			
+			<div class="wrap">
+				
+				<div id="icon-themes" class="icon32"><br /></div>
+			
+				<h2><?php _e( 'WP-MBs Options', 'wp_plugin_image' ); ?></h2>
+				
+				<!-- If we have any error by submiting the form, they will appear here -->
+				<?php settings_errors( 'wp_plugin_image-settings-errors' ); ?>
+				
+				<form id="form-wp_plugin_image-options" action="options.php" method="post" enctype="multipart/form-data">
+				
+					<?php
+						settings_fields('theme_wp_plugin_image_options');
+						do_settings_sections('wp_plugin_image');
+					?>
+				
+					<p class="submit">
+						<input name="theme_wp_plugin_image_options[submit]" id="submit_options_form" type="submit" class="button-primary" value="<?php esc_attr_e('Save Settings', 'wp_plugin_image'); ?>" />
+						<input name="theme_wp_plugin_image_options[reset]" type="submit" class="button-secondary" value="<?php esc_attr_e('Reset Defaults', 'wp_plugin_image'); ?>" />		
+					</p>
+				
+				</form>
+				
+			</div>
+		<?php
+	}
+	
+	function wp_plugin_image_options_validate( $input ) {
+		$default_options = wp_plugin_image_get_default_options();
+		$valid_input = $default_options;
+		
+		$wp_plugin_image_options = get_option('theme_wp_plugin_image_options');
+		
+		$submit = ! empty($input['submit']) ? true : false;
+		$reset = ! empty($input['reset']) ? true : false;
+		$delete_logo = ! empty($input['delete_logo']) ? true : false;
+		
+		if ( $submit ) {
+			if ( $wp_plugin_image_options['logo'] != $input['logo']  && $wp_plugin_image_options['logo'] != '' )
+				delete_image( $wp_plugin_image_options['logo'] );
+			
+			$valid_input['logo'] = $input['logo'];
+		}
+		elseif ( $reset ) {
+			delete_image( $wp_plugin_image_options['logo'] );
+			$valid_input['logo'] = $default_options['logo'];
+		}
+		elseif ( $delete_logo ) {
+			delete_image( $wp_plugin_image_options['logo'] );
+			$valid_input['logo'] = '';
+		}
+		
+		return $valid_input;
+	}
+	
+	function delete_image( $image_url ) {
+		global $wpdb;
+		
+		// We need to get the image's meta ID..
+		$query = "SELECT ID FROM wp_posts where guid = '" . esc_url($image_url) . "' AND post_type = 'attachment'";  
+		$results = $wpdb -> get_results($query);
+	
+		// And delete them (if more than one attachment is in the Library
+		foreach ( $results as $row ) {
+			wp_delete_attachment( $row -> ID );
+		}	
+	}
+	
+	// --------------- JAVASCRIPT ------------------
+	function wp_plugin_image_options_enqueue_scripts() {
+		wp_register_script( 'image_upload', get_template_directory_uri() .'/js/image_upload.js', array('jquery','media-upload','thickbox') );	
+	
+		if ( 'appearance_page_wp_plugin_image-settings' == get_current_screen() -> id ) {
+			wp_enqueue_script('jquery');
+			
+			wp_enqueue_script('thickbox');
+			wp_enqueue_style('thickbox');
+			
+			wp_enqueue_script('media-upload');
+			wp_enqueue_script('image_upload');
+			
+		}
+		
+	}
+
+
+	 function wp_plugin_image_options_settings_init() {
+		register_setting( 'theme_wp_plugin_image_options', 'theme_wp_plugin_image_options', 'wp_plugin_image_options_validate' );
+		
+		// Add a form section for the Logo
+		add_settings_section('wp_plugin_image_settings_header', __( 'Logo Options', 'wp_plugin_image' ), 'wp_plugin_image_settings_header_text', 'wp_plugin_image');
+		
+		// Add Logo uploader
+		add_settings_field('wp_plugin_image_setting_logo',  __( 'Logo', 'wp_plugin_image' ), 'wp_plugin_image_setting_logo', 'wp_plugin_image', 'wp_plugin_image_settings_header');
+		
+		// Add Current Image Preview 
+		add_settings_field('wp_plugin_image_setting_logo_preview',  __( 'Logo Preview', 'wp_plugin_image' ), 'wp_plugin_image_setting_logo_preview', 'wp_plugin_image', 'wp_plugin_image_settings_header');
+	}
+ 
+	function wp_plugin_image_setting_logo_preview() {
+		$wp_plugin_image_options = get_option( 'theme_wp_plugin_image_options' );  ?>
+		<div id="upload_logo_preview" style="min-height: 100px;">
+			<img style="max-width:100%;" src="<?php echo esc_url( $wp_plugin_image_options['logo'] ); ?>" />
+		</div>
+		<?php
+	}
+	
+	function wp_plugin_image_settings_header_text() {
+		?>
+			<p><?php _e( 'Manage Logo Options for Wp-MBs Theme.', 'wp_plugin_image' ); ?></p>
+		<?php
+	}
+	
+	function wp_plugin_image_setting_logo() {
+		$wp_plugin_image_options = get_option( 'theme_wp_plugin_image_options' );
+		?>
+			<input type="hidden" id="logo_url" name="theme_wp_plugin_image_options[logo]" value="<?php echo esc_url( $wp_plugin_image_options['logo'] ); ?>" />
+			<input id="upload_logo_button" type="button" class="button" value="<?php _e( 'Upload Logo', 'wp_plugin_image' ); ?>" />
+			<?php if ( '' != $wp_plugin_image_options['logo'] ): ?>
+				<input id="delete_logo_button" name="theme_wp_plugin_image_options[delete_logo]" type="submit" class="button" value="<?php _e( 'Delete Logo', 'wp_plugin_image' ); ?>" />
+			<?php endif; ?>
+			<span class="description"><?php _e('Upload an image for the banner.', 'wp_plugin_image' ); ?></span>
+		<?php
+	}
+
+
+	function wp_plugin_image_options_enqueue_scripts() {
+		wp_register_script( 'image_upload', get_template_directory_uri() .'/js/image_upload.js', array('jquery','media-upload','thickbox') );	
+	
+		if ( 'appearance_page_wp_plugin_image-settings' == get_current_screen() -> id ) {
+			wp_enqueue_script('jquery');
+			
+			wp_enqueue_script('thickbox');
+			wp_enqueue_style('thickbox');
+			
+			wp_enqueue_script('media-upload');
+			wp_enqueue_script('image_upload');
+			
+		}
+		
+	}
+*/
+
+	// ==================== easier uploader
+
+	function image_uploader_scripts() { 
+	
+		$dir = mb_api_dir();
+	
+		wp_enqueue_script('media-upload');
+		wp_enqueue_script('thickbox');
+		$url = plugins_url( 'js/image_upload.js', __FILE__ );
+		wp_register_script('image_upload', $url, array('jquery','media-upload','thickbox'));
+		wp_enqueue_script('image_upload');
+	}
+		
+	function image_uploader_styles() { 
+		wp_enqueue_style('thickbox');
+	} 
+
 }
+
 
 ?>

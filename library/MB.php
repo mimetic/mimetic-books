@@ -146,13 +146,29 @@ class Mimetic_Book
 	 * These files are: settings.xml, templates.xml, textstyles.txt
 	 * We should have multiple themes stored with this plugin, each of which has its styling files.
 	 */
-	public function get_theme_files($path)
+	public function get_theme_files()
 	{
 		$theme_id = $this->theme->id;
 		$path = $this->theme->path;
 		$this->dircopy($path, $this->build_files_dir);
 	}
 	
+
+	/*
+	 * Get copies of the promotional artwork, i.e. icon, poster
+	 * The URLs of these files is set by on the settings page or the book info page.
+	 */
+	public function get_book_promo_art($path)
+	{
+		$icon_url = $this->icon;
+		$poster_url = $this->poster;
+		if ($icon_url)
+			copy($icon_url, $this->build_files_dir.DIRECTORY_SEPARATOR.basename($icon_url));
+		if ($poster_url)
+			copy($poster_url, $this->build_files_dir.DIRECTORY_SEPARATOR.basename($poster_url));
+	}
+	
+
 	
 	// Delete a directory and files in it
 	private function delTree($dir) 
@@ -531,6 +547,7 @@ class Mimetic_Book
 				$attributes[$attr->name] = $attr->nodeValue;
 			}
 			$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
+			$attributes['id'] = $id;
 			$page_elements[0+$id] = $attributes;
 		}
 

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<settings>
+
+	<comments>
+		USER SETTINGS
+		  
+		Date formatting:
+		http://www.lua.org/pil/22.1.html
+	</comments>
+
+	<class value="app">
+		<developing value="false" />
+		<draggableButtons value="false" />
+		<doNotUseInternet value="true" />
+		<developingShowGuides value="false" />
+
+		<checkForMissingFiles value="false" />
+		<buildImageSizeFile value="false" />
+
+		<iap value="false" />
+		<lookForThumbnails value="true" />
+
+		<statusBarOnStartup value="false" />
+		<pagetext>Page</pagetext>
+		<targetDeviceScreenSize value="1024,768" alt="480,320" />
+
+		<usingFaceBook value="true" />
+		<usingTwitter value="true" />
+		
+		<playIntro value="false" alt="start" alt="open" alt2="start" />
+
+		<fadeInOnResume value="true" />
+		
+		<adjustFontsToBaseline value="true" />
+
+	</class>
+
+	<class value="slideview">
+
+		</class>
+	
+
+
+	<class value="facebook">
+		<appId value="445678462132114" />
+		<apiKey value="e94af31319ca48bb1bfbf7b712ae260e" />
+		<postPictureMethod value="post" alt="upload" />
+		<picturesBaseURL value="http://www.mimetic.com/ebookimages/facebook_images/russian-ca/" />
+		<name>{booktitle} by {bookauthor}</name>
+		<caption>See {booktitle}{ in the iTunes App Store.</caption>
+		<captionlink>http://itunes.apple.com/us/app/russian-ca/id547135651?ls=1&mt=8</captionlink>
+		<link>http://itunes.apple.com/us/app/russian-ca/id547135651?ls=1&mt=8</link>
+		<descriptionPicturePage>
+		{caption}
+		</descriptionPicturePage>
+		<descriptionNoPicture>
+		I like page {pagenumber} of chapter {chapternumber}!
+		</descriptionNoPicture>
+		<footer>More Info</footer>
+		<footerlink>http://itunes.apple.com/us/app/russian-ca/id547135651?ls=1&mt=8</footerlink>
+		<postPostPhotoToFacebookMsg>Photo posted to Facebook.</postPostPhotoToFacebookMsg>
+
+		<facebookLogoutMsg>Logged out of Facebook.</facebookLogoutMsg>
+	</class>
+	
+	<class value="twitter">
+		<consumerkey value="sxq3zxtSQ8oLwJ5rDPwifA" />
+		<consumersecret value="WrwPZacXQfQHrdJ7bdO6ZONwc943pXFi2iBZa0M6BZc" />
+		<authorizeurl value="http://api.twitter.com/oauth/authorize" />
+		<requesttokenurl value="http://api.twitter.com/oauth/request_token" />
+		<accesstokenurl value="http://api.twitter.com/oauth/access_token" />
+		<tokenreadyurl value="http://www.mimetic.com/" />
+
+
+		<testaccesstoken value="337928080-Irsx1zguPH6ysNlZ32S4qsikDqLAiuy37we3V2Jv" />
+		<testaccesstokensecret value="0h4vlDR1hFSRxiscU2KxaFRvgi683gj6LlYwiWYS2M" />
+
+		<Xtestaccesstoken value="337928080-wZ4ORdPD7yRDYDZ925SQGimnZUxBbaNs90euyVU2" />
+		<Xtestaccesstokensecret value="b80O98ak9gHfwFtFBt03ssVmyTBup65huIdsuCPOEmM" />
+
+		<Xconsumerkey value="OEYHEmbXkvojmP17IwqfxQ" />
+		<Xconsumersecret value="j9E3WaJcM0DNsqAyvEQqePnOVDJrCj2rAJc6KsMG8s" />
+
+		<tinyurl>http://tinyurl.com/cff5ctu</tinyurl>
+		<tweet>likes p.{pagenumberInBook} of {booktitle}! Go check it out at {tinyurl}</tweet>
+		<hashtags>russia,california,fort ross,ebook</hashtags>
+		
+		
+		<postTweetMsg>Tweet Sent.</postTweetMsg>
+		<twitterLogoutMsg>Logged out of Twitter.</twitterLogoutMsg>
+	</class>
+</settings>

@@ -2,23 +2,6 @@
 
 class MB_API_Introspector {
 
-/*
- * Mimetic Books functions
- *
- */
-	public function mb_do_something($query = false, $wp_posts = false) {
-		$dir = mb_api_dir();
-		require_once "$dir/library/MB.php";
-		return array ( "cows" => "moo"  );
-	}
-	
-	
-	
-/*
- * JSON-API FUNCTIONS....
- *
- */
-	
 	public function get_posts($query = false, $wp_posts = false) {
 		global $post;
 		$this->set_posts_query($query);

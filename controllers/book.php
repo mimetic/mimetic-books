@@ -44,13 +44,16 @@ We use some of the WP fields for our own purposes:
 		$book_id = get_option('mb_api_book_id', "mb_".uniqid() );
 		$publisher_id = get_option('mb_api_book_publisher_id', '?');
 		*/
-		list($book_id, $title, $author, $theme, $publisher_id) = $this->get_book_info();
+		list($book_id, $title, $author, $theme, $publisher_id, $icon_url, $poster_url) = $this->get_book_info_from_page();
 
 		
 		// Create a new book object
 		$options = array ('tempDir' => $mb_api->tempDir);
 		$mb = new Mimetic_Book($book_id, $title, $author, $publisher_id, $theme, $options);
 		
+		// Add in promotional art URLs
+		$mb->icon = $icon_url;
+		$mb->poster = $poster_url;
 		
 		extract($mb_api->query->get(array('category_id', 'category_slug' )));
 		if ($category_id) {
@@ -100,13 +103,16 @@ We use some of the WP fields for our own purposes:
 		$build_files_dir = $mb->build_files_dir;
 		
 		$theme_id = $mb->book['theme_id'];
-		$mb->get_theme_files( $theme_id , $build_files_dir );
+		$mb->get_theme_files();
 		
 		// Write the XML to the book.xml file.
 		$xml = $mb->book_to_xml();
 		$filename = "book.xml";
 		file_put_contents ( $build_files_dir.DIRECTORY_SEPARATOR.$filename , $xml, LOCK_EX );		
 
+		// Copy the book promo art, i.e. icon and poster files, based on the book info.
+		$mb->get_book_promo_art( $build_files_dir);
+		
 		// Build the tar file from the files, ready for sending.
 		//$success = $mb_api->funx->tar_dir($mb->tempDir, "{$mb->id}.tar");
 		$tarfilename = "$build_dir{$mb->id}.tar";
@@ -117,7 +123,13 @@ We use some of the WP fields for our own purposes:
 			$mb_api->error("$e: Unable to create tar file: $tarfilename");
 		}
 		
-		// Do something with the tar file package
+		// Do something with the tar file package:
+		// Move to the book packages folder.
+		// Attach the tar file to the book info page
+		
+		
+		// Submit it to the library distribution site?
+		
 		
 		// Delete the build files
 		//$mb->cleanup();
@@ -140,7 +152,7 @@ We use some of the WP fields for our own purposes:
 	 * get_book_info
 	 * Return an array of the book settings from the plugin
 	 * settings page:
-	 * $book_id, $title, $author, $publisher_id
+	 * Returns: $book_id, $title, $author, $book_id, $theme_id, $theme (array), $publisher_id
 	 */
 	public function get_book_info() {
 		global $mb_api;
@@ -163,6 +175,102 @@ We use some of the WP fields for our own purposes:
 	
 
 	/*
+	 * get_book_info_from_page
+	 * Return an array of the book settings from a page (or post)
+	 * Example using API:
+	 * http://localhost/photobook/wordpress/mb/book/get_post/?dev=1&slug=my-new-book-page&post_type=page
+	 * Returns: $book_id, $title, $author, $book_id, $theme_id, $theme (array), $publisher_id
+	 */
+	public function get_book_info_from_page() {
+		global $mb_api;
+
+		extract($mb_api->query->get(array('id', 'slug', 'post_type')));
+		
+		// If no id/slug specified, use the setting on the settings page (not post!)
+		if (!($id or $slug)) {
+			$page_id = get_option('mb_api_book_info_post_id');
+			$response = $mb_api->introspector->get_posts(array(
+				'page_id' => $page_id,
+				'post_type' => 'page',
+				'pagename' => $slug
+			));
+			$post = $response[0];
+		} else {
+			if ($post_type != "page") {
+				$response = $this->get_post();
+				$post = $response['post'];
+			} else {
+				$response = $this->get_page();
+				$post = $response['page'];
+			}
+	
+			if (!$response) {
+				$mb_api->error("Not found.");
+			}
+		}
+		
+		
+		// Get custom fields
+		$custom_fields = get_post_custom($post->id);
+		//print_r($custom_fields);
+		
+		if (isset($custom_fields['book_id']) && $custom_fields['book_id']) {
+			$book_id = $custom_fields['book_id'][0];
+		} else {
+			$book_id = $post->slug;
+		}
+
+		$title = $post->title_plain;
+		$author = join (" ", array ($post->author->first_name, $post->author->last_name));
+		
+		// Theme is set with a custom field, or taken from the settings page, or is the default theme.
+		// default theme is 0, I think.
+		if (isset($custom_fields['theme_id']) && $custom_fields['theme_id']) {
+			$theme_id =  $custom_fields['theme_id'];
+		} else {
+			$theme_id = (string)get_option('mb_api_book_theme', 1);
+			$theme_id || $theme_id = "0";
+		}
+			
+		// We want to minimize loading this...it can be slow.
+		if (!$mb_api->themes->themes) {
+			$mb_api->load_themes();
+		}
+		$theme = $mb_api->themes->themes[$theme_id];
+		
+		// Publisher still comes from either the page or the plugin settings page.
+		if (isset($custom_fields['publisher_id']) && isset($custom_fields['publisher_id'][0]) && $custom_fields['publisher_id'][0]) {
+			$publisher_id = $custom_fields['publisher_id'][0];
+		} else {
+			$publisher_id = (string)get_option('mb_api_book_publisher_id', '?');
+		}
+		
+		// Use the post thumbnail as the icon. It will be small, so it won't get
+		// cropped by the theme. A large file is cropped to fit the header...not good for us.
+		$t = wp_get_attachment_image_src( get_post_thumbnail_id( $post->id, 'full'));
+		
+		if ($t) {
+			$icon_url = $t[0];
+		} else {
+			$icon_url = '';
+		}
+		
+		// Get the poster from the post text itself.
+		$attr = $this->get_embedded_element_attributes($post, $element_type="img");
+		if ($attr) {
+			$firstpic = array_pop($attr);
+			$firstpic_id = $firstpic['id'];
+			$poster = wp_get_attachment_image_src($firstpic_id, 'full');
+			$poster_url = $poster[0];
+		} else {
+			$poster_url = "";
+		}
+		
+		return array ($book_id, $title, $author, $theme, $publisher_id, $icon_url, $poster_url);
+	}
+	
+
+	/*
 	 * get_book
 	 * Given an id or slug for a Wordpress category, fetch a MB book object containing
 	 * the posts whose categories match, or are children.
@@ -179,7 +287,7 @@ We use some of the WP fields for our own purposes:
 		$book_category = $mb_api->introspector->get_category_by_id($book_cat_id);
 		
 		
-		$info = $this->get_book_info();
+		$info = $this->get_book_info_from_page();
 		//list($book_id, $title, $author, $publisher_id) = $info;
 		$book_chapters = $this->get_book_chapters($book_category->id);
 		$book = array (
@@ -660,6 +768,55 @@ We use some of the WP fields for our own purposes:
 			'posts' => $posts
 		);
 	}
+
+
+
+	/*
+	 * Read the HTML of the post text and figure out neat stuff from it about
+	 * embedded elements, such as height/width of the embedded image.
+	 * It seems that just getting the attachment info won't get us here.
+	*/
+	protected function get_embedded_element_attributes($wp_page, $element_type="img") {
+		$text = $wp_page->content;
+		
+		// Use PHP XML/HTML extract functionality!
+		$doc = new DOMDocument();
+		$doc->loadHTML($text);
+		
+		$page_elements = array();
+		
+		// Get all elements in the HTML
+		foreach ($doc->getElementsbytagname($element_type) as $node) {
+			/*
+			//$item = $doc->saveHTML($node);
+			$element = array();
+			$element['name'] = $node->nodeName;
+			$element['value'] = $node->nodeValue;
+			$element['type'] = $node->nodeType;
+			$attributes = array();
+			foreach ($node->attributes as $attr) {
+				$attributes[$attr->name] = $attr->nodeValue;
+			}
+			$element['attributes'] = $attributes;
+			$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
+			$page_elements[$id] = $element;
+			 */
+			$attributes = array();
+			foreach ($node->attributes as $attr) {
+				$attributes[$attr->name] = $attr->nodeValue;
+			}
+			$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
+			$attributes['id'] = $id;
+			$page_elements[0+$id] = $attributes;
+		}
+
+		// Now, gather them into MB format 
+		// img ---> picture
+		
+		//print_r($page_elements);
+		return $page_elements;
+	}
+
 	
 }
 
