@@ -118,21 +118,32 @@ class Mimetic_Book
     *                                   bubble up with an error, so all return values
     *                                   from encode() should be checked with isError()
     */
-    function Mimetic_Book($id, $title, $author, $publisher_id, $theme, $options = array() )
+    function Mimetic_Book($book_info, $options = array() )
     {
 
-    	$this->id = ($id ? $id : "mb_".uniqid() );
-    	$this->title = ($title ? $title : "Untitled");
-    	$this->author = ($author ? $author : "Anonymous");
-    	$this->publisher_id = $publisher_id;
-		$this->theme = $theme;
-		$this->book = array();
+    	$this->id = ($book_info['id'] ? $book_info['id'] : "mb_".uniqid() );
+    	$this->title = ($book_info['title'] ? $book_info['title'] : "Untitled");
+    	$this->author = ($book_info['author'] ? $book_info['author'] : "Anonymous");
+    	$this->publisher_id = $book_info['publisher_id'];
+		$this->theme = $book_info['theme'];
+		$this->theme_id = $this->theme->id;
+		$this->icon = $book_info['icon_url'];
+		$this->poster = $book_info['poster_url'];
+		$this->type = $book_info['type'];
+		$this->description = $book_info['description'];
+		$this->short_description = $book_info['short_description'];
+		$this->modified = $book_info['modified'];
 		
-		$this->book['title'] = ($title ? $title : "Untitled");
-    	$this->book['uniqueid'] = (string) ($id ? $id : "mb_".uniqid() );
-    	$this->book['author'] = ($author ? $author : "Anonymous");
-    	$this->book['publisher_id'] = $publisher_id;
-		$this->book['theme_id'] = $theme->id;
+		$this->date = substr($book_info['datetime'], 0, 10);
+		$this->datetime = $book_info['datetime'];
+		$this->modified = $book_info['modified'];
+		
+		$this->book = array();
+		$this->book['title'] = $this->title;
+    	$this->book['uniqueid'] = $this->id;
+    	$this->book['author'] = $this->author;
+    	$this->book['publisher_id'] = $this->publisher_id;
+		$this->book['theme_id'] = $this->theme_id;
 		
         $this->options = $options;
 		
@@ -169,7 +180,6 @@ class Mimetic_Book
 	}
 	
 
-	
 	// Delete a directory and files in it
 	private function delTree($dir) 
 	{

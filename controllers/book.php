@@ -32,7 +32,7 @@ We use some of the WP fields for our own purposes:
 */
 	
 	
-	public function build_book() {
+	protected function build_book() {
 		global $mb_api;
 		
 		$dir = mb_api_dir();
@@ -44,17 +44,18 @@ We use some of the WP fields for our own purposes:
 		$book_id = get_option('mb_api_book_id', "mb_".uniqid() );
 		$publisher_id = get_option('mb_api_book_publisher_id', '?');
 		*/
-		list($book_id, $title, $author, $theme, $publisher_id, $icon_url, $poster_url) = $this->get_book_info_from_page();
+		$book_info = $this->get_book_info_from_page();
 
-		
 		// Create a new book object
 		$options = array ('tempDir' => $mb_api->tempDir);
-		$mb = new Mimetic_Book($book_id, $title, $author, $publisher_id, $theme, $options);
-		
-		// Add in promotional art URLs
-		$mb->icon = $icon_url;
-		$mb->poster = $poster_url;
-		
+		$params = array (
+			'book_id'			=> $book_info['id'],
+			'title'				=> $book_info['title'],
+			'author'			=> $book_info['author'],
+			'publisher_id'		=> $book_info['publisher_id'],
+			'theme'				=> $book_info['theme']
+			);
+
 		extract($mb_api->query->get(array('category_id', 'category_slug' )));
 		if ($category_id) {
 			$book_category = $mb_api->introspector->get_category_by_id($category_id);
@@ -62,9 +63,10 @@ We use some of the WP fields for our own purposes:
 			$book_category = $mb_api->introspector->get_category_by_slug($category_slug);
 		} else {
 			$mb_api->error("Include 'category_id' or 'category_slug' var in your request.");
-			return;
 		}
-	
+
+		$mb = new Mimetic_Book($book_info, $options);
+		
 		// get the array of wp chapters using id or slug of the book category
 		$book = $this->get_book($book_category->id);
 		
@@ -74,9 +76,6 @@ We use some of the WP fields for our own purposes:
 			$mb->convert_chapter($chapter);
 		}
 		
-		//Remove MB temp directory
-		//$mb->cleanup();
-
 		// Return the book object
 		return $mb;
 	}
@@ -85,6 +84,8 @@ We use some of the WP fields for our own purposes:
 	
 	/*
 	 * Convert blog posts to a complete book package.
+	 * Writes a .tar file into the packages folder in the uploads dir.
+	 * Clears out the build files in the build dir.
 	 * Looks for the theme in the book settings
 	 */
 	public function build_book_package() {
@@ -98,7 +99,7 @@ We use some of the WP fields for our own purposes:
 			$mb_api->load_themes();
 		}
 		
-		// Set build directory
+		// Set build and package directories
 		$build_dir = $mb->build_dir;
 		$build_files_dir = $mb->build_files_dir;
 		
@@ -113,36 +114,81 @@ We use some of the WP fields for our own purposes:
 		// Copy the book promo art, i.e. icon and poster files, based on the book info.
 		$mb->get_book_promo_art( $build_files_dir);
 		
+		$this->write_book_info_file($mb);
+		
 		// Build the tar file from the files, ready for sending.
 		//$success = $mb_api->funx->tar_dir($mb->tempDir, "{$mb->id}.tar");
-		$tarfilename = "$build_dir{$mb->id}.tar";
+		$tarfilename = $mb_api->package_dir . DIRECTORY_SEPARATOR . $mb->id . ".tar";
+		
+		// Delete previous version of the package
+		if (file_exists($tarfilename))
+			unlink ($tarfilename);
+		
+		// Build the tar file package in the packages folder.
 		try {
-			$tarfile = new PharData("$build_dir{$mb->id}.tar");
+			$tarfile = new PharData($tarfilename);
 			$tarfile->buildFromDirectory($build_files_dir);
 		} catch (Exception $e) {
 			$mb_api->error("$e: Unable to create tar file: $tarfilename");
 		}
 		
-		// Do something with the tar file package:
-		// Move to the book packages folder.
-		// Attach the tar file to the book info page
-		
-		
 		// Submit it to the library distribution site?
 		
 		
 		// Delete the build files
-		//$mb->cleanup();
-
+		$mb->cleanup();
+		
+		return true;
 	}
 	
+
+
+	/*
+	 * Write Book description file
+	 * This is a json file, "item.json", used by the reader to learn about the package
+	 */
+	protected function write_book_info_file($book_obj = null) {
+		global $mb_api;
+		
+		if ($book_obj) {
+			$info = array (
+				'type'					=> $book_obj->type,
+				'id'					=> $book_obj->id,
+				'title'					=> $book_obj->title,
+				'description'			=> $book_obj->description,
+				'shortDescription'		=> $book_obj->short_description,
+				'author'				=> $book_obj->author,
+				'date'					=> $book_obj->date,
+				'datetime'				=> $book_obj->datetime,
+				'modificationDate'		=> $book_obj->modified
+			);
+			
+			$output = json_encode($info);
+	
+			$fn = $book_obj->build_files_dir . DIRECTORY_SEPARATOR . "item.json";
+			
+			// Delete previous version of the package
+			if (file_exists($fn))
+				unlink ($fn);
+	
+			file_put_contents ($fn, $output, LOCK_EX);
+		} else {
+			$mb_api->error(__FUNCTION__.": No book object passed.");
+			return false;
+		}
+		
+	}
+	
+	
+
 
 	/*
 	 * Send a converted tar file book to somewhere.
 	 * We build locally and send to a central library, right?
 	 */
 	public function send_book_package() {
-
+		global $mb_api;
+		
 		
 		
 	}
@@ -154,6 +200,7 @@ We use some of the WP fields for our own purposes:
 	 * settings page:
 	 * Returns: $book_id, $title, $author, $book_id, $theme_id, $theme (array), $publisher_id
 	 */
+	 /*
 	public function get_book_info() {
 		global $mb_api;
 
@@ -170,8 +217,24 @@ We use some of the WP fields for our own purposes:
 		
 		$publisher_id = (string)get_option('mb_api_book_publisher_id', '?');
 		
-		return array ($book_id, $title, $author, $theme, $publisher_id);
+		$result = array (
+			'id'			=> $book_id, 
+			'title'			=> $title, 
+			'author'		=> $author, 
+			'theme'			=> $theme, 
+			'publisher_id'	=> $publisher_id,  
+			'description'	=> $description, 
+			'short_description'		=> $short_description, 
+			'type'			=> $type, 
+			'date'			=> $post->date, 
+			'modified'		=> $post->modified, 
+			'icon_url'		=> $icon_url, 
+			'poster_url'	=> $poster_url
+			);
+
+		return $result;
 	}
+	*/
 	
 
 	/*
@@ -206,6 +269,7 @@ We use some of the WP fields for our own purposes:
 	
 			if (!$response) {
 				$mb_api->error("Not found.");
+				return false;
 			}
 		}
 		
@@ -214,10 +278,13 @@ We use some of the WP fields for our own purposes:
 		$custom_fields = get_post_custom($post->id);
 		//print_r($custom_fields);
 		
-		if (isset($custom_fields['book_id']) && $custom_fields['book_id']) {
-			$book_id = $custom_fields['book_id'][0];
-		} else {
+		if (isset($custom_fields['mb_book_id']) && $custom_fields['mb_book_id']) {
+			$book_id = $custom_fields['mb_book_id'][0];
+		} elseif (isset($post->slug)) {
 			$book_id = $post->slug;
+		} else {
+			$book_id = "mb_".uniqid();
+			add_post_meta( $post->id, 'mb_book_id', $book_id );
 		}
 
 		$title = $post->title_plain;
@@ -225,8 +292,8 @@ We use some of the WP fields for our own purposes:
 		
 		// Theme is set with a custom field, or taken from the settings page, or is the default theme.
 		// default theme is 0, I think.
-		if (isset($custom_fields['theme_id']) && $custom_fields['theme_id']) {
-			$theme_id =  $custom_fields['theme_id'];
+		if (isset($custom_fields['mb_theme_id']) && $custom_fields['mb_theme_id']) {
+			$theme_id =  $custom_fields['mb_theme_id'];
 		} else {
 			$theme_id = (string)get_option('mb_api_book_theme', 1);
 			$theme_id || $theme_id = "0";
@@ -239,12 +306,26 @@ We use some of the WP fields for our own purposes:
 		$theme = $mb_api->themes->themes[$theme_id];
 		
 		// Publisher still comes from either the page or the plugin settings page.
-		if (isset($custom_fields['publisher_id']) && isset($custom_fields['publisher_id'][0]) && $custom_fields['publisher_id'][0]) {
-			$publisher_id = $custom_fields['publisher_id'][0];
+		if (isset($custom_fields['mb_publisher_id']) && isset($custom_fields['mb_publisher_id'][0]) && $custom_fields['mb_publisher_id'][0]) {
+			$publisher_id = $custom_fields['mb_publisher_id'][0];
 		} else {
 			$publisher_id = (string)get_option('mb_api_book_publisher_id', '?');
 		}
 		
+		 //$description, $short_description, $type
+		 $description = $post->content;
+		 // remove images and links from the content
+		 $description = preg_replace ("/<img.*?\>/","",  $description);
+		 $description = preg_replace ("/<\/?a.*?\>/","",  $description);
+
+		 $short_description = $post->excerpt;
+		 
+		if (isset($custom_fields['mb_publication_type']) && $custom_fields['mb_publication_type']) {
+			$type = $custom_fields['mb_publication_type'][0];
+		} else {
+			$type = "book";
+		}
+
 		// Use the post thumbnail as the icon. It will be small, so it won't get
 		// cropped by the theme. A large file is cropped to fit the header...not good for us.
 		$t = wp_get_attachment_image_src( get_post_thumbnail_id( $post->id, 'full'));
@@ -266,7 +347,22 @@ We use some of the WP fields for our own purposes:
 			$poster_url = "";
 		}
 		
-		return array ($book_id, $title, $author, $theme, $publisher_id, $icon_url, $poster_url);
+		$result = array (
+			'id'		=> $book_id, 
+			'title'			=> $title, 
+			'author'		=> $author, 
+			'theme'			=> $theme, 
+			'publisher_id'	=> $publisher_id,  
+			'description'	=> $description, 
+			'short_description'		=> $short_description, 
+			'type'			=> $type, 
+			'datetime'		=> $post->date, 
+			'modified'		=> $post->modified, 
+			'icon_url'		=> $icon_url, 
+			'poster_url'	=> $poster_url
+			);
+		
+		return $result;
 	}
 	
 
@@ -280,7 +376,7 @@ We use some of the WP fields for our own purposes:
 	 *		$info = array ($id, $title, $author, $publisher_id)
 	 *		$chapters = array ($chapter1, $chapter2, ...)
 	 */
-	public function get_book($book_cat_id) {
+	protected function get_book($book_cat_id) {
 		global $mb_api;
 		
 		// Get the wp category object by id or slug

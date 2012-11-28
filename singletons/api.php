@@ -15,6 +15,12 @@ class MB_API {
 	if(! is_dir($this->tempDir))
 		mkdir($this->tempDir);
 
+	// Create the dir for holding book packages
+	$uploads = wp_upload_dir();
+	$this->package_dir = $uploads['basedir'] . DIRECTORY_SEPARATOR . 'mb-book-packages';
+	if(! is_dir($this->package_dir))
+		mkdir($this->package_dir);
+
 	add_action('template_redirect', array(&$this, 'template_redirect'));
     add_action('admin_menu', array(&$this, 'admin_menu'));
     add_action('update_option_mb_api_base', array(&$this, 'flush_rewrite_rules'));
@@ -40,9 +46,15 @@ class MB_API {
 	add_action( 'admin_enqueue_scripts', array(&$this, 'wp_plugin_image_options_enqueue_scripts'));
 	add_action( 'admin_init', array(&$this, 'wp_plugin_image_options_settings_init'));
 	*/
+	
+	// Remove filters for excerpts which usually add a "read more" or something like that.
+	//remove_filter( 'get_the_excerpt', 'twentyeleven_custom_excerpt_more' );
+	remove_all_filters( 'get_the_excerpt' );
 
+	
   }
   
+
   function template_redirect() {
     // Check to see if there's an appropriate API controller + method    
     $controller = strtolower($this->query->get_controller());
@@ -727,7 +739,8 @@ class MB_API {
 		wp_enqueue_style('thickbox');
 	} 
 
-}
 
+
+}
 
 ?>
