@@ -35,6 +35,10 @@ We use some of the WP fields for our own purposes:
 	protected function build_book() {
 		global $mb_api;
 		
+	   if (! $this->confirm_auth() ) {
+		return false;
+	   }
+    
 		$dir = mb_api_dir();
 		require_once "$dir/library/MB.php";
 		
@@ -91,6 +95,10 @@ We use some of the WP fields for our own purposes:
 	public function build_book_package() {
 		global $mb_api;
 		
+	   if (! $this->confirm_auth() ) {
+		return false;
+	   }
+    
 		// Build the book object from the posts
 		$mb = $this->build_book();
 		
@@ -183,15 +191,96 @@ We use some of the WP fields for our own purposes:
 
 
 	/*
-	 * Send a converted tar file book to somewhere.
-	 * We build locally and send to a central library, right?
+	 * Get a converted tar file book from a client site. 
+	 * This probably works best with a POST, not a GET!
+	 * testing: http://localhost/photobook/wordpress/mb/book/receive_book_package_from_client/?dev=1&id=123456&u=user&p=pass&f=(filedata)
 	 */
-	public function send_book_package() {
+	public function receive_book_package_from_client() {
 		global $mb_api;
 		
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
+		// Get book ID, username, password
+		extract($mb_api->query->get(array('id', 'u', 'p', 'f')));
 		
+		if (!$id || !$u || !$p || !$f) {
+			$mb_api->error(__FUNCTION__.": Request must includer book id, username, password, and file data.");
+		}
+		
+		$pkg = base64_decode($f);
+		
+		// Make a dir to hold the book package
+		$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $id;
+		if(! is_dir($dir))
+			mkdir($dir);
+
+		// Overwrite any existing file without asking
+		$filename = $dir . DIRECTORY_SEPARATOR . "item.tar";
+		$handle = fopen($filename,"w+"); 
+		if(!fwrite($handle,$pkg)) { 
+			$mb_api->error(__FUNCTION__.": Could not write the file, $filename.");
+		}
+		
+		// Extract the icon, poster, and json files
+		try {
+			$phar = new PharData($filename);
+			$phar->extractTo($dir, array('icon.png', 'poster.jpg', 'item.json'), true);
+		} catch (Exception $e) {
+			// handle errors
+			$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item.");
+		}
+		
+		// Create or Update a post entry in the Wordpress for this book!
+		// First, look for an existing entry with this ID
 		
 	}
+	
+	
+	
+	/*
+	 * Send a converted tar file book from a client site. 
+	 * testing: http://localhost/photobook/wordpress/mb/book/send_book_package/?dev=1&id=123456
+	 */
+	public function send_book_package( ) {
+		global $mb_api;
+		
+		// Get book ID, username, password
+		extract($mb_api->query->get(array('id')));
+
+		if (!$id) {
+			$mb_api->error(__FUNCTION__.": No book object passed to this function.");
+		}
+		
+		$url = $mb_api->settings['distribution_url'] . "mb/book/receive_book_package_from_client/";
+		
+		$publisher_id = (string)get_option('mb_api_book_publisher_id', '?');
+		$p = "password";
+		
+		$_POST['id'] = $id;
+		$_POST['u'] = $publisher_id;
+		$_POST['p'] = $p;
+
+		$localfile = $mb_api->package_dir . DIRECTORY_SEPARATOR . "$id.tar";
+		$transFile = chunk_split(base64_encode(file_get_contents($localfile))); 
+		$_POST['f'] = $transFile ;
+		
+
+		$ch = curl_init($url); 
+		curl_setopt($ch, CURLOPT_HEADER, 0); 
+		curl_setopt($ch, CURLOPT_POST, 0); 
+		curl_setopt ($ch, CURLOPT_POSTFIELDS, $_POST);	
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+
+		$output = curl_exec($ch); 
+		curl_close($ch); 
+		return $output; 
+	} 
+
+	
+	
+	
 	
 	
 	/*
@@ -246,6 +335,10 @@ We use some of the WP fields for our own purposes:
 	 */
 	public function get_book_info_from_page() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
 
 		extract($mb_api->query->get(array('id', 'slug', 'post_type')));
 		
@@ -462,6 +555,9 @@ We use some of the WP fields for our own purposes:
 	public function build() {
 		global $mb_api;
 
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
 
 		extract($mb_api->query->get(array('id', 'slug', 'post_id', 'post_slug', 'category_id', 'category_slug', 'category_id_and', 'category_slug_and')));
 		if ($id || $post_id) {
@@ -526,6 +622,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function info() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$php = '';
 		if (!empty($mb_api->query->controller)) {
 			return $mb_api->controller_info($mb_api->query->controller);
@@ -556,12 +657,22 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_recent_posts() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$posts = $mb_api->introspector->get_posts();
 		return $this->posts_result($posts);
 	}
 	
 	public function get_post() {
 		global $mb_api, $post;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		extract($mb_api->query->get(array('id', 'slug', 'post_id', 'post_slug')));
 		if ($id || $post_id) {
 			if (!$id) {
@@ -602,6 +713,11 @@ We use some of the WP fields for our own purposes:
 
 	public function get_page() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		extract($mb_api->query->get(array('id', 'slug', 'page_id', 'page_slug', 'children')));
 		if ($id || $page_id) {
 			if (!$id) {
@@ -650,6 +766,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_date_posts() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		if ($mb_api->query->date) {
 			$date = preg_replace('/\D/', '', $mb_api->query->date);
 			if (!preg_match('/^\d{4}(\d{2})?(\d{2})?$/', $date)) {
@@ -671,6 +792,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_category_posts() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$category = $mb_api->introspector->get_current_category();
 		if (!$category) {
 			$mb_api->error("Not found.");
@@ -683,6 +809,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_tag_posts() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$tag = $mb_api->introspector->get_current_tag();
 		if (!$tag) {
 			$mb_api->error("Not found.");
@@ -695,6 +826,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_author_posts() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$author = $mb_api->introspector->get_current_author();
 		if (!$author) {
 			$mb_api->error("Not found.");
@@ -707,6 +843,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_search_results() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		if ($mb_api->query->search) {
 			$posts = $mb_api->introspector->get_posts(array(
 				's' => $mb_api->query->search
@@ -719,6 +860,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_date_index() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$permalinks = $mb_api->introspector->get_date_archive_permalinks();
 		$tree = $mb_api->introspector->get_date_archive_tree($permalinks);
 		return array(
@@ -729,6 +875,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_category_index($key) {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$categories = $mb_api->introspector->get_categories($key);
 		return array(
 			'count' => count($categories),
@@ -738,6 +889,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_category_index_by_id() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$categories = $mb_api->introspector->get_categories("id");
 		return array(
 			'count' => count($categories),
@@ -747,6 +903,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_category_index_by_slug() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$categories = $mb_api->introspector->get_categories("slug");
 		return array(
 			'count' => count($categories),
@@ -756,6 +917,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_tag_index() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$tags = $mb_api->introspector->get_tags();
 		return array(
 			'count' => count($tags),
@@ -765,6 +931,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_author_index() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$authors = $mb_api->introspector->get_authors();
 		return array(
 			'count' => count($authors),
@@ -774,6 +945,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_page_index() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		$pages = array();
 		// Thanks to blinder for the fix!
 		$numberposts = empty($mb_api->query->count) ? -1 : $mb_api->query->count;
@@ -797,6 +973,11 @@ We use some of the WP fields for our own purposes:
 	
 	public function get_nonce() {
 		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
 		extract($mb_api->query->get(array('controller', 'method')));
 		if ($controller && $method) {
 			$controller = strtolower($controller);
@@ -912,6 +1093,69 @@ We use some of the WP fields for our own purposes:
 		//print_r($page_elements);
 		return $page_elements;
 	}
+
+
+
+	/*
+	 * Confirms that the transaction is authorized, i.e. remote has signed in properly.
+	 * If the authorization module of this plugin is not activated, just return true,
+	 * allowing all access. This is useful for testing.
+	*/
+	protected function confirm_auth() {
+		global $mb_api;
+		
+		// Check to see if the Auth controller is active.
+		// If Auth is not activated, then don't authenticate, just return 'true'.
+		$controller = "auth";
+		$active = in_array($controller, $mb_api->get_controllers());
+		$available_controllers = $mb_api->get_controllers();
+		$active_controllers = explode(',', get_option('mb_api_controllers', 'core'));
+		
+		if (count($active_controllers) == 1 && empty($active_controllers[0])) {
+			$active_controllers = array();
+		}
+		$active = in_array($controller, $active_controllers);
+		if (!$active) {
+			return true;
+		}
+		
+		// ----- Auth is activate, so do authenticate!
+		
+		/*
+		if (!$mb_api->query->nonce) {
+			$mb_api->error("You must include a 'nonce' value to create posts. Use the `get_nonce` Core API method.");
+		}
+		*/
+	
+		if (!$mb_api->query->cookie) {
+			$mb_api->error("You must include a 'cookie' authentication cookie. Use the `create_auth_cookie` Auth API method.");
+			return false;
+		}
+		
+		/*
+		$nonce_id = $mb_api->get_nonce_id('posts', 'create_post');
+		if (!wp_verify_nonce($mb_api->query->nonce, $nonce_id)) {
+			$mb_api->error("Your 'nonce' value was incorrect. Use the 'get_nonce' API method.");
+			return false;
+		}
+		*/
+		
+		$user_id = wp_validate_auth_cookie($mb_api->query->cookie, 'logged_in');
+		if (!$user_id) {
+			$mb_api->error("Invalid authentication cookie. Use the `generate_auth_cookie` Auth API method.");
+			return false;
+		}
+	
+		if (!user_can($user_id, 'edit_posts')) {
+			$mb_api->error("You need to login with a user capable of creating posts.");
+			return false;
+		}
+	
+		nocache_headers();
+		
+		return true;
+	}
+
 
 	
 }

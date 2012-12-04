@@ -2,57 +2,67 @@
 
 class MB_API {
   
-  function __construct() {
-    $this->query = new MB_API_Query();
-    $this->introspector = new MB_API_Introspector();
-    $this->response = new MB_API_Response();
-	$this->funx = new MB_API_Funx();
-	$this->themes = new MB_API_Themes();
-	
-	// Create the temp dir for building book packages
-	$uploads = wp_upload_dir();
-	$this->tempDir = $uploads['basedir'] . DIRECTORY_SEPARATOR . 'mb-api-temp';
-	if(! is_dir($this->tempDir))
-		mkdir($this->tempDir);
+	function __construct() {
+		
+		$dir = mb_api_dir();
 
-	// Create the dir for holding book packages
-	$uploads = wp_upload_dir();
-	$this->package_dir = $uploads['basedir'] . DIRECTORY_SEPARATOR . 'mb-book-packages';
-	if(! is_dir($this->package_dir))
-		mkdir($this->package_dir);
+		$this->settings = parse_ini_file ( $dir . DIRECTORY_SEPARATOR . "mb-settings.ini" );
 
-	add_action('template_redirect', array(&$this, 'template_redirect'));
-    add_action('admin_menu', array(&$this, 'admin_menu'));
-    add_action('update_option_mb_api_base', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_api_book_info_post_id', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_api_book_title', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_api_book_author', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_api_book_id', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_api_book_theme_id', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_api_book_publisher_id', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_api_book_icon', array(&$this, 'flush_rewrite_rules'));
-    add_action('update_option_mb_api_book_poster', array(&$this, 'flush_rewrite_rules'));
-    add_action('pre_update_option_mb_api_controllers', array(&$this, 'update_controllers'));
+		$this->query = new MB_API_Query();
+		$this->introspector = new MB_API_Introspector();
+		$this->response = new MB_API_Response();
+		$this->funx = new MB_API_Funx();
+		$this->themes = new MB_API_Themes();
 
-	// Image uploading:
-	
-	add_action('admin_print_scripts', array(&$this, 'image_uploader_scripts'));
-	add_action('admin_print_styles', array(&$this, 'image_uploader_styles'));
-	
-	// Initialize Theme options
-	/*
-	add_action( 'after_setup_theme', array(&$this, 'wp_plugin_image_options_init'));
-	add_action( 'admin_init', array(&$this, 'wp_plugin_image_options_setup'));
-	add_action( 'admin_enqueue_scripts', array(&$this, 'wp_plugin_image_options_enqueue_scripts'));
-	add_action( 'admin_init', array(&$this, 'wp_plugin_image_options_settings_init'));
-	*/
-	
-	// Remove filters for excerpts which usually add a "read more" or something like that.
-	//remove_filter( 'get_the_excerpt', 'twentyeleven_custom_excerpt_more' );
-	remove_all_filters( 'get_the_excerpt' );
+		$uploads = wp_upload_dir();
 
-	
-  }
+		// Create the temp dir for building book packages
+		$this->tempDir = $uploads['basedir'] . DIRECTORY_SEPARATOR . $this->settings['temp_dir_name'];
+		if(! is_dir($this->tempDir))
+			mkdir($this->tempDir);
+
+		// Create the dir for holding book packages
+		$this->package_dir = $uploads['basedir'] . DIRECTORY_SEPARATOR . $this->settings['packages_dir_name'];
+		if(! is_dir($this->package_dir))
+			mkdir($this->package_dir);
+
+		// If missing, create the dir for holding book packages for distribution,
+		// the "shelves" directory.
+		$this->shelves_dir = $uploads['basedir'] . DIRECTORY_SEPARATOR . $this->settings['shelves_dir_name'];
+		if(! is_dir($this->shelves_dir))
+			mkdir($this->shelves_dir);
+
+
+		add_action('template_redirect', array(&$this, 'template_redirect'));
+		add_action('admin_menu', array(&$this, 'admin_menu'));
+		add_action('update_option_mb_api_base', array(&$this, 'flush_rewrite_rules'));
+		add_action('update_option_mb_api_book_info_post_id', array(&$this, 'flush_rewrite_rules'));
+		add_action('update_option_mb_api_book_title', array(&$this, 'flush_rewrite_rules'));
+		add_action('update_option_mb_api_book_author', array(&$this, 'flush_rewrite_rules'));
+		add_action('update_option_mb_api_book_id', array(&$this, 'flush_rewrite_rules'));
+		add_action('update_option_mb_api_book_theme_id', array(&$this, 'flush_rewrite_rules'));
+		add_action('update_option_mb_api_book_publisher_id', array(&$this, 'flush_rewrite_rules'));
+		add_action('update_option_mb_api_book_icon', array(&$this, 'flush_rewrite_rules'));
+		add_action('update_option_mb_api_book_poster', array(&$this, 'flush_rewrite_rules'));
+		add_action('pre_update_option_mb_api_controllers', array(&$this, 'update_controllers'));
+		
+		// Image uploading:
+
+		add_action('admin_print_scripts', array(&$this, 'image_uploader_scripts'));
+		add_action('admin_print_styles', array(&$this, 'image_uploader_styles'));
+
+		// Initialize Theme options
+		/*
+		add_action( 'after_setup_theme', array(&$this, 'wp_plugin_image_options_init'));
+		add_action( 'admin_init', array(&$this, 'wp_plugin_image_options_setup'));
+		add_action( 'admin_enqueue_scripts', array(&$this, 'wp_plugin_image_options_enqueue_scripts'));
+		add_action( 'admin_init', array(&$this, 'wp_plugin_image_options_settings_init'));
+		*/
+
+		// Remove filters for excerpts which usually add a "read more" or something like that.
+		//remove_filter( 'get_the_excerpt', 'twentyeleven_custom_excerpt_more' );
+		remove_all_filters( 'get_the_excerpt' );
+	}
   
 
   function template_redirect() {

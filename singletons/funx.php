@@ -126,7 +126,37 @@ class MB_API_Funx
 		$results = exec($script, $res);
 		return $res;
 	}
-	
+
+
+	public function sendJSON($json)
+	{
+			$url = "http://localhost/api/v1/" . $this->getApiKey() . "/books/wordpress.json";
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+			curl_setopt($ch, CURLOPT_VERBOSE, TRUE);
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+			curl_setopt($ch, CURLOPT_POST, 1);
+			$result = curl_exec($ch);
+			$info = curl_getinfo($ch);
+			if (curl_errno($ch)) {
+					print curl_error($ch);
+			} else {
+					curl_close($ch);
+			}
+			if ($result);
+			if ($result && $info['http_code'] == '200')
+					$this->set_message(true);
+			else if ($result && $info['http_code'] == '404')
+					$this->set_message(3);
+			else if ($result && $info['http_code'] == '500')
+					$this->set_message (0);
+			return;
+	}
+		
 }
 
 ?>
