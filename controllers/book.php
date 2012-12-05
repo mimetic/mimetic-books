@@ -193,35 +193,60 @@ We use some of the WP fields for our own purposes:
 	/*
 	 * Get a converted tar file book from a client site. 
 	 * This probably works best with a POST, not a GET!
-	 * testing: http://localhost/photobook/wordpress/mb/book/receive_book_package_from_client/?dev=1&id=123456&u=user&p=pass&f=(filedata)
+	 * testing: http://localhost/photobook/wordpress/mb/book/receive_book_package_from_client/?dev=1&id=123456&u=test&p=pass&f=(filedata)
 	 */
 	public function receive_book_package_from_client() {
 		global $mb_api;
 		
-		if (! $this->confirm_auth() ) {
-			return false;
-		}
+		$DEBUG = true;
+		
+		// testing!
+		if (!$DEBUG) {
+		
+			// Make a dir to hold the book package
+			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($id);
+			if(! is_dir($dir))
+				mkdir($dir);
 
-		// Get book ID, username, password
-		extract($mb_api->query->get(array('id', 'u', 'p', 'f')));
-		
-		if (!$id || !$u || !$p || !$f) {
-			$mb_api->error(__FUNCTION__.": Request must includer book id, username, password, and file data.");
-		}
-		
-		$pkg = base64_decode($f);
-		
-		// Make a dir to hold the book package
-		$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $id;
-		if(! is_dir($dir))
-			mkdir($dir);
+			if (! $this->confirm_auth() ) {
+				return false;
+			}
 
-		// Overwrite any existing file without asking
-		$filename = $dir . DIRECTORY_SEPARATOR . "item.tar";
-		$handle = fopen($filename,"w+"); 
-		if(!fwrite($handle,$pkg)) { 
-			$mb_api->error(__FUNCTION__.": Could not write the file, $filename.");
+			// Get book ID, username, password
+			extract($mb_api->query->get(array('id', 'u', 'p', 'f')));
+
+			if (!$id || !$u || !$p || !$f) {
+				$mb_api->error(__FUNCTION__.": Request must includer book id, username, password, and file data ($id, $u, $p).");
+			}
+
+			$pkg = base64_decode($f);
+
+			// Overwrite any existing file without asking
+			$filename = $dir . DIRECTORY_SEPARATOR . "item.tar";
+			$handle = fopen($filename,"w+"); 
+			if(!fwrite($handle,$pkg)) { 
+				$mb_api->error(__FUNCTION__.": Could not write the file, $filename.");
+			}
+
+		
+		} else {
+// TESTING 
+			$u = "abcdefg";
+			$id = "123456";
+			$p = "password";
+			
+			// Make a dir to hold the book package
+			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $id;
+			if(! is_dir($dir))
+				mkdir($dir);
+
+			// Overwrite any existing file without asking
+			$filename = $dir . DIRECTORY_SEPARATOR . "item.tar";
 		}
+		
+		// we use $id for directories, and WP insists on lowercase
+		$id = strtolower($id);
+
 		
 		// Extract the icon, poster, and json files
 		try {
@@ -231,17 +256,181 @@ We use some of the WP fields for our own purposes:
 			// handle errors
 			$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item.");
 		}
-		
+
+
 		// Create or Update a post entry in the Wordpress for this book!
 		// First, look for an existing entry with this ID
+		$posts = $mb_api->introspector->get_posts(array(
+				'name' => "item_{$id}",
+				'post_type' => 'book',
+				'numberposts'	=> 1
+			), true);
+
+
+		// book posts belong to the user(?)
+		$user = get_user_by('login', $u);
+		if (!$user) {
+			$user = get_userdata( 1 );
+		}
+		$user_id = $user->ID;
+
+
+		// If post does not exist, create it.
+		if ($posts) {
+			$post = $posts[0];
+			$post_id = $post->ID;
+		} else {
+			
+			// see: http://codex.wordpress.org/Function_Reference/wp_insert_post
+			$post = array(
+				'comment_status' => 'open', // 'closed' means no comments.
+				'ping_status'    => 'closed', // 'closed' means pingbacks or trackbacks turned off
+				'post_author'    => $user_id, //The user ID number of the author.
+				'post_content'   => "This is my new book!", //The full text of the post.
+				'post_name'      => "item_{$id}",  // The name (slug) for your post
+				'post_status'    => 'private',  //Set the status of the new post.
+				'post_title'     => 'my title', //The title of your post.
+				'post_type'      => 'book',
+				'tags_input'     => 'book'
+			);  
+			
+			$post_id = wp_insert_post( $post, true );
+			if ( is_wp_error($post_id) ) {
+				return $post_id->get_error_message();
+			}
+		}
 		
-	}
+		// Read the item.json file to get the book info
+		
+		$info = json_decode( file_get_contents($dir . DIRECTORY_SEPARATOR . "item.json") );
+		
+		// Update the book post
+		$post = array(
+			'ID'             => $post_id,
+			'post_content'   => $info->description,
+			'post_excerpt'   => $info->shortDescription,
+			'post_date'      => $info->date,
+			'post_name'      => "item_{$id}",	// slug
+			'post_modified'  => $info->modificationDate,
+			'post_title'     => $info->title,
+			'post_author'    => $user_id //The user ID number of the author.
+			);
+
+		$post_id = wp_update_post( $post );
+		
+		// Custom fields:
+
+		// The user's login is their publisher ID
+		update_post_meta($post_id, "mb_publisher_id", $user->data->user_login);
+		
+		// Book author field
+		update_post_meta($post_id, "mb_book_author", $info->author);
+
+		// Delete all attachments to the post, so they can be replaced.
+		// Do NOT delete the tar file
+		//$this->delete_all_attachments($post_id, "item.tar");
+		
+		// Attach new files to the book post:
+		// 
+		// you must first include the image.php file
+		// for the function wp_generate_attachment_metadata() to work
+		@include_once (ABSPATH . 'wp-admin/includes/image.php');
+
+		// Attach the package file to the book posting
+		$this->attach_file_to_post($filename, $post_id);
+
+		// Attach the icon file to the book posting
+		$filename = $dir . DIRECTORY_SEPARATOR . "icon.png";
+		$this->attach_file_to_post($filename, $post_id);
+		
+		// Attach the poster file to the book posting
+		$filename = $dir . DIRECTORY_SEPARATOR . "poster.jpg";
+		$this->attach_file_to_post($filename, $post_id);
+
+		// Attach the item.json file to the book posting
+		$filename = $dir . DIRECTORY_SEPARATOR . "item.json";
+		$this->attach_file_to_post($filename, $post_id);
+
+
+		}
 	
+		
+		
+	/*
+	 * Delete all attachments to a post
+	 * $filesToKeep = string "file1.ext, file2.text, ...)
+	 */
+	private function delete_all_attachments($post_id, $filesToKeep="")
+	{
+		$goodfiles = split(",", $filesToKeep);
+		$args = array(
+			'post_type' => 'attachment',
+			'numberposts' => -1,
+			'post_status' => null,
+			'post_parent' => $post_id
+		);
+		$attachments = get_posts( $args );
+		if ( $attachments ) {
+			foreach ( $attachments as $attachment ) {
+				if (!in_array(basename($attachment->guid), $goodfiles)) {
+					wp_delete_attachment( $attachment->ID, true );
+				}
+			}
+		}
+	}
+
+		
+	/*
+	 * Attach file to a post
+	 */
+	private function attach_file_to_post($filename, $post_id) {
+		global $mb_api;
+		
+		$wp_upload_dir = wp_upload_dir();
+		
+		// Check to see if file is already attached to the post.
+		$args = array(
+			'post_type' => 'attachment',
+			'numberposts' => -1,
+			'post_status' => null,
+			'post_parent' => $post_id
+		);
+		$attachments = get_posts($args, true);
+		$guids = array();
+		foreach ($attachments as $attachment) {
+			$guids[] = $attachment->guid;
+		}
+		
+		
+		$guid = $wp_upload_dir['baseurl'] . DIRECTORY_SEPARATOR . _wp_relative_upload_path( $filename );
+
+		
+		if (!in_array($guid, $guids)) {
+			$wp_filetype = wp_check_filetype(basename($filename), null );
+			$attachment = array(
+				'guid' => $wp_upload_dir['baseurl'] . DIRECTORY_SEPARATOR . _wp_relative_upload_path( $filename ), 
+				'post_mime_type' => $wp_filetype['type'],
+				'post_title' => preg_replace('/\.[^.]+$/', '', basename($filename)),
+				'post_content' => '',
+				'post_status' => 'inherit'
+			);
+			$attach_id = wp_insert_attachment( $attachment, $filename, $post_id );
+			$attach_data = wp_generate_attachment_metadata( $attach_id, $filename );
+			wp_update_attachment_metadata( $attach_id, $attach_data );
+		} else {
+			//print __FUNCTION__. ": $filename : " . $guid."<BR>";
+		}
+	}
 	
 	
 	/*
 	 * Send a converted tar file book from a client site. 
 	 * testing: http://localhost/photobook/wordpress/mb/book/send_book_package/?dev=1&id=123456
+	 * params:
+	 * 		id = book unique id, used as the folder for the book
+	 *		u = the user_login on the receiving Wordpress site, should match the publisher ID in the
+	 *			plugin options.
+	 *		p = password, not used right now?
 	 */
 	public function send_book_package( ) {
 		global $mb_api;

@@ -51,6 +51,12 @@ class MB_API {
 		add_action('admin_print_scripts', array(&$this, 'image_uploader_scripts'));
 		add_action('admin_print_styles', array(&$this, 'image_uploader_styles'));
 
+		// Book Custom Post: 
+		// Delete all attached media from a custom 'book' post if the post is deleted.
+		add_action('update_option_mb_api_base', array(&$this, 'flush_rewrite_rules'));
+		
+		
+		
 		// Initialize Theme options
 		/*
 		add_action( 'after_setup_theme', array(&$this, 'wp_plugin_image_options_init'));

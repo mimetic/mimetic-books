@@ -77,7 +77,7 @@ class MB_API_Funx
 	
 	
 	
-		// removes files and non-empty directories
+	// removes files and non-empty directories
 	public function rrmdir($dir) {
 		if (is_dir($dir)) {
 			$files = scandir($dir);

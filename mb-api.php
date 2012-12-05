@@ -10,6 +10,7 @@ Author URI: http://davidgross.org/
 
 $dir = mb_api_dir();
 
+// @ suppresses error messages
 @include_once "$dir/singletons/api.php";
 @include_once "$dir/singletons/query.php";
 @include_once "$dir/singletons/introspector.php";
@@ -190,6 +191,49 @@ function my_rewrite_flush() {
 }
 
 
+
+/*
+	* Delete all attachments to a post
+	* $filesToKeep = string "file1.ext, file2.text, ...)
+	*/
+function delete_all_attachments($post_id, $filesToKeep = "" )
+{
+	$goodfiles = split(",", $filesToKeep);
+	$args = array(
+		'post_type' => 'attachment',
+		'numberposts' => -1,
+		'post_status' => null,
+		'post_parent' => $post_id
+	);
+	$attachments = get_posts( $args );
+	if ( $attachments ) {
+		foreach ( $attachments as $attachment ) {
+			if (!in_array(basename($attachment->guid), $goodfiles)) {
+				wp_delete_attachment( $attachment->ID, true );
+			}
+		}
+	}
+}
+
+
+	
+function delete_book_post($post_id)
+{
+	global $mb_api;
+	
+	$funx = new MB_API_Funx();
+	
+	$post = get_post($post_id);
+	if ($post->post_type == "book") {
+		delete_all_attachments($post_id);
+		$book_id = str_replace("item_", "", $post->post_name);
+		$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
+		$funx->rrmdir($dir);
+	}
+}
+
+
+
 // ------------------------------------------------------
 
 // Add initialization and activation hooks
@@ -201,6 +245,6 @@ register_deactivation_hook("$dir/mb-api.php", 'mb_api_deactivation');
 add_filter( 'post_updated_messages', 'mb_api_book_updated_messages' );
 // Handle our custom post type, 'book', in case of theme change
 add_action( 'after_switch_theme', 'my_rewrite_flush' );
-
+add_action('before_delete_post', 'delete_book_post')
 
 ?>
