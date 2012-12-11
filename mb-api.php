@@ -126,11 +126,11 @@ function make_custom_post_type_init() {
 	'has_archive' => true, 
 	'hierarchical' => false,
 	'menu_position' => null,
-	'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments', 'custom-fields', 'revisions' )
+	'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments', 'custom-fields', 'revisions' ),
+	'taxonomies'	=> array('category')
 	); 
 	register_post_type('book', $args);
 }
-
  
 // Add filter to ensure the text Book, or book, is displayed when user updates a book 
 function mb_api_book_updated_messages( $messages ) {

@@ -35,6 +35,11 @@ class MB_API {
 
 		add_action('template_redirect', array(&$this, 'template_redirect'));
 		add_action('admin_menu', array(&$this, 'admin_menu'));
+		
+		// My javascripts are loaded here
+		add_action('admin_init', array(&$this, 'plugin_admin_init'));
+		add_action('admin_enqueue_scripts', array(&$this, 'mb_javascript_scripts'));
+		
 		add_action('update_option_mb_api_base', array(&$this, 'flush_rewrite_rules'));
 		add_action('update_option_mb_api_book_info_post_id', array(&$this, 'flush_rewrite_rules'));
 		add_action('update_option_mb_api_book_title', array(&$this, 'flush_rewrite_rules'));
@@ -42,13 +47,13 @@ class MB_API {
 		add_action('update_option_mb_api_book_id', array(&$this, 'flush_rewrite_rules'));
 		add_action('update_option_mb_api_book_theme_id', array(&$this, 'flush_rewrite_rules'));
 		add_action('update_option_mb_api_book_publisher_id', array(&$this, 'flush_rewrite_rules'));
+		add_action('update_option_mb_api_book_publisher_url', array(&$this, 'flush_rewrite_rules'));
 		add_action('update_option_mb_api_book_icon', array(&$this, 'flush_rewrite_rules'));
 		add_action('update_option_mb_api_book_poster', array(&$this, 'flush_rewrite_rules'));
 		add_action('pre_update_option_mb_api_controllers', array(&$this, 'update_controllers'));
 		
 		// Image uploading:
-
-		add_action('admin_print_scripts', array(&$this, 'image_uploader_scripts'));
+			//add_action('admin_print_scripts', array(&$this, 'mb_javascript_scripts'));
 		add_action('admin_print_styles', array(&$this, 'image_uploader_styles'));
 
 		// Book Custom Post: 
@@ -64,6 +69,7 @@ class MB_API {
 		add_action( 'admin_enqueue_scripts', array(&$this, 'wp_plugin_image_options_enqueue_scripts'));
 		add_action( 'admin_init', array(&$this, 'wp_plugin_image_options_settings_init'));
 		*/
+		
 
 		// Remove filters for excerpts which usually add a "read more" or something like that.
 		//remove_filter( 'get_the_excerpt', 'twentyeleven_custom_excerpt_more' );
@@ -130,6 +136,9 @@ class MB_API {
       wp_die( __('You do not have sufficient permissions to access this page.') );
     }
     
+	wp_enqueue_script('publish');
+	
+	// ---------- CONTROLLERS ------------
     $available_controllers = $this->get_controllers();
     $active_controllers = explode(',', get_option('mb_api_controllers', 'core'));
     
@@ -184,13 +193,15 @@ class MB_API {
       if (isset($_REQUEST['mb_api_book_publisher_id'])) {
         $this->save_option('mb_api_book_publisher_id', $_REQUEST['mb_api_book_publisher_id']);
       }
-      
-      print_r($_REQUEST);
+      if (isset($_REQUEST['mb_api_book_publisher_url'])) {
+        $this->save_option('mb_api_book_publisher_url', $_REQUEST['mb_api_book_publisher_url']);
+      }
       
       if (isset($_REQUEST['mb_api_book_info_post_id'])) {
-        $this->save_option('mb_api_book_info_post_id', $_REQUEST['mb_api_book_info_post_id']);
+		$this->save_option('mb_api_book_info_post_id', $_REQUEST['mb_api_book_info_post_id']);
       }
     }
+	// ---------- END CONTROLLERS ------------
     
     ?>
 <div class="wrap">
@@ -198,7 +209,119 @@ class MB_API {
   <h2>Mimetic Books API Settings</h2>
   <form action="options-general.php?page=mb-api" method="post">
     <?php wp_nonce_field('update-options'); ?>
-    <h3>Controllers</h3>
+
+	<div style="padding:1em 3em 1em 3em; margin-top:1em; margin-bottom:1em; background-color:#f0f6f6;">
+		<h3>Book</h3>
+		<p>Choose which book you wish to publish. Maybe better if this lives on the book's post page, but I don't know how to do that right now.</p>
+		<table class="form-table">
+		 <tr valign="top">
+			<th scope="row">Book:</th>
+			<td>
+				<?php
+					$args = array (
+						'post_type' => 'book',
+						'posts_per_page' => -1
+					);
+
+					$my_query = null;
+					$my_query = new WP_Query($args);
+
+					$selected = get_option('mb_api_book_info_post_id');
+
+					echo '<select id="mb_api_book_info_post_id" name="mb_api_book_info_post_id">';
+					if( $my_query->have_posts() ) {
+						while ( $my_query->have_posts() ) : $my_query->the_post();
+							$id = get_the_ID();
+							$title = get_the_title();
+							if ($id == $selected) {
+								echo '<option selected="selected" value="'. $id .'">'. $title . '</option>';
+							} else {
+								echo '<option value="'. $id.'">'. $title. '</option>';
+							}
+						endwhile;
+					}
+					echo '</select>';
+					wp_reset_query();  // Restore global post data stomped by the_post().
+
+
+				?>      
+
+				<span style="margin-right:2em;"/>&nbsp;</span>
+				<input type="button" id="publish" class="button-primary" value="<?php _e('Publish Book') ?>" />
+				</td>
+			</tr>
+			<tr valign="top">
+				<th scope="row">Layout Theme:</th>
+				<td><?php echo $this->theme_popup_menu() ?> </td>
+			</tr>
+		</table>
+		
+
+		<h3>Publisher</h3>
+		<p>Enter the URL for your publisher's website. Leave this empty if you are publishing from this website.</p>
+		<table class="form-table">
+			<tr valign="top">
+				<th scope="row">Publisher Website:</th>
+				<td>
+					<input type="text" id="distribution_url" name="mb_api_book_publisher_url" size="64" value="<?php print get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url']));  ?>" />
+					<input type="text" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
+				</td>
+			</tr>
+			<tr valign="top">
+				<th scope="row">Publisher ID:</th>
+				<td><input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', '123'); ?>" size="32" /></td>
+			</tr>
+		</table>
+		<!--
+		<tr valign="top">
+			<th scope="row">Title</th>
+			<td><input type="text" name="mb_api_book_title" value="<?php echo get_option('mb_api_book_title', 'Untitled'); ?>" size="64" /></td>
+			</tr>
+			<tr valign="top">
+			<th scope="row">Author(s)</th>
+			<td><input type="text" name="mb_api_book_author" value="<?php echo get_option('mb_api_book_author', 'Anonymous'); ?>" size="64" /></td>
+			</tr>
+			<tr valign="top">
+			<th scope="row">Book ID</th>
+			<td><input type="text" name="mb_api_book_id" value="<?php echo get_option('mb_api_book_id', "mb_".uniqid()); ?>" size="64" /></td>
+		</tr>
+		-->
+		<!--
+		<tr valign="top">
+			<th scope="row">Icon</th>
+			<td>
+				<label for="upload_image">
+				<input id="upload_image" type="text" size="36" name="upload_image" value="" />
+				<input id="upload_image_button" type="button" value="Upload Image" />
+				<br />
+				Enter an URL or upload an image for the banner.
+				</label>
+			</td>
+		</tr>
+		-->
+	
+		</table>
+
+		<h3>Address</h3>
+		<p>Specify a base URL for MB API. For example, using <code>api</code> as your API base URL would enable the following <code><?php bloginfo('url'); ?>/api/get_recent_posts/</code>. If you assign a blank value the API will only be available by setting a <code>mb</code> query variable.</p>
+		<table class="form-table">
+		<tr valign="top">
+			<th scope="row">API base</th>
+			<td><code><?php bloginfo('url'); ?>/</code><input type="text" name="mb_api_base" value="<?php echo get_option('mb_api_base', 'api'); ?>" size="15" /></td>
+		</tr>
+		</table>
+
+		<?php if (!get_option('permalink_structure', '')) { ?>
+		<br />
+		<p><strong>Note:</strong> User-friendly permalinks are not currently enabled. <a target="_blank" class="button" href="options-permalink.php">Change Permalinks</a>
+		<?php } ?>
+		<p class="submit">
+		<input type="submit" class="button-primary" value="<?php _e('Save Changes') ?>" />
+		</p>
+	</div>
+    
+      
+        <h3>Controllers</h3>
     <?php $this->print_controller_actions(); ?>
     <table id="all-plugins-table" class="widefat">
       <thead>
@@ -282,89 +405,11 @@ class MB_API {
     
     <?php $this->print_controller_actions('action2'); ?>
 
-    <h3>Book Settings From Page</h3>
-    <p>Choose your book information page, where you have set the title, icons, etc.</p>
-    <table class="form-table">
-      <tr valign="top">
-        <th scope="row">Book Info Page:</th>
-        <td>
-			<?php $args = array(
-				'name' => 'mb_api_book_info_post_id', 
-				'selected' => get_option('mb_api_book_info_post_id') );
-			wp_dropdown_pages($args);
-			?>
-		</td>
-      </tr>
-    </table>
-
-    <h3>Book Settings</h3>
-    <p>Book settings.</p>
-    <table class="form-table">
-    	<!--
-		<tr valign="top">
-		<th scope="row">Title</th>
-		<td><input type="text" name="mb_api_book_title" value="<?php echo get_option('mb_api_book_title', 'Untitled'); ?>" size="64" /></td>
-		</tr>
-		<tr valign="top">
-		<th scope="row">Author(s)</th>
-		<td><input type="text" name="mb_api_book_author" value="<?php echo get_option('mb_api_book_author', 'Anonymous'); ?>" size="64" /></td>
-		</tr>
-		<tr valign="top">
-		<th scope="row">Book ID</th>
-		<td><input type="text" name="mb_api_book_id" value="<?php echo get_option('mb_api_book_id', "mb_".uniqid()); ?>" size="64" /></td>
-		</tr>
-      -->
-      <tr valign="top">
-        <th scope="row">Publisher ID</th>
-        <td><input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', '123'); ?>" size="64" /></td>
-      </tr>
-
-	<!--
-      <tr valign="top">
-        <th scope="row">Icon</th>
-        <td>
-			<label for="upload_image">
-			<input id="upload_image" type="text" size="36" name="upload_image" value="" />
-			<input id="upload_image_button" type="button" value="Upload Image" />
-			<br />
-			Enter an URL or upload an image for the banner.
-			</label>
-		</td>
-      </tr>
-	-->
-	
-    </table>
-
-    <h3>Theme</h3>
-    <p>Choose a theme for your book.</p>
-    <table class="form-table">
-      <tr valign="top">
-        <th scope="row">Theme</th>
-        <td><? echo $this->theme_popup_menu() ?> </td>
-      </tr>
-    </table>
-
-
-    <h3>Address</h3>
-    <p>Specify a base URL for MB API. For example, using <code>api</code> as your API base URL would enable the following <code><?php bloginfo('url'); ?>/api/get_recent_posts/</code>. If you assign a blank value the API will only be available by setting a <code>mb</code> query variable.</p>
-    <table class="form-table">
-      <tr valign="top">
-        <th scope="row">API base</th>
-        <td><code><?php bloginfo('url'); ?>/</code><input type="text" name="mb_api_base" value="<?php echo get_option('mb_api_base', 'api'); ?>" size="15" /></td>
-      </tr>
-    </table>
-
-    <?php if (!get_option('permalink_structure', '')) { ?>
-      <br />
-      <p><strong>Note:</strong> User-friendly permalinks are not currently enabled. <a target="_blank" class="button" href="options-permalink.php">Change Permalinks</a>
-    <?php } ?>
-    <p class="submit">
-      <input type="submit" class="button-primary" value="<?php _e('Save Changes') ?>" />
-    </p>
+  
   </form>
 </div>
 <?php
-  }
+  }	// END of admin_options()
   
   function print_controller_actions($name = 'action') {
     ?>
@@ -560,9 +605,9 @@ class MB_API {
 		 
 		 // Are our options saved in the DB?
 		 if ( false === $wp_plugin_image_options ) {
-			  // If not, we'll save our default options
-			  $wp_plugin_image_options = wp_plugin_image_get_default_options();
-			  add_option( 'theme_wp_plugin_image_options', $wp_plugin_image_options );
+			// If not, we'll save our default options
+			$wp_plugin_image_options = wp_plugin_image_get_default_options();
+			add_option( 'theme_wp_plugin_image_options', $wp_plugin_image_options );
 		 }
 		 
 		 // In other case we don't need to update the DB
@@ -740,17 +785,26 @@ class MB_API {
 
 	// ==================== easier uploader
 
-	function image_uploader_scripts() { 
+	function plugin_admin_init() { 
 	
 		$dir = mb_api_dir();
 	
-		wp_enqueue_script('media-upload');
-		wp_enqueue_script('thickbox');
-		$url = plugins_url( 'js/image_upload.js', __FILE__ );
-		wp_register_script('image_upload', $url, array('jquery','media-upload','thickbox'));
-		wp_enqueue_script('image_upload');
+		//wp_enqueue_script('media-upload');
+		//wp_enqueue_script('thickbox');
+
+		//$url = plugins_url( 'js/image_upload.js', __FILE__ );
+		//wp_register_script('image_upload', $url, array('jquery','media-upload','thickbox'));
+		//wp_enqueue_script('image_upload');
+
+		$url = plugins_url( 'js/publish.js', __FILE__ );
+		wp_register_script('publish', $url, array('jquery'));
 	}
-		
+	
+	function mb_javascript_scripts() {
+		wp_enqueue_style('publish');
+	}
+	
+	
 	function image_uploader_styles() { 
 		wp_enqueue_style('thickbox');
 	} 

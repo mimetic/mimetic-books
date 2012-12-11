@@ -31,178 +31,38 @@ We use some of the WP fields for our own purposes:
 
 */
 	
-	
-	protected function build_book() {
-		global $mb_api;
-		
-	   if (! $this->confirm_auth() ) {
-		return false;
-	   }
-    
-		$dir = mb_api_dir();
-		require_once "$dir/library/MB.php";
-		
-		/*
-		$title = get_option('mb_api_book_title', 'Untitled');
-		$author = get_option('mb_api_book_author', 'Anonymous');
-		$book_id = get_option('mb_api_book_id', "mb_".uniqid() );
-		$publisher_id = get_option('mb_api_book_publisher_id', '?');
-		*/
-		$book_info = $this->get_book_info_from_page();
-
-		// Create a new book object
-		$options = array ('tempDir' => $mb_api->tempDir);
-		$params = array (
-			'book_id'			=> $book_info['id'],
-			'title'				=> $book_info['title'],
-			'author'			=> $book_info['author'],
-			'publisher_id'		=> $book_info['publisher_id'],
-			'theme'				=> $book_info['theme']
-			);
-
-		extract($mb_api->query->get(array('category_id', 'category_slug' )));
-		if ($category_id) {
-			$book_category = $mb_api->introspector->get_category_by_id($category_id);
-		} elseif ($category_slug) {
-			$book_category = $mb_api->introspector->get_category_by_slug($category_slug);
-		} else {
-			$mb_api->error("Include 'category_id' or 'category_slug' var in your request.");
-		}
-
-		$mb = new Mimetic_Book($book_info, $options);
-		
-		// get the array of wp chapters using id or slug of the book category
-		$book = $this->get_book($book_category->id);
-		
-		// Add chapters to new $mb book object.
-		// Chapters are arrays of posts/pages
-		foreach($book['chapters'] as $chapter) {
-			$mb->convert_chapter($chapter);
-		}
-		
-		// Return the book object
-		return $mb;
-	}
-	
-	
-	
 	/*
-	 * Convert blog posts to a complete book package.
-	 * Writes a .tar file into the packages folder in the uploads dir.
-	 * Clears out the build files in the build dir.
-	 * Looks for the theme in the book settings
+	 * Get a converted tar file book from a client site, or from this site.
+	 * $id = book unique id, NOT the WordPress book post internal ID.
+	 * 
+	 * 
+	 * LOCAL
+	 * Get the file from the mb-book-packages directory.
+	 * testing: http://localhost/photobook/wordpress/mb/book/receive_book_package_from_client/?dev=1&id=123456&DEBUG=true
+	 * 
+	 * 
+	 * REMOTE
+	 * If we are getting the file from a remote site, then this probably works best with a POST, not a GET!
+	 * You can't really send a tar file in a GET, after all.
+	 * 
+	 * example : http://localhost/photobook/wordpress/mb/book/receive_book_package_from_client/?id=123456&u=test&p=pass&f=(filedata)
 	 */
-	public function build_book_package() {
+	public function publish_book_package() {
 		global $mb_api;
 		
-	   if (! $this->confirm_auth() ) {
-		return false;
-	   }
-    
-		// Build the book object from the posts
-		$mb = $this->build_book();
-		
-		// We want to minimize loading this...it can be slow.
-		if (!$mb_api->themes->themes) {
-			$mb_api->load_themes();
-		}
-		
-		// Set build and package directories
-		$build_dir = $mb->build_dir;
-		$build_files_dir = $mb->build_files_dir;
-		
-		$theme_id = $mb->book['theme_id'];
-		$mb->get_theme_files();
-		
-		// Write the XML to the book.xml file.
-		$xml = $mb->book_to_xml();
-		$filename = "book.xml";
-		file_put_contents ( $build_files_dir.DIRECTORY_SEPARATOR.$filename , $xml, LOCK_EX );		
+		$local = false;		
+		$distribution_url = trim(get_option('mb_api_book_publisher_url'));
 
-		// Copy the book promo art, i.e. icon and poster files, based on the book info.
-		$mb->get_book_promo_art( $build_files_dir);
-		
-		$this->write_book_info_file($mb);
-		
-		// Build the tar file from the files, ready for sending.
-		//$success = $mb_api->funx->tar_dir($mb->tempDir, "{$mb->id}.tar");
-		$tarfilename = $mb_api->package_dir . DIRECTORY_SEPARATOR . $mb->id . ".tar";
-		
-		// Delete previous version of the package
-		if (file_exists($tarfilename))
-			unlink ($tarfilename);
-		
-		// Build the tar file package in the packages folder.
-		try {
-			$tarfile = new PharData($tarfilename);
-			$tarfile->buildFromDirectory($build_files_dir);
-		} catch (Exception $e) {
-			$mb_api->error("$e: Unable to create tar file: $tarfilename");
-		}
-		
-		// Submit it to the library distribution site?
-		
-		
-		// Delete the build files
-		$mb->cleanup();
-		
-		return true;
-	}
-	
+		if ($distribution_url) {
+			// REMOTE PUBLISHING
 
+			// Get book ID, username, password
+			extract($mb_api->query->get(array('id', 'u', 'p', 'f')));
 
-	/*
-	 * Write Book description file
-	 * This is a json file, "item.json", used by the reader to learn about the package
-	 */
-	protected function write_book_info_file($book_obj = null) {
-		global $mb_api;
-		
-		if ($book_obj) {
-			$info = array (
-				'type'					=> $book_obj->type,
-				'id'					=> $book_obj->id,
-				'title'					=> $book_obj->title,
-				'description'			=> $book_obj->description,
-				'shortDescription'		=> $book_obj->short_description,
-				'author'				=> $book_obj->author,
-				'date'					=> $book_obj->date,
-				'datetime'				=> $book_obj->datetime,
-				'modificationDate'		=> $book_obj->modified
-			);
-			
-			$output = json_encode($info);
-	
-			$fn = $book_obj->build_files_dir . DIRECTORY_SEPARATOR . "item.json";
-			
-			// Delete previous version of the package
-			if (file_exists($fn))
-				unlink ($fn);
-	
-			file_put_contents ($fn, $output, LOCK_EX);
-		} else {
-			$mb_api->error(__FUNCTION__.": No book object passed.");
-			return false;
-		}
-		
-	}
-	
-	
+			if (!$id || !$u || !$p || !$f) {
+				$mb_api->error(__FUNCTION__.": Remote publishing requires book id, username, password, and file data ($id, $u, $p).");
+			}
 
-
-	/*
-	 * Get a converted tar file book from a client site. 
-	 * This probably works best with a POST, not a GET!
-	 * testing: http://localhost/photobook/wordpress/mb/book/receive_book_package_from_client/?dev=1&id=123456&u=test&p=pass&f=(filedata)
-	 */
-	public function receive_book_package_from_client() {
-		global $mb_api;
-		
-		$DEBUG = true;
-		
-		// testing!
-		if (!$DEBUG) {
-		
 			// Make a dir to hold the book package
 			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($id);
 			if(! is_dir($dir))
@@ -210,13 +70,6 @@ We use some of the WP fields for our own purposes:
 
 			if (! $this->confirm_auth() ) {
 				return false;
-			}
-
-			// Get book ID, username, password
-			extract($mb_api->query->get(array('id', 'u', 'p', 'f')));
-
-			if (!$id || !$u || !$p || !$f) {
-				$mb_api->error(__FUNCTION__.": Request must includer book id, username, password, and file data ($id, $u, $p).");
 			}
 
 			$pkg = base64_decode($f);
@@ -229,23 +82,59 @@ We use some of the WP fields for our own purposes:
 			}
 
 		
+			// book posts belong to the user(?)
+			$user = get_user_by('login', $u);
+			if (!$user) {
+				$user = get_userdata( 1 );
+			}
 		} else {
-// TESTING 
-			$u = "abcdefg";
-			$id = "123456";
-			$p = "password";
+			// LOCAL PUBLISHING
+			$user = wp_get_current_user();
 			
-			// Make a dir to hold the book package
-			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $id;
-			if(! is_dir($dir))
-				mkdir($dir);
+			// Get book ID, username, password
+			extract($mb_api->query->get(array('id')));
+			
+			// TESTING
+			isset($book_id) || $book_id = "123456";
+			
+			if ($book_id) {
+				$book_post = $this->get_book_post_from_book_id($book_id);
+				$id = $book_post->ID;
+			} elseif ($id) {
+				$book_post = $this->get_book_post($id);
+			} else {
+				$mb_api->error(__FUNCTION__.": Local publishing must include book post id (id) or book id (book_id).");
+			}
+			
+
+			$this->build_book_package($id);
+					
+			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
 
 			// Overwrite any existing file without asking
 			$filename = $dir . DIRECTORY_SEPARATOR . "item.tar";
+			$src = $mb_api->package_dir . DIRECTORY_SEPARATOR . "$book_id.tar";
+			
+			if (!file_exists($src)) {
+				$mb_api->error(__FUNCTION__.": " . basename($src) . " does not exist.");
+			}
+			
+			// Make a dir to hold the book package
+			if(! is_dir($dir))
+				mkdir($dir);
+
+			// Copy the local file to the shelves directory and delete the package
+			$success = copy($src,$filename);
+			if (!$success) {
+				$mb_api->error(__FUNCTION__.": Failed to copy $src to $filename.");
+			} else {
+				unlink ($src);
+			}
+			
 		}
 		
-		// we use $id for directories, and WP insists on lowercase
-		$id = strtolower($id);
+		// we use $book_id for directories, and WP insists on lowercase
+		$book_id = strtolower($book_id);
 
 		
 		// Extract the icon, poster, and json files
@@ -261,17 +150,12 @@ We use some of the WP fields for our own purposes:
 		// Create or Update a post entry in the Wordpress for this book!
 		// First, look for an existing entry with this ID
 		$posts = $mb_api->introspector->get_posts(array(
-				'name' => "item_{$id}",
+				'name' => "item_{$book_id}",
 				'post_type' => 'book',
 				'numberposts'	=> 1
 			), true);
 
 
-		// book posts belong to the user(?)
-		$user = get_user_by('login', $u);
-		if (!$user) {
-			$user = get_userdata( 1 );
-		}
 		$user_id = $user->ID;
 
 
@@ -287,7 +171,7 @@ We use some of the WP fields for our own purposes:
 				'ping_status'    => 'closed', // 'closed' means pingbacks or trackbacks turned off
 				'post_author'    => $user_id, //The user ID number of the author.
 				'post_content'   => "This is my new book!", //The full text of the post.
-				'post_name'      => "item_{$id}",  // The name (slug) for your post
+				'post_name'      => "item_{$book_id}",  // The name (slug) for your post
 				'post_status'    => 'private',  //Set the status of the new post.
 				'post_title'     => 'my title', //The title of your post.
 				'post_type'      => 'book',
@@ -310,7 +194,7 @@ We use some of the WP fields for our own purposes:
 			'post_content'   => $info->description,
 			'post_excerpt'   => $info->shortDescription,
 			'post_date'      => $info->date,
-			'post_name'      => "item_{$id}",	// slug
+			'post_name'      => "item_{$book_id}",	// slug
 			'post_modified'  => $info->modificationDate,
 			'post_title'     => $info->title,
 			'post_author'    => $user_id //The user ID number of the author.
@@ -356,6 +240,300 @@ We use some of the WP fields for our own purposes:
 	
 		
 		
+	/*
+	 * Convert blog posts to a complete book package.
+	 * $id = the WordPress book post internal ID, and not the book's unique id
+	 * Writes a .tar file into the packages folder in the uploads dir.
+	 * Clears out the build files in the build dir.
+	 * Looks for the theme in the book settings
+	 * Example: http://localhost/photobook/wordpress/mb/book/build_book_package/?dev=1&category_slug=book2
+	 * 
+	 * Choose which book to publish by provided one of these options, OR by passing the 
+	 * values in the WordPress query:
+	 * $id : ID of the book page we are publishing
+	 * $category_id : category ID of the book's category
+	 * $category_slug : slug of the book's category
+	 */
+	function build_book_package($id = null, $category_id = null, $category_slug = null) {
+		global $mb_api;
+		
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+		
+	   	if (!($id || $category_id || $category_slug)) {
+	   		extract($mb_api->query->get(array('id', 'category_id', 'category_slug' )));
+	   	}
+    
+		// Build the book object from the posts
+		$mb = $this->build_book($id, $category_id, $category_slug);
+		
+		// We want to minimize loading this...it can be slow.
+		if (!$mb_api->themes->themes) {
+			$mb_api->load_themes();
+		}
+		
+		// Set build and package directories
+		$build_dir = $mb->build_dir;
+		$build_files_dir = $mb->build_files_dir;
+		
+		$theme_id = $mb->book['theme_id'];
+		$mb->get_theme_files();
+		
+		// Write the XML to the book.xml file.
+		$xml = $mb->book_to_xml();
+		$filename = "book.xml";
+		file_put_contents ( $build_files_dir.DIRECTORY_SEPARATOR.$filename , $xml, LOCK_EX );		
+
+		// Copy the book promo art, i.e. icon and poster files, based on the book info.
+		$mb->get_book_promo_art( $build_files_dir);
+		
+		$this->write_book_info_file($mb);
+		
+		// Build the tar file from the files, ready for sending.
+		//$success = $mb_api->funx->tar_dir($mb->tempDir, "{$mb->id}.tar");
+		$tarfilename = $mb_api->package_dir . DIRECTORY_SEPARATOR . $mb->id . ".tar";
+		
+		// Delete previous version of the package
+		if (file_exists($tarfilename))
+			unlink ($tarfilename);
+		
+		// Build the tar file package in the packages folder.
+		try {
+			$tarfile = new PharData($tarfilename);
+			$tarfile->buildFromDirectory($build_files_dir);
+		} catch (Exception $e) {
+			$mb_api->error("$e: Unable to create tar file: $tarfilename");
+		}
+		
+		// Submit it to the library distribution site?
+		
+		
+		// Delete the build files
+		$mb->cleanup();
+		
+		// This will use the query to get the book post.
+		$book_post = $this->get_book_post($id);
+		
+		// Mark the book as published so it will appear in the shelves
+		update_post_meta($book_post->id, 'mb_published', true);
+		$meta_values = get_post_meta($book_post->id, "mb_published", true);
+		
+		// Update the shelves file with the new book
+		$this->write_shelves_file();
+		
+		return true;
+	}
+	
+
+	
+	/*
+	 *  ****** SELECTING USING CATEGORY ISN'T GOING TO WORK! ONLY ID IS WORKING! ****
+	 * Build a book object from the posts
+	 * Method #1:
+	 * Gets the info from the query: 
+	 * The book to build has book post id=id, OR category id=category_id, OR slug=category_slug
+	 * All posts with the selected category are in the book.
+	 * http://mysite/mb/book/build_book/?category_slug=book2
+	 * 
+	 * Method #2:
+	 * Use the settings page to build the book.
+	 * The category is taken from the selected book post on the settings page.
+	 */
+	protected function build_book($id= null, $category_id = null, $category_slug = null) {
+		global $mb_api;
+		
+	   if (! $this->confirm_auth() ) {
+		return false;
+	   }
+    
+		$dir = mb_api_dir();
+		require_once "$dir/library/MB.php";
+		
+		$book_category_id = null;
+
+	   	if (!($id || $category_id || $category_slug)) {
+	   		extract($mb_api->query->get(array('id', 'category_id', 'category_slug' )));
+	   	}
+
+		if ($id || $category_slug || $category_id) {
+			
+			// Method #1			
+			// Get book category from the query
+			if ($id) {
+				$post = $this->get_book_post ($id);
+				$book_category_id = $post->categories[0]->id;
+			} elseif ($category_id) {
+				$book_category_id = $mb_api->introspector->get_category_by_id($category_id)->id;
+			} elseif ($category_slug) {
+				$book_category_id = $mb_api->introspector->get_category_by_slug($category_slug)->id;
+			}
+
+		}
+
+		// This will use query values id,post,post_type to determine 
+		// which book post page to get info from, 
+		//  OR
+		// the $id value passed to the function
+		//  OR
+		// If it cannot find those values, it will use the 
+		// book page ID from the settings page.
+		$book_info = $this->get_book_info_from_post($id);
+		$book_category_id = $book_info['category_id'];
+		$book_post_id = $id;
+		
+		if (!$book_category_id) {
+			$mb_api->error("The book page does not have a category assigned.");
+		}
+
+		
+		$options = array ('tempDir' => $mb_api->tempDir);
+		$params = array (
+			'book_id'			=> $book_info['id'],
+			'title'				=> $book_info['title'],
+			'author'			=> $book_info['author'],
+			'publisher_id'		=> $book_info['publisher_id'],
+			'theme'				=> $book_info['theme']
+			);
+		
+		
+		$mb = new Mimetic_Book($book_info, $options);
+		
+		// get the array of wp chapters using id or slug of the book category
+		$book = $this->get_book($book_post_id);
+		
+		// Add chapters to new $mb book object.
+		// Chapters are arrays of posts/pages
+		foreach($book['chapters'] as $chapter) {
+			$mb->convert_chapter($chapter);
+		}
+		
+		// Return the book object
+		return $mb;
+	}
+	
+	
+
+	/*
+	 * Write Book description file
+	 * This is a json file, "item.json", used by the reader to learn about the package
+	 */
+	protected function write_book_info_file($book_obj = null) {
+		global $mb_api;
+		
+		if ($book_obj) {
+			$info = array (
+				'type'					=> $book_obj->type,
+				'id'					=> $book_obj->id,
+				'title'					=> $book_obj->title,
+				'description'			=> $book_obj->description,
+				'shortDescription'		=> $book_obj->short_description,
+				'author'				=> $book_obj->author,
+				'date'					=> $book_obj->date,
+				'datetime'				=> $book_obj->datetime,
+				'modificationDate'		=> $book_obj->modified
+			);
+			
+			$output = json_encode($info);
+	
+			$fn = $book_obj->build_files_dir . DIRECTORY_SEPARATOR . "item.json";
+			
+			// Delete previous version of the package
+			if (file_exists($fn))
+				unlink ($fn);
+	
+			file_put_contents ($fn, $output, LOCK_EX);
+		} else {
+			$mb_api->error(__FUNCTION__.": No book object passed.");
+			return false;
+		}
+		
+	}
+	
+	
+
+	
+		/*
+	 * Write the Shelves file
+	 * This is a json file, "shelves.json", used by the Mimetic Books app to know
+	 * what is available for download.
+	 */
+	public function write_shelves_file() {
+		global $mb_api;
+		
+		$shelves = array (
+			'path'		=> "shelves",
+			'title'		=> "mylib",
+			'maxsize'	=> 100,
+			'id'		=> "shelves",
+			'password'	=> "mypassword",
+			'filename'	=> "shelves.json",
+			'itemsByID'	=> array ()
+		);
+		
+
+		$posts = $mb_api->introspector->get_posts(array(
+				'post_type' => 'book',
+				'numberposts'	=> 1
+			), true);
+		
+
+		/*
+		 * Book Info:
+			'id'			=> $book_id, 
+			'title'			=> $title, 
+			'author'		=> $author, 
+			'theme'			=> $theme, 
+			'publisher_id'	=> $publisher_id,  
+			'description'	=> $description, 
+			'short_description'		=> $short_description, 
+			'type'			=> $type, 
+			'datetime'		=> $post->date, 
+			'modified'		=> $post->modified, 
+			'icon_url'		=> $icon_url, 
+			'poster_url'	=> $poster_url,
+			'category_id'	=> $category_id
+		 */
+
+		foreach ($posts as $post) {
+			// Only add the item if it is marked published with our custom meta field.
+			$is_published = get_post_meta($post->ID, "mb_published", true);
+			if ($is_published) {
+			
+				$info = $this->get_book_info_from_post($post->ID);
+				// almost all names are same, but not completely....
+				// I've included some extras...maybe they'll be useful later.
+
+				$item = array (
+					'id'				=> $info['id'], 
+					'title'				=> $info['title'], 
+					'author'			=> $info['author'], 
+					'publisherid'		=> $info['publisher_id'],  
+					'description'		=> $info['description'], 
+					'shortDescription'	=> $info['short_description'], 
+					'type'				=> $info['type'], 
+					'datetime'			=> $info['datetime'], 
+					'modified'			=> $info['modified'],
+					'path'				=> $info['id'],
+					'shelfpath'			=> $mb_api->settings['shelves_dir_name'],
+//					'itemShelfPath'		=>$mb_api->settings['shelves_dir_name'] . DIRECTORY_SEPARATOR . $info['id'],
+					'theme'				=> $info['theme']
+				);
+				$shelves['itemsByID'][$info['id']] = $item;
+			}
+		}
+		   $output = json_encode($shelves);
+		   $fn = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . "shelves.json";
+		   // Delete previous version of the shelves
+		   if (file_exists($fn))
+			   unlink ($fn);
+		   file_put_contents ($fn, $output, LOCK_EX);
+		   return $output;
+	}
+	
+	
+
+
 	/*
 	 * Delete all attachments to a post
 	 * $filesToKeep = string "file1.ext, file2.text, ...)
@@ -513,46 +691,107 @@ We use some of the WP fields for our own purposes:
 		return $result;
 	}
 	*/
+
 	
+	/*
+	 * Get a book post.
+	 * If no $post_id is spec'd, then check the query
+	 */
+	
+	private function get_book_post($post_id = null, $category_id = null, $category_slug = null) {
+		global $mb_api;
+		
+		if ($post_id) {
+			$response = $mb_api->introspector->get_posts(array(
+				'p' => $post_id,
+				'post_type' => 'book'
+			));
+			$post = $response[0];
+		} elseif ($category_id) {
+			$post = get_book_post_from_category_id( $category_id );
+		} elseif ($category_slug) {
+			$post = get_book_post_from_category_slug( $category_slug );
+		} else {
+			extract($mb_api->query->get(array('id', 'slug', 'post_type')));
+			if (!($id or $slug)) {
+				// If no id/slug specified, use the setting on the settings page (not post!)
+				$post_id = get_option('mb_api_book_info_post_id');
+				$response = $mb_api->introspector->get_posts(array(
+					'p' => $post_id,
+					'post_type' => 'book'
+				));
+				$post = $response[0];
+			} else {
+				if ($post_type != "page") {
+					$response = $this->get_post();
+					$post = $response['post'];
+				} else {
+					$response = $this->get_page();
+					$post = $response['page'];
+				}
+
+				if (!$response) {
+					$mb_api->error("Not found.");
+					return false;
+				}
+			}
+		}
+		return $post;
+	}
+	
+	private function get_book_post_from_book_id( $id ) {
+		global $mb_api;
+		$posts = $mb_api->introspector->get_posts(array(
+			'meta_key' => 'mb_book_id',
+			'meta_value' => $id,
+			'post_type' => 'book',
+			'numberposts'	=> 1
+		), true);
+		if ($posts) {
+			$book_post = $posts[0];
+		}
+		return $book_post;
+	}
+	
+	private function get_book_post_from_category_id( $id ) {
+		global $mb_api;
+		$posts = $mb_api->introspector->get_posts(array( 'cat' => $id, 'post-type' => 'book' ));	
+		if ($posts) {
+			$book_post = $posts[0];
+		}
+		return $book_post;
+	}
+
+	private function get_book_post_from_category_slug( $slug ) {
+		global $mb_api;
+		$posts = $mb_api->introspector->get_posts(array( 'category_name' => $slug, 'post-type' => 'book' ));	
+		if ($posts) {
+			$book_post = $posts[0];
+		}
+		return $book_post;
+	}
+
 
 	/*
-	 * get_book_info_from_page
-	 * Return an array of the book settings from a page (or post)
+	 * get_book_info_from_post
+	 * Return an array of the book settings from a book-type post
 	 * Example using API:
-	 * http://localhost/photobook/wordpress/mb/book/get_post/?dev=1&slug=my-new-book-page&post_type=page
+	 * http://localhost/photobook/wordpress/mb/book/get_post/?dev=1&slug=my-new-book-page&post_type=book
 	 * Returns: $book_id, $title, $author, $book_id, $theme_id, $theme (array), $publisher_id
 	 */
-	public function get_book_info_from_page() {
+	public function get_book_info_from_post( $post_id = null, $category_id = null ) {
 		global $mb_api;
 
 		if (! $this->confirm_auth() ) {
 			return false;
 		}
 
-		extract($mb_api->query->get(array('id', 'slug', 'post_type')));
-		
-		// If no id/slug specified, use the setting on the settings page (not post!)
-		if (!($id or $slug)) {
-			$page_id = get_option('mb_api_book_info_post_id');
-			$response = $mb_api->introspector->get_posts(array(
-				'page_id' => $page_id,
-				'post_type' => 'page',
-				'pagename' => $slug
-			));
-			$post = $response[0];
+		if ($post_id) {
+			$post = $this->get_book_post($post_id);
+		} elseif ($category_id) {
+			$post = get_book_post_from_category_id($category_id);
 		} else {
-			if ($post_type != "page") {
-				$response = $this->get_post();
-				$post = $response['post'];
-			} else {
-				$response = $this->get_page();
-				$post = $response['page'];
-			}
-	
-			if (!$response) {
-				$mb_api->error("Not found.");
-				return false;
-			}
+			$mb_api->error(__FUNCTION__.": Missing post id.");
 		}
 		
 		
@@ -629,6 +868,8 @@ We use some of the WP fields for our own purposes:
 			$poster_url = "";
 		}
 		
+		$category_id = $post->categories[0]->id;
+		
 		$result = array (
 			'id'		=> $book_id, 
 			'title'			=> $title, 
@@ -641,7 +882,8 @@ We use some of the WP fields for our own purposes:
 			'datetime'		=> $post->date, 
 			'modified'		=> $post->modified, 
 			'icon_url'		=> $icon_url, 
-			'poster_url'	=> $poster_url
+			'poster_url'	=> $poster_url,
+			'category_id'	=> $category_id
 			);
 		
 		return $result;
@@ -658,18 +900,17 @@ We use some of the WP fields for our own purposes:
 	 *		$info = array ($id, $title, $author, $publisher_id)
 	 *		$chapters = array ($chapter1, $chapter2, ...)
 	 */
-	protected function get_book($book_cat_id) {
+	protected function get_book($id = null, $book_cat_id = null) {
 		global $mb_api;
 		
-		// Get the wp category object by id or slug
-		$book_category = $mb_api->introspector->get_category_by_id($book_cat_id);
+		$book_info = $this->get_book_info_from_post($id, $book_cat_id);
+		$book_cat_id = $book_info['category_id'];
 		
 		
-		$info = $this->get_book_info_from_page();
 		//list($book_id, $title, $author, $publisher_id) = $info;
-		$book_chapters = $this->get_book_chapters($book_category->id);
+		$book_chapters = $this->get_book_chapters($book_cat_id);
 		$book = array (
-			"info"		=> $info,
+			"info"		=> $book_info,
 			"chapters"	=> $book_chapters
 		);
 		return ($book);
