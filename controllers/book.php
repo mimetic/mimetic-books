@@ -44,6 +44,7 @@ We use some of the WP fields for our own purposes:
 	 * REMOTE
 	 * If we are getting the file from a remote site, then this probably works best with a POST, not a GET!
 	 * You can't really send a tar file in a GET, after all.
+	 * Required params:
 	 * 
 	 * example : http://localhost/photobook/wordpress/mb/book/receive_book_package_from_client/?id=123456&u=test&p=pass&f=(filedata)
 	 */
@@ -52,16 +53,20 @@ We use some of the WP fields for our own purposes:
 		
 		$local = false;		
 		$distribution_url = trim(get_option('mb_api_book_publisher_url'));
-
+		
+		
 		if ($distribution_url) {
 			// REMOTE PUBLISHING
 
 			// Get book ID, username, password
-			extract($mb_api->query->get(array('id', 'u', 'p', 'f')));
+			extract($mb_api->query->get(array('book_id', 'u', 'p', 'f')));
 
-			if (!$id || !$u || !$p || !$f) {
-				$mb_api->error(__FUNCTION__.": Remote publishing requires book id, username, password, and file data ($id, $u, $p).");
+			if (!$book_id || !$u || !$p || !$f) {
+				$mb_api->error(__FUNCTION__.": Remote publishing requires book id, username, password, and file data ($book_id, $u, $p).");
 			}
+
+			$book_post = $this->get_book_post_from_book_id($book_id);
+			$id = $book_post->ID;
 
 			// Make a dir to hold the book package
 			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($id);
@@ -137,32 +142,31 @@ We use some of the WP fields for our own purposes:
 		$book_id = strtolower($book_id);
 
 		
-		// Extract the icon, poster, and json files
+		// Extract the icon, poster, and item.json
+		// Don't fail if this fails, just throw a warning?
 		try {
 			$phar = new PharData($filename);
 			$phar->extractTo($dir, array('icon.png', 'poster.jpg', 'item.json'), true);
 		} catch (Exception $e) {
 			// handle errors
-			$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item.");
+			// This includes missing files, when the poster or icon files are missing.
+			// DON'T quit here, it is probably just be a missing file.
+			$error = "Error extracting icon or poster or item from the book package. Probably missing poster or icon.";
+			//$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item: " . $e->message);
 		}
 
-
+		
+		// ------------------------------------------------------------
 		// Create or Update a post entry in the Wordpress for this book!
 		// First, look for an existing entry with this ID
-		$posts = $mb_api->introspector->get_posts(array(
-				'name' => "item_{$book_id}",
-				'post_type' => 'book',
-				'numberposts'	=> 1
-			), true);
-
+		$book_post = $this->get_book_post($id);
 
 		$user_id = $user->ID;
 
 
 		// If post does not exist, create it.
-		if ($posts) {
-			$post = $posts[0];
-			$post_id = $post->ID;
+		if ($book_post) {
+			$post_id = $book_post->id;
 		} else {
 			
 			// see: http://codex.wordpress.org/Function_Reference/wp_insert_post
@@ -234,9 +238,15 @@ We use some of the WP fields for our own purposes:
 		// Attach the item.json file to the book posting
 		$filename = $dir . DIRECTORY_SEPARATOR . "item.json";
 		$this->attach_file_to_post($filename, $post_id);
-
-
+		
+		if ($error) {
+			//data,textStatus
+			$error['data'] = $error;
+			$error = json_encode($error);
 		}
+		
+		return $error;
+	}
 	
 		
 		

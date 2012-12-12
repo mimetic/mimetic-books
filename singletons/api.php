@@ -74,9 +74,32 @@ class MB_API {
 		// Remove filters for excerpts which usually add a "read more" or something like that.
 		//remove_filter( 'get_the_excerpt', 'twentyeleven_custom_excerpt_more' );
 		remove_all_filters( 'get_the_excerpt' );
+		
+		add_filter('the_title', array(&$this, 'remove_private_prefix') ) ;
 	}
   
 
+	// Function to remove the "Private" and "Protected" from private and protected pages
+	function remove_private_prefix($title) {
+
+		$title = esc_attr($title);
+
+		$findthese = array(
+			'#Protected:#',
+			'#Private:#'
+		);
+
+		$replacewith = array(
+			'', // What to replace "Protected:" with
+			'' // What to replace "Private:" with
+		);
+
+		$title = preg_replace($findthese, $replacewith, $title);
+		return $title;
+	}	
+	
+	
+	
   function template_redirect() {
     // Check to see if there's an appropriate API controller + method    
     $controller = strtolower($this->query->get_controller());
@@ -216,38 +239,37 @@ class MB_API {
 		<table class="form-table">
 		 <tr valign="top">
 			<th scope="row">Book:</th>
-			<td>
-				<?php
-					$args = array (
-						'post_type' => 'book',
-						'posts_per_page' => -1
-					);
+				<td>
+					<?php
+						$args = array (
+							'post_type' => 'book',
+							'posts_per_page' => -1
+						);
 
-					$my_query = null;
-					$my_query = new WP_Query($args);
+						$my_query = null;
+						$my_query = new WP_Query($args);
 
-					$selected = get_option('mb_api_book_info_post_id');
+						$selected = get_option('mb_api_book_info_post_id');
 
-					echo '<select id="mb_api_book_info_post_id" name="mb_api_book_info_post_id">';
-					if( $my_query->have_posts() ) {
-						while ( $my_query->have_posts() ) : $my_query->the_post();
-							$id = get_the_ID();
-							$title = get_the_title();
-							if ($id == $selected) {
-								echo '<option selected="selected" value="'. $id .'">'. $title . '</option>';
-							} else {
-								echo '<option value="'. $id.'">'. $title. '</option>';
-							}
-						endwhile;
-					}
-					echo '</select>';
-					wp_reset_query();  // Restore global post data stomped by the_post().
+						echo '<select id="mb_api_book_info_post_id" name="mb_api_book_info_post_id">';
+						if( $my_query->have_posts() ) {
+							while ( $my_query->have_posts() ) : $my_query->the_post();
+								$id = get_the_ID();
+								$title = get_the_title();
+								if ($id == $selected) {
+									echo '<option selected="selected" value="'. $id .'">'. $title . '</option>';
+								} else {
+									echo '<option value="'. $id.'">'. $title. '</option>';
+								}
+							endwhile;
+						}
+						echo '</select>';
+						wp_reset_query();  // Restore global post data stomped by the_post().
+					?>      
 
-
-				?>      
-
-				<span style="margin-right:2em;"/>&nbsp;</span>
-				<input type="button" id="publish" class="button-primary" value="<?php _e('Publish Book') ?>" />
+					<span style="margin-right:2em;">&nbsp;</span>
+					<input type="button" id="publish" class="button-primary" value="<?php _e('Publish Book') ?>" />
+					<span style="margin-left:20px;" id="publishing_progress_message" ></span>
 				</td>
 			</tr>
 			<tr valign="top">

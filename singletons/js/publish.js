@@ -9,17 +9,22 @@ jQuery(document).ready(function($){
 			if (url == "") {
 				url = jQuery('#base_url').val().trim() + "/";
 			}
-			url = url + "mb/book/publish_book_package/?" + "id=" + id;
+			url = url + "mb/book/publish_book_package/?" + "book_id=" + id;
+			
+			// Update progress on page:
+			jQuery('#publishing_progress_message').html("Working...");
+			
 			//alert ("contacting :" + url);
 			jQuery.get(
 				url,
 				function(data,textStatus, jqXHR) {
 					//alert('page content: ' + data + "," + textStatus);
 					if (data) {
-						alert ("Error publishing that book.")
+						alert ("Issue publishing that book: " + data)
 					} else {
 						alert ("The book was published.");
 					}
+					jQuery('#publishing_progress_message').html("");
 				});
 		}
 		return false;
