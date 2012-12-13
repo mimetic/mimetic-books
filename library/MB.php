@@ -174,9 +174,9 @@ class Mimetic_Book
 		$icon_url = $this->icon;
 		$poster_url = $this->poster;
 		if ($icon_url)
-			copy($icon_url, $this->build_files_dir.DIRECTORY_SEPARATOR.basename($icon_url));
+			copy($icon_url, $this->build_files_dir.DIRECTORY_SEPARATOR.basename("icon.png"));
 		if ($poster_url)
-			copy($poster_url, $this->build_files_dir.DIRECTORY_SEPARATOR.basename($poster_url));
+			copy($poster_url, $this->build_files_dir.DIRECTORY_SEPARATOR.basename("poster.jpg"));
 	}
 	
 

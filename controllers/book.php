@@ -53,7 +53,7 @@ We use some of the WP fields for our own purposes:
 		
 		$local = false;		
 		$distribution_url = trim(get_option('mb_api_book_publisher_url'));
-		
+		$error = "";
 		
 		if ($distribution_url) {
 			// REMOTE PUBLISHING
@@ -152,10 +152,9 @@ We use some of the WP fields for our own purposes:
 			// This includes missing files, when the poster or icon files are missing.
 			// DON'T quit here, it is probably just be a missing file.
 			$error = "Error extracting icon or poster or item from the book package. Probably missing poster or icon.";
-			//$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item: " . $e->message);
+			//$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item: " . $e);
 		}
 
-		
 		// ------------------------------------------------------------
 		// Create or Update a post entry in the Wordpress for this book!
 		// First, look for an existing entry with this ID
@@ -163,8 +162,11 @@ We use some of the WP fields for our own purposes:
 
 		$user_id = $user->ID;
 
+		$info = json_decode( file_get_contents($dir . DIRECTORY_SEPARATOR . "item.json") );
+
 
 		// If post does not exist, create it.
+		// This must be a remote publish, since the book post does not exist.
 		if ($book_post) {
 			$post_id = $book_post->id;
 		} else {
@@ -173,38 +175,52 @@ We use some of the WP fields for our own purposes:
 			$post = array(
 				'comment_status' => 'open', // 'closed' means no comments.
 				'ping_status'    => 'closed', // 'closed' means pingbacks or trackbacks turned off
-				'post_author'    => $user_id, //The user ID number of the author.
-				'post_content'   => "This is my new book!", //The full text of the post.
-				'post_name'      => "item_{$book_id}",  // The name (slug) for your post
 				'post_status'    => 'private',  //Set the status of the new post.
-				'post_title'     => 'my title', //The title of your post.
 				'post_type'      => 'book',
-				'tags_input'     => 'book'
-			);  
-			
+				'tags_input'     => 'book',
+				'ID'             => $post_id,
+				'post_content'   => $info->description,
+				'post_excerpt'   => $info->shortDescription,
+				'post_date'      => $info->date,
+				'post_name'      => "item_{$book_id}",	// slug
+				'post_modified'  => $info->modificationDate,
+				'post_title'     => $info->title,
+				'post_author'    => $user_id //The user ID number of the author.
+				);
+
 			$post_id = wp_insert_post( $post, true );
 			if ( is_wp_error($post_id) ) {
 				return $post_id->get_error_message();
 			}
+
+			// Delete all attachments to the post, so they can be replaced.
+			$this->delete_all_attachments($post_id);
+			// Do NOT delete the tar file.
+			// $this->delete_all_attachments($post_id, "item.tar");
+			
+			// Attach new files to the book post:
+			// 
+			// you must first include the image.php file
+			// for the function wp_generate_attachment_metadata() to work
+			@include_once (ABSPATH . 'wp-admin/includes/image.php');
+
+			// Attach the tar package file to the book posting
+			$this->attach_file_to_post($filename, $post_id);
+
+			// Attach the icon file to the book posting
+			$filename = $dir . DIRECTORY_SEPARATOR . "icon.png";
+			$this->attach_file_to_post($filename, $post_id);
+
+			// Attach the poster file to the book posting
+			$filename = $dir . DIRECTORY_SEPARATOR . "poster.jpg";
+			$this->attach_file_to_post($filename, $post_id);
+
+			// Attach the item.json file to the book posting
+			$filename = $dir . DIRECTORY_SEPARATOR . "item.json";
+			$this->attach_file_to_post($filename, $post_id);
 		}
 		
-		// Read the item.json file to get the book info
-		
-		$info = json_decode( file_get_contents($dir . DIRECTORY_SEPARATOR . "item.json") );
-		
-		// Update the book post
-		$post = array(
-			'ID'             => $post_id,
-			'post_content'   => $info->description,
-			'post_excerpt'   => $info->shortDescription,
-			'post_date'      => $info->date,
-			'post_name'      => "item_{$book_id}",	// slug
-			'post_modified'  => $info->modificationDate,
-			'post_title'     => $info->title,
-			'post_author'    => $user_id //The user ID number of the author.
-			);
 
-		$post_id = wp_update_post( $post );
 		
 		// Custom fields:
 
@@ -214,30 +230,6 @@ We use some of the WP fields for our own purposes:
 		// Book author field
 		update_post_meta($post_id, "mb_book_author", $info->author);
 
-		// Delete all attachments to the post, so they can be replaced.
-		// Do NOT delete the tar file
-		//$this->delete_all_attachments($post_id, "item.tar");
-		
-		// Attach new files to the book post:
-		// 
-		// you must first include the image.php file
-		// for the function wp_generate_attachment_metadata() to work
-		@include_once (ABSPATH . 'wp-admin/includes/image.php');
-
-		// Attach the package file to the book posting
-		$this->attach_file_to_post($filename, $post_id);
-
-		// Attach the icon file to the book posting
-		$filename = $dir . DIRECTORY_SEPARATOR . "icon.png";
-		$this->attach_file_to_post($filename, $post_id);
-		
-		// Attach the poster file to the book posting
-		$filename = $dir . DIRECTORY_SEPARATOR . "poster.jpg";
-		$this->attach_file_to_post($filename, $post_id);
-
-		// Attach the item.json file to the book posting
-		$filename = $dir . DIRECTORY_SEPARATOR . "item.json";
-		$this->attach_file_to_post($filename, $post_id);
 		
 		if ($error) {
 			//data,textStatus
@@ -297,6 +289,7 @@ We use some of the WP fields for our own purposes:
 
 		// Copy the book promo art, i.e. icon and poster files, based on the book info.
 		$mb->get_book_promo_art( $build_files_dir);
+		
 		
 		$this->write_book_info_file($mb);
 		
@@ -866,7 +859,39 @@ We use some of the WP fields for our own purposes:
 		} else {
 			$icon_url = '';
 		}
+	
+	// Use the post thumbnail as the icon. It will be small, so it won't get
+		// cropped by the theme. A large file is cropped to fit the header...not good for us.
+		$t = wp_get_attachment_image_src( get_post_thumbnail_id( $post->id, 'full'));
 		
+		if ($t) {
+			$icon_url = $t[0];
+		} else {
+			$icon_url = '';
+		}
+	
+		
+		/*
+		 * Now we have a custom field for posters!
+		 */
+
+		$poster_url = "";
+		if (isset($custom_fields['mb_poster_attachment_id']) && $custom_fields['mb_poster_attachment_id'][0]) {
+			$args = array(
+				'post_type' => 'attachment',
+				'p'			=> $custom_fields['mb_poster_attachment_id'][0],
+				'numberposts' => 1
+			); 
+			$poster_attachment = get_posts($args);
+			if ($poster_attachment && $poster_attachment[0]) {
+				$poster_attachment = $poster_attachment[0];
+				$poster_url = $poster_attachment->guid;
+			}
+		}
+			
+			
+			
+		/*
 		// Get the poster from the post text itself.
 		$attr = $this->get_embedded_element_attributes($post, $element_type="img");
 		if ($attr) {
@@ -877,6 +902,8 @@ We use some of the WP fields for our own purposes:
 		} else {
 			$poster_url = "";
 		}
+		*/
+		
 		
 		$category_id = $post->categories[0]->id;
 		

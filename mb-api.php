@@ -115,21 +115,23 @@ function make_custom_post_type_init() {
 
 	);
 	$args = array(
-	'labels' => $labels,
-	'public' => true,
-	'publicly_queryable' => true,
-	'show_ui' => true, 
-	'show_in_menu' => true, 
-	'query_var' => true,
-	'rewrite' => array( 'slug' => _x( 'book', 'URL slug', 'your_text_domain' ) ),
-	'capability_type' => 'post',
-	'has_archive' => true, 
-	'hierarchical' => false,
-	'menu_position' => null,
-	'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments', 'custom-fields', 'revisions' ),
-	'taxonomies'	=> array('category')
+		'labels' => $labels,
+		'public' => true,
+		'publicly_queryable' => true,
+		'show_ui' => true, 
+		'show_in_menu' => true, 
+		'query_var' => true,
+		'rewrite' => array( 'slug' => _x( 'book', 'URL slug', 'your_text_domain' ) ),
+		'capability_type' => 'post',
+		'has_archive' => true, 
+		'hierarchical' => false,
+		'menu_position' => null,
+		'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments', 'custom-fields', 'revisions' ),
+		'taxonomies'	=> array('category'),
+		'register_meta_box_cb'	=> 'book_post_meta_boxes_setup'
 	); 
 	register_post_type('book', $args);
+	
 }
  
 // Add filter to ensure the text Book, or book, is displayed when user updates a book 
@@ -232,6 +234,114 @@ function delete_book_post($post_id)
 	}
 }
 
+/* META BOXES */
+
+/* Meta box setup function. */
+function book_post_meta_boxes_setup() {
+	$jsURL = plugins_url( 'js/image_upload.js', __FILE__ );
+	
+	wp_enqueue_script('media-upload');
+	wp_enqueue_script('thickbox');
+	
+	wp_register_script('my-upload', $jsURL, array('jquery','media-upload','thickbox'));
+	wp_enqueue_script('my-upload');
+	
+	wp_enqueue_style('thickbox');
+
+	$jsCSS = plugins_url( 'js/image_upload.css', __FILE__ );
+	wp_register_style( 'image_upload', $jsCSS);
+	wp_enqueue_style('image_upload');
+	
+	/* Add meta boxes on the 'add_meta_boxes' hook. */
+	add_action( 'add_meta_boxes', 'book_add_post_meta_boxes' );
+	
+	/* Fire our meta box setup function on the post editor screen. */
+	//add_action( 'load-post.php', 'book_post_meta_boxes_setup' );
+	//add_action( 'load-post-new.php', 'book_post_meta_boxes_setup' );
+	add_action('save_post', 'book_post_poster_meta_save_postdata');
+
+
+
+	
+}
+
+
+/* Create one or more meta boxes to be displayed on the post editor screen. */
+function book_add_post_meta_boxes() {
+
+	add_meta_box(
+		'book-post-poster',			// Unique ID
+		esc_html__( 'Poster' ),		// Title
+		'book_post_poster_meta_box',		// Callback function
+		'book',					// Admin page (or post type)
+		'side',					// Context
+		'high'					// Priority
+	);
+	
+	
+}
+
+
+/* Display the post meta box. */
+function book_post_poster_meta_box( $post) { 
+	
+	$mb_poster_attachment_url = get_post_meta($post->ID, "mb_poster_attachment_url", true);
+	$mb_poster_attachment_id = get_post_meta($post->ID, "mb_poster_attachment_id", true);
+	
+	wp_nonce_field( basename( __FILE__ ), 'book_post_poster_nonce' ); 
+	
+	?>
+	<p>
+		<label for="book-post-poster">
+			<?php _e( "Choose a JPG poster for your book." ); ?>
+			<div id="wp-content-media-buttons" class="wp-media-buttons">
+				<a href="#" class="button insert-media add_media poster_upload"><span class="wp-media-buttons-icon"></span> Add Poster</a>
+			</div>
+			<br/>
+			<img class="poster_image" src="<?php echo $mb_poster_attachment_url;  ?>" />
+			<input class="poster_url" type="hidden" name="mb_poster_attachment_url" value="<?php echo $mb_poster_attachment_url;  ?>">
+			<input class="poster_id" type="hidden" name="mb_poster_attachment_id" value="<?php echo $mb_poster_attachment_id;  ?>">
+		</label>
+
+	</p>
+	<?php 
+}
+
+function book_post_poster_meta_save_postdata( $post_id) {
+	// verify if this is an auto save routine. 
+	// If it is our form has not been submitted, so we dont want to do anything
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) 
+		return;
+
+	// verify this came from the our screen and with proper authorization,
+	// because save_post can be triggered at other times
+	if ( !wp_verify_nonce( $_POST['book_post_poster_nonce'], basename( __FILE__ ) ) )
+		return;
+
+
+	// Check permissions
+	if ( 'book' == $_POST['post_type'] ) 
+	{
+	if ( !current_user_can( 'edit_page', $post_id ) )
+		return;
+	}
+	else
+	{
+	if ( !current_user_can( 'edit_post', $post_id ) )
+		return;
+	}
+
+	// OK, we're authenticated: we need to find and save the data
+	
+	// Be sure the poster is a jpg file.
+	$filetype = wp_check_filetype($_POST['mb_poster_attachment_url']);
+	
+	if ($filetype['ext'] == "jpg") {
+		// Do something with $mydata 
+		update_post_meta( $post_id, 'mb_poster_attachment_url', $_POST['mb_poster_attachment_url'] );
+		update_post_meta( $post_id, 'mb_poster_attachment_id', $_POST['mb_poster_attachment_id'] );
+	}
+}
 
 
 // ------------------------------------------------------
@@ -247,4 +357,5 @@ add_filter( 'post_updated_messages', 'mb_api_book_updated_messages' );
 add_action( 'after_switch_theme', 'my_rewrite_flush' );
 add_action('before_delete_post', 'delete_book_post')
 
+	
 ?>

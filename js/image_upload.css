@@ -1,0 +1,18 @@
+/* @override http://localhost/photobook/wordpress/wp-content/plugins/mimetic-books-api/js/image_upload.js?ver=3.5 */
+
+/* CSS for image uploader */
+
+.poster_image {
+	border: 1px solid black;
+	width: 100%;
+}
+
+.poster_url {
+}
+
+.poster_id {
+}
+
+.poster_button {
+	
+}
