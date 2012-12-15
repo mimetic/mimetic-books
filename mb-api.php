@@ -132,6 +132,12 @@ function make_custom_post_type_init() {
 	); 
 	register_post_type('book', $args);
 	
+		/* Fire our meta box setup function on the post editor screen. */
+	//add_action( 'load-post.php', 'book_post_meta_boxes_setup' );
+	//add_action( 'load-post-new.php', 'book_post_meta_boxes_setup' );
+	add_action('save_post', 'book_post_meta_save_postdata');
+
+	
 }
  
 // Add filter to ensure the text Book, or book, is displayed when user updates a book 
@@ -238,30 +244,26 @@ function delete_book_post($post_id)
 
 /* Meta box setup function. */
 function book_post_meta_boxes_setup() {
-	$jsURL = plugins_url( 'js/image_upload.js', __FILE__ );
-	
+
 	wp_enqueue_script('media-upload');
 	wp_enqueue_script('thickbox');
 	
-	wp_register_script('my-upload', $jsURL, array('jquery','media-upload','thickbox'));
+	$jsURL = plugins_url( 'js/image_upload.js', __FILE__ );
+	wp_register_script('my-upload', $jsURL, array('jquery'));
 	wp_enqueue_script('my-upload');
 	
+	$jsURL = plugins_url( 'js/publish.js', __FILE__ );
+	wp_register_script('my-publish', $jsURL, array('jquery'));
+	wp_enqueue_script('my-publish');
+
 	wp_enqueue_style('thickbox');
 
-	$jsCSS = plugins_url( 'js/image_upload.css', __FILE__ );
-	wp_register_style( 'image_upload', $jsCSS);
-	wp_enqueue_style('image_upload');
+	$jsCSS = plugins_url( 'js/style.css', __FILE__ );
+	wp_register_style( 'mb_api_style', $jsCSS);
+	wp_enqueue_style('mb_api_style');
 	
-	/* Add meta boxes on the 'add_meta_boxes' hook. */
-	add_action( 'add_meta_boxes', 'book_add_post_meta_boxes' );
-	
-	/* Fire our meta box setup function on the post editor screen. */
-	//add_action( 'load-post.php', 'book_post_meta_boxes_setup' );
-	//add_action( 'load-post-new.php', 'book_post_meta_boxes_setup' );
-	add_action('save_post', 'book_post_poster_meta_save_postdata');
-
-
-
+	// Create the meta box
+	book_add_post_meta_boxes();
 	
 }
 
@@ -270,8 +272,26 @@ function book_post_meta_boxes_setup() {
 function book_add_post_meta_boxes() {
 
 	add_meta_box(
+		'book-post-publish',			// Unique ID
+		esc_html__( 'Publish Book' ),		// Title
+		'book_post_publish_meta_box',		// Callback function
+		'book',					// Admin page (or post type)
+		'side',					// Context
+		'high'					// Priority
+	);
+	
+	add_meta_box(
+		'book-post-theme',			// Unique ID
+		esc_html__( 'Book Design Theme' ),		// Title
+		'book_post_theme_meta_box',		// Callback function
+		'book',					// Admin page (or post type)
+		'side',					// Context
+		'high'					// Priority
+	);
+	
+	add_meta_box(
 		'book-post-poster',			// Unique ID
-		esc_html__( 'Poster' ),		// Title
+		esc_html__( 'Book Poster' ),		// Title
 		'book_post_poster_meta_box',		// Callback function
 		'book',					// Admin page (or post type)
 		'side',					// Context
@@ -282,17 +302,72 @@ function book_add_post_meta_boxes() {
 }
 
 
-/* Display the post meta box. */
+
+/* Display the post publish meta box. */
+function book_post_publish_meta_box( $post) { 
+	global $mb_api;
+	
+	$mb_book_id = get_post_meta($post->ID, "mb_book_id", true);
+	
+	?>
+	<p>
+		<label for="book-post-publish">
+			<?php _e( "Be sure first to update this page if you have made changes." ); ?>
+
+			<br/>
+			
+			<!-- defined on plugin settings page -->
+			<input type="hidden" id="distribution_url" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
+			<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
+		</label>
+		
+		<label for="mb_book_id">
+			Book ID:
+		</label>
+		<input type="text" id="mb_book_id" name="mb_book_id" value="<?php print $mb_book_id;  ?>" />
+
+		<div class="submitbox" >
+			<span style="margin-right:20px;" id="publishing_progress_message" ></span>
+			<div style="text-align:right;float:right;">
+				<input type="button" id="publish" class="button-primary" value="<?php _e('Publish Book') ?>" />
+			</div>
+		</div>
+		<div class="clear"></div>
+	</p>
+	<?php 
+}
+
+/* Display the post publish meta box. */
+function book_post_theme_meta_box( $post) { 
+	global $mb_api;
+	
+	$mb_book_theme_id = get_post_meta($post->ID, "mb_book_theme_id", true);
+	
+	wp_nonce_field( basename( __FILE__ ), 'book_post_nonce' ); 
+	
+	?>
+	<p>
+		<label for="mb_book_theme_id">
+			Choose a design theme for your book:<br/>
+			<br/>
+			<?php echo $mb_api->book_theme_popup_menu($post->ID) ?>
+		</label>
+
+	</p>
+	<?php 
+}
+
+/* Display the book post poster meta box. */
 function book_post_poster_meta_box( $post) { 
 	
 	$mb_poster_attachment_url = get_post_meta($post->ID, "mb_poster_attachment_url", true);
 	$mb_poster_attachment_id = get_post_meta($post->ID, "mb_poster_attachment_id", true);
 	
-	wp_nonce_field( basename( __FILE__ ), 'book_post_poster_nonce' ); 
+	wp_nonce_field( basename( __FILE__ ), 'book_post_nonce' ); 
 	
 	?>
 	<p>
-		<label for="book-post-poster">
+		<label for="mb_poster_attachment_url">
 			<?php _e( "Choose a JPG poster for your book." ); ?>
 			<div id="wp-content-media-buttons" class="wp-media-buttons">
 				<a href="#" class="button insert-media add_media poster_upload"><span class="wp-media-buttons-icon"></span> Add Poster</a>
@@ -307,7 +382,7 @@ function book_post_poster_meta_box( $post) {
 	<?php 
 }
 
-function book_post_poster_meta_save_postdata( $post_id) {
+function book_post_meta_save_postdata( $post_id) {
 	// verify if this is an auto save routine. 
 	// If it is our form has not been submitted, so we dont want to do anything
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) 
@@ -315,7 +390,10 @@ function book_post_poster_meta_save_postdata( $post_id) {
 
 	// verify this came from the our screen and with proper authorization,
 	// because save_post can be triggered at other times
-	if ( !wp_verify_nonce( $_POST['book_post_poster_nonce'], basename( __FILE__ ) ) )
+	if (!isset($_POST['book_post_nonce']))
+		return;
+	
+	if ( !wp_verify_nonce( $_POST['book_post_nonce'], basename( __FILE__ ) ) )
 		return;
 
 
@@ -332,16 +410,25 @@ function book_post_poster_meta_save_postdata( $post_id) {
 	}
 
 	// OK, we're authenticated: we need to find and save the data
+
+	update_post_meta( $post_id, 'mb_book_theme_id', $_POST['mb_book_theme_id'] );
+	update_post_meta( $post_id, 'mb_book_id', $_POST['mb_book_id'] );
 	
+
+	//$is_rev = wp_is_post_revision( $post_id );
+	
+	//if ( is_int( wp_is_post_revision( $post_id ) ) )
+	//	return;
+
 	// Be sure the poster is a jpg file.
 	$filetype = wp_check_filetype($_POST['mb_poster_attachment_url']);
-	
 	if ($filetype['ext'] == "jpg") {
 		// Do something with $mydata 
 		update_post_meta( $post_id, 'mb_poster_attachment_url', $_POST['mb_poster_attachment_url'] );
 		update_post_meta( $post_id, 'mb_poster_attachment_id', $_POST['mb_poster_attachment_id'] );
 	}
 }
+
 
 
 // ------------------------------------------------------

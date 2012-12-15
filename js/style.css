@@ -16,3 +16,8 @@
 .poster_button {
 	
 }
+
+#publishing_progress_message {
+	color: #ff2600;
+	font-variant: normal;
+}

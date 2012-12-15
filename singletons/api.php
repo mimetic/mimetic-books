@@ -579,7 +579,7 @@ class MB_API {
     return $this->response->is_value_included($key);
   }
   
-  
+  // For the whole site, used on the plugin settings page
   function theme_popup_menu() {
     $dir = mb_api_dir();
 	
@@ -601,10 +601,42 @@ class MB_API {
 
   }
   
+  // For one book, used on a book post page
+	function book_theme_popup_menu($book_id) {
+
+		if ($book_id) {
+			$book_post = get_post( array ('p' => $book_id) );
+		} else {
+			$mb_api->error(__FUNCTION__.": No book ID passed to me.");
+		}
+		// We want to minimize loading this...it can be slow.
+		$this->load_themes();
+		$values = $this->themes->themes_list;
+		// Default theme is 1;
+		$checked = get_post_meta($book_id, "mb_book_theme_id", true);
+		empty($checked) && $checked = 1;
+		$listname = "mb_book_theme_id";
+		$sort = true;
+		$size = true;
+		$extrahtml = "";
+		$extraline = array();
+
+		$menu = $this->funx->OptionListFromArray ($values, $listname, $checked, $sort, $size, $extrahtml, $extraline);
+
+		return $menu;
+
+	}
+
+	function get_book_theme_id($book_id)
+	{
+
+	}
+  
+
 	function load_themes() {
 		$dir = mb_api_dir();
 		$themes_dir = "$dir/themes";
-		
+
 		$this->themes->LoadAllThemes ($themes_dir);
 	}
 

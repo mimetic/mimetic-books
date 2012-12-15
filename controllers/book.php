@@ -96,16 +96,16 @@ We use some of the WP fields for our own purposes:
 			// LOCAL PUBLISHING
 			$user = wp_get_current_user();
 			
-			// Get book ID, username, password
-			extract($mb_api->query->get(array('id')));
+			// Get book ID
+			extract($mb_api->query->get(array('book_id')));
 			
 			// TESTING
-			isset($book_id) || $book_id = "123456";
+			//isset($book_id) || $book_id = "123456";
 			
-			if ($book_id) {
+			if (isset($book_id)) {
 				$book_post = $this->get_book_post_from_book_id($book_id);
 				$id = $book_post->ID;
-			} elseif ($id) {
+			} elseif (isset($id)) {
 				$book_post = $this->get_book_post($id);
 			} else {
 				$mb_api->error(__FUNCTION__.": Local publishing must include book post id (id) or book id (book_id).");
@@ -155,7 +155,16 @@ We use some of the WP fields for our own purposes:
 			//$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item: " . $e);
 		}
 
-		// ------------------------------------------------------------
+		// Must do AFTER writing it to the directory where it can be downloaded from
+		// since we check that files are there before we really show a book as
+		// published.
+		// 
+		// Update the shelves file with the new book
+		$this->write_shelves_file();
+		
+
+		
+// ------------------------------------------------------------
 		// Create or Update a post entry in the Wordpress for this book!
 		// First, look for an existing entry with this ID
 		$book_post = $this->get_book_post($id);
@@ -230,7 +239,7 @@ We use some of the WP fields for our own purposes:
 		// Book author field
 		update_post_meta($post_id, "mb_book_author", $info->author);
 
-		
+	
 		if ($error) {
 			//data,textStatus
 			$error['data'] = $error;
@@ -247,7 +256,6 @@ We use some of the WP fields for our own purposes:
 	 * $id = the WordPress book post internal ID, and not the book's unique id
 	 * Writes a .tar file into the packages folder in the uploads dir.
 	 * Clears out the build files in the build dir.
-	 * Looks for the theme in the book settings
 	 * Example: http://localhost/photobook/wordpress/mb/book/build_book_package/?dev=1&category_slug=book2
 	 * 
 	 * Choose which book to publish by provided one of these options, OR by passing the 
@@ -321,9 +329,6 @@ We use some of the WP fields for our own purposes:
 		// Mark the book as published so it will appear in the shelves
 		update_post_meta($book_post->id, 'mb_published', true);
 		$meta_values = get_post_meta($book_post->id, "mb_published", true);
-		
-		// Update the shelves file with the new book
-		$this->write_shelves_file();
 		
 		return true;
 	}
@@ -405,10 +410,14 @@ We use some of the WP fields for our own purposes:
 		// get the array of wp chapters using id or slug of the book category
 		$book = $this->get_book($book_post_id);
 		
-		// Add chapters to new $mb book object.
-		// Chapters are arrays of posts/pages
-		foreach($book['chapters'] as $chapter) {
-			$mb->convert_chapter($chapter);
+		if ($book) {
+			// Add chapters to new $mb book object.
+			// Chapters are arrays of posts/pages
+			foreach($book['chapters'] as $chapter) {
+				$mb->convert_chapter($chapter);
+			}
+		} else {
+			$mb = false;
 		}
 		
 		// Return the book object
@@ -499,11 +508,17 @@ We use some of the WP fields for our own purposes:
 		 */
 
 		foreach ($posts as $post) {
+			$info = $this->get_book_info_from_post($post->ID);
+			
 			// Only add the item if it is marked published with our custom meta field.
 			$is_published = get_post_meta($post->ID, "mb_published", true);
+			
+			// Also check the package's directory is there
+			$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $info['id'] . DIRECTORY_SEPARATOR . "item.tar";
+			$is_published =  (file_exists($tarfilepath) && $is_published);
+			
 			if ($is_published) {
 			
-				$info = $this->get_book_info_from_post($post->ID);
 				// almost all names are same, but not completely....
 				// I've included some extras...maybe they'll be useful later.
 
@@ -791,6 +806,7 @@ We use some of the WP fields for our own purposes:
 
 		if ($post_id) {
 			$post = $this->get_book_post($post_id);
+			$category_id = $post->categories[0]->id;
 		} elseif ($category_id) {
 			$post = get_book_post_from_category_id($category_id);
 		} else {
@@ -815,10 +831,12 @@ We use some of the WP fields for our own purposes:
 		$author = join (" ", array ($post->author->first_name, $post->author->last_name));
 		
 		// Theme is set with a custom field, or taken from the settings page, or is the default theme.
-		// default theme is 0, I think.
-		if (isset($custom_fields['mb_theme_id']) && $custom_fields['mb_theme_id']) {
-			$theme_id =  $custom_fields['mb_theme_id'];
+		// Default theme is 1.
+		if (isset($custom_fields['mb_book_theme_id']) && $custom_fields['mb_book_theme_id']) {
+			// Get from book post
+			$theme_id =  $custom_fields['mb_book_theme_id'][0];
 		} else {
+			// get from settings page
 			$theme_id = (string)get_option('mb_api_book_theme', 1);
 			$theme_id || $theme_id = "0";
 		}
@@ -828,6 +846,9 @@ We use some of the WP fields for our own purposes:
 			$mb_api->load_themes();
 		}
 		$theme = $mb_api->themes->themes[$theme_id];
+		if (!$theme) {
+			$mb_api->error(__FUNCTION__.": The chosen theme ({$theme}) does not exist!");
+		}
 		
 		// Publisher still comes from either the page or the plugin settings page.
 		if (isset($custom_fields['mb_publisher_id']) && isset($custom_fields['mb_publisher_id'][0]) && $custom_fields['mb_publisher_id'][0]) {
@@ -905,6 +926,36 @@ We use some of the WP fields for our own purposes:
 		*/
 		
 		
+		/*
+		 * Get modification date for book.
+		 * Get the most recent of the post modifications OR
+		 * the book post modification date.
+		 * This means that updating info on the book page itself also
+		 * sets the modification date.
+		 */
+		
+		// Get most recent post
+		$book_posts = $mb_api->introspector->get_posts(array(
+			'category'		=> $category_id,
+			'numberposts'	=> 1,
+			'post_status'	=> 'publish',
+			'post_type'		=> 'post'
+		), true);
+		if ($book_posts) {
+			$book_posts = $book_posts[0];
+			$modified = $book_posts->post_modified;
+			//$mod = $post->post_modified_gmt;
+		} else {
+			$modified = date(RSS);
+		}
+		
+		// If the book page itself was modified more recently, use it as the modification date.
+		// This ensures that changing the poster will change the modification date.
+		if (strtotime($post->modified) > strtotime($modified)) {
+			$modified = $post->modified;
+		}
+		
+		
 		$category_id = $post->categories[0]->id;
 		
 		$result = array (
@@ -917,7 +968,7 @@ We use some of the WP fields for our own purposes:
 			'short_description'		=> $short_description, 
 			'type'			=> $type, 
 			'datetime'		=> $post->date, 
-			'modified'		=> $post->modified, 
+			'modified'		=> $modified, 
 			'icon_url'		=> $icon_url, 
 			'poster_url'	=> $poster_url,
 			'category_id'	=> $category_id
@@ -946,11 +997,17 @@ We use some of the WP fields for our own purposes:
 		
 		//list($book_id, $title, $author, $publisher_id) = $info;
 		$book_chapters = $this->get_book_chapters($book_cat_id);
-		$book = array (
-			"info"		=> $book_info,
-			"chapters"	=> $book_chapters
-		);
-		return ($book);
+		
+		if (count ($book_chapters) < 1) {
+			$book = false;
+			$mb_api->error(__FUNCTION__.": This book has no chapters with pages!");
+		} else {
+			$book = array (
+				"info"		=> $book_info,
+				"chapters"	=> $book_chapters
+			);
+		}
+		return $book;
 	}
 	
 	
@@ -959,6 +1016,13 @@ We use some of the WP fields for our own purposes:
 	 * get_book_chapters ( $category_id )
 	 * The posts are in category with id = $category_id,
 	 * and in sub-categories. 
+	 * Sub-chapters are categories items inside chapter category items,
+	 * e.g. "Chapter 1" contains categories "sub-chapter A"
+	 * Sub-chapter A will appear as a new chapter at the end of chapter 1.
+	 * One wonders, should these appear as pages inside chapter 1?
+	 * 
+	 * Chapters are ordered either by an ordering plugin (recommended) 
+	 * or alphabetically.
 	 */
 	/*
 	$category->term_id
@@ -983,8 +1047,12 @@ We use some of the WP fields for our own purposes:
 		$chapters = array();
 		
 		$book_cat = $mb_api->introspector->get_category_by_id($category_id);
+		
+		// The order is alphabetical if the plugin allowing term_order is NOT used.
+		// If term_order is installed, the chapters appear in that order.
+		
 		$args = array(
-			'type'			=> 'category',
+			'type'			=> 'post',
 			'child_of'		=> $book_cat->id,
 			'orderby'		=> 'name',
 			'order'			=> 'asc',
@@ -998,6 +1066,20 @@ We use some of the WP fields for our own purposes:
 		);
 		
 		$chapter_categories = get_categories($args);
+		
+		if (count($chapter_categories)<1) {
+			$args = array(
+				'type'			=> 'post',
+				'hide_empty'	=> 1,
+				'include'		=> $book_cat->id,
+				'number'		=> 1,
+				'taxonomy'		=> 'category',
+				'pad_counts'	=> 1
+			);
+
+			$chapter_categories = get_categories($args);
+
+		}
 		
 		foreach($chapter_categories as $chapter_category) {
 			$posts = array();
@@ -1122,6 +1204,7 @@ We use some of the WP fields for our own purposes:
 		}
 	}
 	
+
 	public function get_recent_posts() {
 		global $mb_api;
 
