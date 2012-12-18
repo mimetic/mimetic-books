@@ -71,19 +71,23 @@ We use some of the WP fields for our own purposes:
 			// Get book ID, username, password
 			extract($mb_api->query->get(array('book_id', 'u', 'p', 'f')));
 
-			$this->write_log("Publish book id#{$book_id} from a remote site.");
 			
 			// TESTING
 			$u = "digross";
 			$p = "nookie";
 
-			if (!$book_id || !$u || !$p || !$f) {
-				$mb_api->error(__FUNCTION__.": Remote publishing requires book id (book_id), username (u), password (p), and file data (f) ($book_id, $u, $p).");
+$this->write_log("Publish from remote site...getting file ");
+$this->write_log("$id, $book_id, $u, $p");
+
+			if (!($book_id || $id) || !$u || !$p || !$f) {
+				$mb_api->error(__FUNCTION__.": Missing book id (book_id), username (u), password (p), and/or file data (f) ($book_id, $u, $p).");
 			}
 
-			$book_post = $this->get_book_post_from_book_id($book_id);
-			$id = $book_post->ID;
+			if (!$book_id) {
+				$mb_api->error(__FUNCTION__.": Missing book_id.");
+			}
 
+			
 			// Make a dir to hold the book package
 			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
 			if(! is_dir($dir))
@@ -191,7 +195,7 @@ We use some of the WP fields for our own purposes:
 		// ------------------------------------------------------------
 		// Create or Update a post entry in the Wordpress for this book!
 		// First, look for an existing entry with this ID
-		$book_post = $this->get_book_post($id);
+		$book_post = $this->get_book_post_from_book_id($book_id);
 
 		$user_id = $user->ID;
 
@@ -765,32 +769,33 @@ We use some of the WP fields for our own purposes:
 	public function send_book_package( ) {
 		global $mb_api;
 		
-		// Get book ID, username, password
-		extract($mb_api->query->get(array('book_id')));
+		$this->write_log(__FUNCTION__);
 
-		if (!$book_id) {
-			$mb_api->error(__FUNCTION__.": No book object passed to this function.");
+		// Get book ID, username, password
+		extract($mb_api->query->get(array('id', 'book_id')));
+		if ($id) {
+			$info = $this->get_book_info_from_post($id);
+			$book_id = $info['id'];
+		} elseif ($book_id) {
+			$book_post = $this->get_book_post_from_book_id( $book_id );
+			$info = $this->get_book_info_from_post($book_post->ID);
+			$id = $book_post->ID;
+		} else {
+			$mb_api->error(__FUNCTION__.": Missing id or book_id.");
 		}
 		$url = get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url'])); 
 		$url .=  "mb/book/publish_book_package/";
 		
-		$book_post = $this->get_book_post_from_book_id( $book_id );
-		$info = $this->get_book_info_from_post($book_post->ID);
 		
 		//build the book
-		$this->build_book_package($book_post->ID);
+		$this->build_book_package($id);
 		
 		$publisher_id = $info['publisher_id'];
 		$p = "password";
 		
-		$_POST['book_id'] = $book_id;
-		$_POST['u'] = $publisher_id;
-		$_POST['p'] = $p;
 
 		$localfile = $mb_api->package_dir . DIRECTORY_SEPARATOR . "{$book_id}.tar";
 		$transFile = chunk_split(base64_encode(file_get_contents($localfile))); 
-		$_POST['f'] = $transFile ;
-		
 
 		$this->write_log("Prepare to send book id#{$book_id} to {$url}.");
 

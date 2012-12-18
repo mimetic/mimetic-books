@@ -6,10 +6,10 @@ jQuery(document).ready(function($){
 		url = jQuery('#base_url').val().trim() + "/";
 
 		if (distURL) {
-			url = url + "mb/book/send_book_package/?" + "book_id=" + id;
+			url = url + "mb/book/send_book_package/?" + "id=" + id;
 			res = confirm ("Publish this book to "+distURL+"?");
 		} else {
-			url = url + "mb/book/publish_book_package/?" + "book_id=" + id;
+			url = url + "mb/book/publish_book_package/?" + "id=" + id;
 			res = confirm ("Publish this book on this website?");
 		}
 
