@@ -59,8 +59,11 @@ class MB_API_Response {
   
   function respond($result, $status = 'ok') {
     global $mb_api;
+    
     $json = $this->get_json($result, $status);
-    $status_redirect = "redirect_$status";
+	error_log (date('Y-m-d H:i:s') . ": " . $this->prettify($json) . "\n", 3, $mb_api->logfile);
+
+	$status_redirect = "redirect_$status";
     if ($mb_api->query->dev || !empty($_REQUEST['dev'])) {
       // Output the result in a human-redable format
       if (!headers_sent()) {
@@ -90,6 +93,7 @@ class MB_API_Response {
     if (!headers_sent()) {
       header('HTTP/1.1 200 OK', true);
       header("Content-Type: application/json; charset=$charset", true);
+      header("Access-Control-Allow-Origin: *", true);
     }
     echo $result;
   }

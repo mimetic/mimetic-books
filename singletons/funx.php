@@ -74,7 +74,12 @@ class MB_API_Funx
 		return $block;
 	
 	}
-	
+
+
+// My error logging...just add a newline after each line. Dammit.
+function mb_log ($text) {
+	error_log (date('Y-m-d H:i:s') . ": {$text}\n", 3, "mb.log");
+}	
 	
 	
 	// removes files and non-empty directories

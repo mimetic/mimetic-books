@@ -33,12 +33,13 @@ We use some of the WP fields for our own purposes:
 	
 	/*
 	 * Get a converted tar file book from a client site, or from this site.
-	 * $id = book unique id, NOT the WordPress book post internal ID.
+	 * $book_id = book unique id
+	 * $id = the WordPress book post internal ID.
 	 * 
 	 * 
 	 * LOCAL
 	 * Get the file from the mb-book-packages directory.
-	 * testing: http://localhost/photobook/wordpress/mb/book/receive_book_package_from_client/?dev=1&id=123456&DEBUG=true
+	 * testing: http://localhost/photobook/wordpress/mb/book/publish_book_package/?dev=1&id=123456&DEBUG=true
 	 * 
 	 * 
 	 * REMOTE
@@ -46,36 +47,47 @@ We use some of the WP fields for our own purposes:
 	 * You can't really send a tar file in a GET, after all.
 	 * Required params:
 	 * 
-	 * example : http://localhost/photobook/wordpress/mb/book/receive_book_package_from_client/?id=123456&u=test&p=pass&f=(filedata)
+	 * example : http://localhost/photobook/wordpress/mb/book/publish_book_package/?id=123456&u=test&p=pass&f=(filedata)
 	 */
 	public function publish_book_package() {
 		global $mb_api;
 		
+			if (! $this->confirm_auth() ) {
+				$this->write_log("Authorization not accepted.");
+				return false;
+			}
+
+		$this->write_log("\n=======================\n".__FUNCTION__.": Begin");
+
+		extract($mb_api->query->get(array('remote')));
+		
 		$local = false;		
 		$distribution_url = trim(get_option('mb_api_book_publisher_url'));
 		$error = "";
-		
-		if ($distribution_url) {
+
+		if ($remote) {
 			// REMOTE PUBLISHING
 
 			// Get book ID, username, password
 			extract($mb_api->query->get(array('book_id', 'u', 'p', 'f')));
 
+			$this->write_log("Publish book id#{$book_id} from a remote site.");
+			
+			// TESTING
+			$u = "digross";
+			$p = "nookie";
+
 			if (!$book_id || !$u || !$p || !$f) {
-				$mb_api->error(__FUNCTION__.": Remote publishing requires book id, username, password, and file data ($book_id, $u, $p).");
+				$mb_api->error(__FUNCTION__.": Remote publishing requires book id (book_id), username (u), password (p), and file data (f) ($book_id, $u, $p).");
 			}
 
 			$book_post = $this->get_book_post_from_book_id($book_id);
 			$id = $book_post->ID;
 
 			// Make a dir to hold the book package
-			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($id);
+			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
 			if(! is_dir($dir))
 				mkdir($dir);
-
-			if (! $this->confirm_auth() ) {
-				return false;
-			}
 
 			$pkg = base64_decode($f);
 
@@ -85,7 +97,6 @@ We use some of the WP fields for our own purposes:
 			if(!fwrite($handle,$pkg)) { 
 				$mb_api->error(__FUNCTION__.": Could not write the file, $filename.");
 			}
-
 		
 			// book posts belong to the user(?)
 			$user = get_user_by('login', $u);
@@ -94,21 +105,26 @@ We use some of the WP fields for our own purposes:
 			}
 		} else {
 			// LOCAL PUBLISHING
+
 			$user = wp_get_current_user();
 			
 			// Get book ID
-			extract($mb_api->query->get(array('book_id')));
-			
-			// TESTING
-			//isset($book_id) || $book_id = "123456";
+			extract($mb_api->query->get(array('id', 'book_id')));
 			
 			if (isset($book_id)) {
 				$book_post = $this->get_book_post_from_book_id($book_id);
-				$id = $book_post->ID;
+				if ($book_post) {
+					$id = $book_post->ID;
+				} else {
+					$mb_api->error(__FUNCTION__.": Invalid book id: $book_id");
+				}
+				$this->write_log("Publish book locally with Book ID={$book_id}.");
 			} elseif (isset($id)) {
 				$book_post = $this->get_book_post($id);
+				$book_id = get_post_meta($id, "mb_book_id", true);
+				$this->write_log("Publish book locally with book post id={$id}.");
 			} else {
-				$mb_api->error(__FUNCTION__.": Local publishing must include book post id (id) or book id (book_id).");
+				$mb_api->error(__FUNCTION__.": Local publishing must include a book id (book_id) or a book post id (id).");
 			}
 			
 
@@ -127,7 +143,7 @@ We use some of the WP fields for our own purposes:
 			// Make a dir to hold the book package
 			if(! is_dir($dir))
 				mkdir($dir);
-
+			
 			// Copy the local file to the shelves directory and delete the package
 			$success = copy($src,$filename);
 			if (!$success) {
@@ -145,14 +161,21 @@ We use some of the WP fields for our own purposes:
 		// Extract the icon, poster, and item.json
 		// Don't fail if this fails, just throw a warning?
 		try {
+			$this->write_log(__FUNCTION__.": Extract icon, poster, item info from the package.");
 			$phar = new PharData($filename);
-			$phar->extractTo($dir, array('icon.png', 'poster.jpg', 'item.json'), true);
+			if ($phar->offsetExists('icon.png'))
+				$phar->extractTo($dir, array('icon.png'), true);
+			if ($phar->offsetExists('poster.jpg'))
+				$phar->extractTo($dir, array('poster.jpg'), true);
+			if ($phar->offsetExists('item.json'))
+				$phar->extractTo($dir, array('item.json'), true);	
 		} catch (Exception $e) {
 			// handle errors
 			// This includes missing files, when the poster or icon files are missing.
 			// DON'T quit here, it is probably just be a missing file.
 			$error = "Error extracting icon or poster or item from the book package. Probably missing poster or icon.";
-			//$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item: " . $e);
+			$this->write_log(__FUNCTION__.": Error: $error");
+			$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item: " . $e);
 		}
 
 		// Must do AFTER writing it to the directory where it can be downloaded from
@@ -162,9 +185,10 @@ We use some of the WP fields for our own purposes:
 		// Update the shelves file with the new book
 		$this->write_shelves_file();
 		
-
+		// Update the publishers file
+		$this->write_publishers_file();
 		
-// ------------------------------------------------------------
+		// ------------------------------------------------------------
 		// Create or Update a post entry in the Wordpress for this book!
 		// First, look for an existing entry with this ID
 		$book_post = $this->get_book_post($id);
@@ -175,8 +199,8 @@ We use some of the WP fields for our own purposes:
 
 
 		// If post does not exist, create it.
-		// This must be a remote publish, since the book post does not exist.
 		if ($book_post) {
+			// This must be a remote publish, since the book post does not exist.
 			$post_id = $book_post->id;
 		} else {
 			
@@ -232,9 +256,12 @@ We use some of the WP fields for our own purposes:
 
 		
 		// Custom fields:
-
+		
+		
+		// Nope...
 		// The user's login is their publisher ID
-		update_post_meta($post_id, "mb_publisher_id", $user->data->user_login);
+		//update_post_meta($post_id, "mb_publisher_id", $user->data->user_login);
+		update_post_meta($post_id, "mb_publisher_id", $info->publisherid);
 		
 		// Book author field
 		update_post_meta($post_id, "mb_book_author", $info->author);
@@ -246,6 +273,8 @@ We use some of the WP fields for our own purposes:
 			$error = json_encode($error);
 		}
 		
+		$this->write_log(__FUNCTION__.": End\n=======================\n");
+
 		return $error;
 	}
 	
@@ -254,6 +283,7 @@ We use some of the WP fields for our own purposes:
 	/*
 	 * Convert blog posts to a complete book package.
 	 * $id = the WordPress book post internal ID, and not the book's unique id
+	 *
 	 * Writes a .tar file into the packages folder in the uploads dir.
 	 * Clears out the build files in the build dir.
 	 * Example: http://localhost/photobook/wordpress/mb/book/build_book_package/?dev=1&category_slug=book2
@@ -268,9 +298,12 @@ We use some of the WP fields for our own purposes:
 		global $mb_api;
 		
 		if (! $this->confirm_auth() ) {
+			$this->write_log("Authorization not accepted.");
 			return false;
 		}
 		
+		$this->write_log(__FUNCTION__.": Begin");
+
 	   	if (!($id || $category_id || $category_slug)) {
 	   		extract($mb_api->query->get(array('id', 'category_id', 'category_slug' )));
 	   	}
@@ -330,6 +363,8 @@ We use some of the WP fields for our own purposes:
 		update_post_meta($book_post->id, 'mb_published', true);
 		$meta_values = get_post_meta($book_post->id, "mb_published", true);
 		
+		$this->write_log(__FUNCTION__.": End");
+
 		return true;
 	}
 	
@@ -338,6 +373,7 @@ We use some of the WP fields for our own purposes:
 	/*
 	 *  ****** SELECTING USING CATEGORY ISN'T GOING TO WORK! ONLY ID IS WORKING! ****
 	 * Build a book object from the posts
+	 * $id = book post internal id (not book id)
 	 * Method #1:
 	 * Gets the info from the query: 
 	 * The book to build has book post id=id, OR category id=category_id, OR slug=category_slug
@@ -352,9 +388,12 @@ We use some of the WP fields for our own purposes:
 		global $mb_api;
 		
 	   if (! $this->confirm_auth() ) {
+		$this->write_log("Authorization not accepted.");
 		return false;
 	   }
     
+		$this->write_log(__FUNCTION__.": Begin");
+
 		$dir = mb_api_dir();
 		require_once "$dir/library/MB.php";
 		
@@ -443,7 +482,8 @@ We use some of the WP fields for our own purposes:
 				'author'				=> $book_obj->author,
 				'date'					=> $book_obj->date,
 				'datetime'				=> $book_obj->datetime,
-				'modificationDate'		=> $book_obj->modified
+				'modified'				=> $book_obj->modified,
+				'publisherid'			=> $book_obj->publisher_id
 			);
 			
 			$output = json_encode($info);
@@ -465,13 +505,16 @@ We use some of the WP fields for our own purposes:
 	
 
 	
-		/*
+	/*
 	 * Write the Shelves file
 	 * This is a json file, "shelves.json", used by the Mimetic Books app to know
 	 * what is available for download.
 	 */
 	public function write_shelves_file() {
 		global $mb_api;
+
+		$this->write_log(__FUNCTION__);
+
 		
 		$shelves = array (
 			'path'		=> "shelves",
@@ -547,6 +590,93 @@ We use some of the WP fields for our own purposes:
 			   unlink ($fn);
 		   file_put_contents ($fn, $output, LOCK_EX);
 		   return $output;
+	}
+	
+	
+	/*
+	 * Write the Publishers file
+	 * This is a json file, "publishers.json", used by the Mimetic Books app to know
+	 * the info about publishers.
+	 */
+	public function write_publishers_file() {
+		global $mb_api;
+
+		$this->write_log(__FUNCTION__);
+
+		
+		$publishers = array (
+			'title'		=> "Publishers",
+			'maxsize'	=> 100,
+			'id'		=> "publishers",
+			'password'	=> "mypassword",
+			'filename'	=> "publishers.json",
+			'itemsByID'	=> array ()
+		);
+		
+
+		$posts = $mb_api->introspector->get_posts(array(
+				'post_type' => 'page',
+				'meta_key' => 'mb_publisher_id',
+				'numberposts'	=> -1
+			), false);
+		
+		// Delete all icons in the folder.
+		// Create the icons folder if necessary.
+		$dir = $mb_api->publishers_dir . DIRECTORY_SEPARATOR . "icons";
+		if (file_exists($dir)) {
+			$files = array_diff(scandir($dir), array('.','..'));
+			foreach ($files as $file) {
+				(!is_dir($dir. DIRECTORY_SEPARATOR .$file)) && unlink($dir. DIRECTORY_SEPARATOR .$file);
+			}
+		} else {
+			mkdir ($dir);
+		}
+
+		
+		
+		foreach ($posts as $post) {
+			
+			$publisher_id = get_post_meta($post->id, "mb_publisher_id", true);
+			
+			if (isset($post->thumbnail) && $post->thumbnail != "") {
+				$icon = $post->thumbnail;
+				
+				$ext = strtolower(substr($icon, -4));
+				if ($ext == ".png") {
+					// Copy the local file to the publishers directory
+					$filename = $mb_api->publishers_dir . DIRECTORY_SEPARATOR . "icons" . DIRECTORY_SEPARATOR . "icon_{$publisher_id}.png";
+					$success = copy($icon, $filename);
+					if (!$success) {
+						$mb_api->error(__FUNCTION__.": Failed to copy $icon to $filename.");
+					}
+				} else {
+					$this->write_log("Publisher icon must be a PNG file.");
+				}
+
+			} else {
+				$icon = "";
+			}
+			
+			$item = array (
+				'id'				=> $publisher_id, 
+				'title'				=> $post->title_plain, 
+				'description'		=> $post->content, 
+				'shortDescription'	=> $post->excerpt, 
+				'datetime'			=> $post->date, 
+				'modified'			=> $post->modified,
+				'author'			=> join (" ", array ($post->author->first_name, $post->author->last_name)),
+				'icon'				=> $icon
+			);
+			$publishers['itemsByID'][$publisher_id] = $item;
+		}
+		
+		$output = json_encode($publishers);
+		$fn = $mb_api->publishers_dir . DIRECTORY_SEPARATOR . "publishers.json";
+		// Delete previous version of the shelves
+		if (file_exists($fn))
+			unlink ($fn);
+		file_put_contents ($fn, $output, LOCK_EX);
+		return $output;
 	}
 	
 	
@@ -628,38 +758,73 @@ We use some of the WP fields for our own purposes:
 	 *			plugin options.
 	 *		p = password, not used right now?
 	 */
+	
+	/*
+	 * UNUSED: BE CAREFUL, THE PUBLISHER ID IS NOT TESTED.
+	 */
 	public function send_book_package( ) {
 		global $mb_api;
 		
 		// Get book ID, username, password
-		extract($mb_api->query->get(array('id')));
+		extract($mb_api->query->get(array('book_id')));
 
-		if (!$id) {
+		if (!$book_id) {
 			$mb_api->error(__FUNCTION__.": No book object passed to this function.");
 		}
+		$url = get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url'])); 
+		$url .=  "mb/book/publish_book_package/";
 		
-		$url = $mb_api->settings['distribution_url'] . "mb/book/receive_book_package_from_client/";
+		$book_post = $this->get_book_post_from_book_id( $book_id );
+		$info = $this->get_book_info_from_post($book_post->ID);
 		
-		$publisher_id = (string)get_option('mb_api_book_publisher_id', '?');
+		//build the book
+		$this->build_book_package($book_post->ID);
+		
+		$publisher_id = $info['publisher_id'];
 		$p = "password";
 		
-		$_POST['id'] = $id;
+		$_POST['book_id'] = $book_id;
 		$_POST['u'] = $publisher_id;
 		$_POST['p'] = $p;
 
-		$localfile = $mb_api->package_dir . DIRECTORY_SEPARATOR . "$id.tar";
+		$localfile = $mb_api->package_dir . DIRECTORY_SEPARATOR . "{$book_id}.tar";
 		$transFile = chunk_split(base64_encode(file_get_contents($localfile))); 
 		$_POST['f'] = $transFile ;
 		
 
-		$ch = curl_init($url); 
-		curl_setopt($ch, CURLOPT_HEADER, 0); 
-		curl_setopt($ch, CURLOPT_POST, 0); 
-		curl_setopt ($ch, CURLOPT_POSTFIELDS, $_POST);	
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+		$this->write_log("Prepare to send book id#{$book_id} to {$url}.");
 
-		$output = curl_exec($ch); 
+
+		$ch = curl_init();
+		$data = array (
+				'remote'		=> 'remote',
+				'book_id'		=> $book_id,
+				'u'				=> $publisher_id,
+				'p'				=> $p,
+				'f'				=> $transFile
+			);
+		
+		curl_setopt($ch, CURLOPT_URL, $url); 
+		//curl_setopt($ch, CURLOPT_HEADER, 0); 
+		curl_setopt($ch, CURLOPT_POST, 1); 
+		curl_setopt ($ch, CURLOPT_POSTFIELDS, $data);
+		//curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+
+		$success = curl_exec($ch); 
 		curl_close($ch); 
+		
+		// delete the book package
+		unlink ($localfile);
+		
+		
+		if ($success) {
+			$output = "";
+		} else {
+			$mb_api->error(__FUNCTION__.": Error sending book to $url");
+		}
+		
+		$this->write_log("Sent book id#{$book_id} to {$url}.");
+
 		return $output; 
 	} 
 
@@ -767,7 +932,10 @@ We use some of the WP fields for our own purposes:
 		), true);
 		if ($posts) {
 			$book_post = $posts[0];
+		} else {
+			$book_post = array();
 		}
+		
 		return $book_post;
 	}
 	
@@ -804,13 +972,20 @@ We use some of the WP fields for our own purposes:
 			return false;
 		}
 
+
 		if ($post_id) {
 			$post = $this->get_book_post($post_id);
 			$category_id = $post->categories[0]->id;
 		} elseif ($category_id) {
 			$post = get_book_post_from_category_id($category_id);
 		} else {
-			$mb_api->error(__FUNCTION__.": Missing post id.");
+			extract($mb_api->query->get(array('id', 'post_id')));
+			$post_id || $post_id = $id;
+			$post = $this->get_book_post($post_id);
+			$category_id = $post->categories[0]->id;
+			
+			$post || $mb_api->error(__FUNCTION__.": Invalid post id.");
+			$post_id || $mb_api->error(__FUNCTION__.": Missing post id.");
 		}
 		
 		
@@ -933,14 +1108,16 @@ We use some of the WP fields for our own purposes:
 		 * This means that updating info on the book page itself also
 		 * sets the modification date.
 		 */
-		
+  
 		// Get most recent post
-		$book_posts = $mb_api->introspector->get_posts(array(
+		$book_posts = get_posts(array(
 			'category'		=> $category_id,
 			'numberposts'	=> 1,
-			'post_status'	=> 'publish',
-			'post_type'		=> 'post'
-		), true);
+			'post_type'		=> 'post',
+			'orderby'		=> 'modified',
+			'order'			=> 'DESC'
+		));
+		
 		if ($book_posts) {
 			$book_posts = $book_posts[0];
 			$modified = $book_posts->post_modified;
@@ -949,10 +1126,12 @@ We use some of the WP fields for our own purposes:
 			$modified = date(RSS);
 		}
 		
+		$book_post_modified = $post->modified;
+		
 		// If the book page itself was modified more recently, use it as the modification date.
 		// This ensures that changing the poster will change the modification date.
-		if (strtotime($post->modified) > strtotime($modified)) {
-			$modified = $post->modified;
+		if (strtotime($book_post_modified) > strtotime($modified)) {
+			$modified = $book_post_modified;
 		}
 		
 		
@@ -1706,6 +1885,11 @@ We use some of the WP fields for our own purposes:
 		return true;
 	}
 
+
+	public function write_log($text) {
+		global $mb_api;
+		error_log (date('Y-m-d H:i:s') . ": {$text}\n", 3, $mb_api->logfile);
+	}
 
 	
 }

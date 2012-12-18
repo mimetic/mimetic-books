@@ -44,6 +44,9 @@ function mb_api_init() {
 	
 	make_custom_post_type_init();
 	
+	// Add custom metaboxes
+	add_custom_metaboxes_to_pages();
+	
 }
 
 function mb_api_php_version_warning() {
@@ -68,7 +71,7 @@ function mb_api_deactivation() {
 }
 
 function mb_api_rewrites($wp_rules) {
-	$base = get_option('mb_api_base', 'api');
+	$base = get_option('mb_api_base', 'mb');
 	if (empty($base)) {
 		return $wp_rules;
 	}
@@ -85,6 +88,101 @@ function mb_api_dir() {
 	} else {
 		return dirname(__FILE__);
 	}
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * Add custom metaboxes to 'page' types.
+ * This lets us add publisher ID's and other stuff to pages
+ * ----------------------------------------------------------------------
+ */
+function add_custom_metaboxes_to_pages() {
+	 book_page_meta_boxes_setup();
+}
+
+
+/* Meta box setup function. */
+function book_page_meta_boxes_setup() {
+	/*
+	wp_enqueue_script('thickbox');
+	
+	$jsURL = plugins_url( 'js/image_upload.js', __FILE__ );
+	wp_register_script('my-upload', $jsURL, array('jquery'));
+	wp_enqueue_script('my-upload');
+	*/
+	
+	// Create the meta box
+	add_action( 'add_meta_boxes', 'book_add_page_meta_boxes' );
+	add_action( 'save_post', 'book_page_meta_save_postdata');
+	
+}
+
+
+/* Create one or more meta boxes to be displayed on the post editor screen. */
+function book_add_page_meta_boxes() {
+
+	add_meta_box(
+		'book-page-publisher_info',					// Unique ID
+		esc_html__( 'Book Publisher Info' ),		// Title
+		'book_page_publisher_meta_box',				// Callback function
+		'page',										// Admin page (or post type)
+		'side',										// Context
+		'high'										// Priority
+	);
+	
+}
+
+/* Display the post publish meta box. */
+function book_page_publisher_meta_box( $post) { 
+	global $mb_api;
+	
+	// default is 1, the public library
+	$mb_publisher_id = get_post_meta($post->ID, "mb_publisher_id", 1);
+	
+	wp_nonce_field( basename( __FILE__ ), 'book_page_nonce' ); 
+	
+	?>
+	<p>
+		If you enter an value here, the publishing system will assume this is a publisher's information page.
+	</p>
+		<label for="mb_publisher_id">
+			Publisher ID:
+		</label>
+		<input type="text" id="mb_publisher_id" name="mb_publisher_id" value="<?php print $mb_publisher_id;  ?>" />
+
+	<?php 
+}
+
+
+function book_page_meta_save_postdata( $post_id) {
+	// verify if this is an auto save routine. 
+	// If it is our form has not been submitted, so we dont want to do anything
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) 
+		return;
+
+	// verify this came from the our screen and with proper authorization,
+	// because save_post can be triggered at other times
+	if (!isset($_POST['book_page_nonce']))
+		return;
+	
+	if ( !wp_verify_nonce( $_POST['book_page_nonce'], basename( __FILE__ ) ) )
+		return;
+
+	// Check permissions
+	if ( 'page' == $_POST['post_type'] ) 
+	{
+		if ( !current_user_can( 'edit_page', $post_id ) )
+			return;
+	}
+	else
+	{
+		if ( !current_user_can( 'edit_post', $post_id ) )
+			return;
+	}
+
+	// OK, we're authenticated: we need to find and save the data
+
+	update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
 }
 
 /*
@@ -308,7 +406,7 @@ function book_post_publish_meta_box( $post) {
 	global $mb_api;
 	
 	$mb_book_id = get_post_meta($post->ID, "mb_book_id", true);
-	
+	$mb_book_publisher_id = get_post_meta($post->ID, "mb_publisher_id", get_option('mb_publisher_id', '1'));
 	?>
 	<p>
 		<label for="book-post-publish">
@@ -326,10 +424,15 @@ function book_post_publish_meta_box( $post) {
 		</label>
 		<input type="text" id="mb_book_id" name="mb_book_id" value="<?php print $mb_book_id;  ?>" />
 
+		<label for="mb_publisher_id">
+			Publisher ID:
+		</label>
+		<input type="text" id="mb_publisher_id" name="mb_publisher_id" value="<?php print $mb_book_publisher_id;  ?>" />
+
 		<div class="submitbox" >
 			<span style="margin-right:20px;" id="publishing_progress_message" ></span>
 			<div style="text-align:right;float:right;">
-				<input type="button" id="publish" class="button-primary" value="<?php _e('Publish Book') ?>" />
+				<input type="button" id="publish_book_button" class="button-primary" value="Publish Book" />
 			</div>
 		</div>
 		<div class="clear"></div>
@@ -413,6 +516,7 @@ function book_post_meta_save_postdata( $post_id) {
 
 	update_post_meta( $post_id, 'mb_book_theme_id', $_POST['mb_book_theme_id'] );
 	update_post_meta( $post_id, 'mb_book_id', $_POST['mb_book_id'] );
+	update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
 	
 
 	//$is_rev = wp_is_post_revision( $post_id );

@@ -2,7 +2,6 @@
 <book>
 	<chapter>
 
-
 		<page id="gallery">
 			<pictures>
 				<picture filename="" zoomedScale="1" x="750" y="180" />
@@ -12,6 +11,12 @@
 			<overlaytext></overlaytext>
 			<texttitle></texttitle>
 			<textblock fittotext="true" x="50" y="center" width="550" ></textblock>
+			<textblocks>
+				<textblock fittotext="true" x="50" y="center" width="550" >
+					<text></text>
+					<title></title>
+				</textblock>
+			</textblocks>
 			<imagefile></imagefile>
 			<caption></caption>
 			<date></date>
@@ -35,6 +40,12 @@
 			<overlaytext></overlaytext>
 			<texttitle></texttitle>
 			<textblock fittotext="true" x="50" y="center" width="550" ></textblock>
+			<textblocks>
+				<textblock fittotext="true" x="50" y="center" width="550" >
+					<text></text>
+					<title></title>
+				</textblock>
+			</textblocks>
 			<imagefile></imagefile>
 			<caption></caption>
 			<date></date>

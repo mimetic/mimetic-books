@@ -358,22 +358,25 @@ class Mimetic_Book
 			'template'			=> $mb_template_id
 			);
 
-		// Get ATTACHMENTS
-		// Get attached sounds
-		// Get attached video
-		if ($wp_page->attachments) {
-			$attached = $this->get_attachments($wp_page);
-
-			// Get EMBEDDED elements in the post's HTML,
-			// Convert the embedded elements, e.g. img tags, to MB format arrays
-			//$embedded = $this->get_embedded_elements($wp_page, "img");
-			
-			$page = array_merge($page, $attached);
-			
-		}
-			
-
+		// Get ATTACHED MEDIA: sounds, video
 		
+		//if ($wp_page->attachments) {
+		//$attached = $this->get_attachments($wp_page, false);
+		//$page = array_merge($page, $attached);
+		//}
+		
+		
+		// GET EMBEDDED PICTURES (NOT ATTACHED)
+		// Attached items are not necessarily embedded.
+		// Some images may be attached but not really used on the page. 
+		// Therefore, we should not include any images using this function,
+		// but rather let the get_embedded function handle those.
+
+		// Get EMBEDDED elements in the post's HTML,
+		// Convert the embedded elements, e.g. img tags, to MB format arrays
+		$embedded = $this->get_embedded_pictures($wp_page);
+		$page = array_merge($page, $embedded);
+
 
 		return $page;
 	}
@@ -383,25 +386,42 @@ class Mimetic_Book
 	
 	/*
 	 * Get all the attached media items for this post.
+	 * $include_images : true means include attached images, false means exclude.
+	 * Important: Not all attached images appear on the page! Some were uploaded to the page
+	 * but eventually removed, yet they remain "attached".
 	 * This does not have access to all the HTML settings, such as height/width,
 	 * which the embedded HTML does. So, we should use this for audio, and probably
 	 * nothing else.
 	*/
-	private function get_attachments ($wp_page)
+	private function get_attachments ($wp_page, $include_images = false)
 	{
 		$args = array(
-		'post_type' => 'attachment',
-		'numberposts' => -1,
-		'post_status' => null,
-		'post_parent' => $wp_page->id
+			'post_type' => 'attachment',
+			'numberposts' => -1,
+			'post_status' => null,
+			'post_parent' => $wp_page->id
 		);
-
+		$attachments = get_posts( $args );
 		
+		
+		// Image attachments embedded in the HTML. These may not show up as 
+		// attachments, so we'll deal with them as their own group.
+		
+		
+		// ------------------------
 		// Read image attributes from the HTML,
 		// giving us height/width and more.
 		$image_attrs = $this->get_embedded_element_attributes($wp_page);
-					
-		$attachments = get_posts( $args );
+		
+		// *** PROBLEM IS, not all embedded items are attachments belonging to the current page! ****
+		// That only happens when the image was originally uploaded to the page.
+		
+print ("-----------\n");
+print_r($image_attrs);
+print ("Attachments\n");
+print_r($attachments);
+print ("-----------\n");
+
 		$page_elements = array();
 		if ( $attachments ) {
 			foreach ( $attachments as $attachment ) {
@@ -411,20 +431,23 @@ class Mimetic_Book
 				$element['modified'] = $attachment->post_modified;
 				$element['modified_gmt'] = $attachment->post_modified_gmt;
 				
-				if (wp_attachment_is_image( $attachment->ID)) {
-				//if ($element['name'] == "image" ) {
+				if ($include_images && wp_attachment_is_image( $attachment->ID)) {
+					// Images
 					$image_attributes = wp_get_attachment_image_src( $attachment->ID, "full"); // returns an array
 					$attributes['src'] = $image_attributes[0];
 					$attributes['width'] = $image_attributes[1];
 					$attributes['height'] = $image_attributes[2];
 					$attributes['originalWidth'] = $image_attributes[1];
 					$attributes['originalHeight'] = $image_attributes[2];
-					
-					$html_attrs = $image_attrs[$attachment->ID];
-					$html_attrs['width'] && $attributes['width'] = $html_attrs['width']+0;
-					$html_attrs['height'] && $attributes['height'] = $html_attrs['height']+0;
-
+					if ($image_attrs[$attachment->ID]) {
+						$html_attrs = $image_attrs[$attachment->ID];
+						$html_attrs['width'] && $attributes['width'] = $html_attrs['width']+0;
+						$html_attrs['height'] && $attributes['height'] = $html_attrs['height']+0;
+					} else {
+						print ("MB:get_attachments: WTF? No attributes for attachment id=".$attachment->ID);
+					}
 				} else {
+					// Other kinds of attachements
 					$attributes['src'] = $attachment->guid;
 				}
 
@@ -462,16 +485,13 @@ class Mimetic_Book
 	
 	
 	
-	
+	private function get_embedded_pictures($wp_page) {
+		$elements = $this->get_embedded_elements($wp_page, "img");
+		return $elements;
+	}
 	
 	
 	/*
-	 * ON-HOLD...LET'S SEE IF WE CAN DO EVERYTHING WITH ATTACHMENTS???
-	 * Of course, this would let us capture DIV and other interesting shapes.
-	 * Get all the embedded elements in the HTML of a post.
-	 * This seems clumsy, in that it searches the post text for embedded images.
-	 * However, this method lets us capture the height/width and other HTML 
-	 * settings that we need.
 	 * NOTE: this works great with images, but really not with other kinds of
 	 * attachments! Audio for example, uses <a> as its tag, so we would
 	 * have to check the linked file to know what we were dealing with.
@@ -496,13 +516,22 @@ class Mimetic_Book
 			foreach ($node->attributes as $attr) {
 				$attributes[$attr->name] = $attr->nodeValue;
 			}
+			$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
+			$attributes['id'] = $id;
+
 			$element['attributes'] = $attributes;
 			
+			// Add in all post info for the item
+			$post = get_post( $id, ARRAY_A );
+			
+			// DON'T add the actual element to the page. Let's only return 
+			// elements suitable for use by MB.php.
+			//$page_elements[0+$id] = array_merge($post,$attributes);
+
 			// Handle MB's need to encapsulate, e.g. if we have an 'img', 
 			// then we need to create a <pictures> element to hold
 			// the <picture> which is the 'img'.
 			list($mb_name, $mb_encaps_name) = $this->name_for_element($element['name']);
-			
 			
 			if ($mb_encaps_name) {
 				if (!isset($page_elements[$mb_encaps_name])) {
@@ -514,8 +543,6 @@ class Mimetic_Book
 			}
 		}
 
-		// Now, gather them into MB format 
-		// img ---> picture
 		
 		//print_r($page_elements);
 		return $page_elements;
@@ -535,7 +562,6 @@ class Mimetic_Book
 		$doc->loadHTML($text);
 		
 		$page_elements = array();
-		
 		// Get all elements in the HTML
 		foreach ($doc->getElementsbytagname($element_type) as $node) {
 			/*
@@ -552,13 +578,16 @@ class Mimetic_Book
 			$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
 			$page_elements[$id] = $element;
 			 */
+
 			$attributes = array();
 			foreach ($node->attributes as $attr) {
 				$attributes[$attr->name] = $attr->nodeValue;
 			}
 			$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
 			$attributes['id'] = $id;
-			$page_elements[0+$id] = $attributes;
+			
+			$post = get_post( $id, ARRAY_A );
+			$page_elements[0+$id] = array_merge($post,$attributes);
 		}
 
 		// Now, gather them into MB format 

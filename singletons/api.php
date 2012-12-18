@@ -16,6 +16,8 @@ class MB_API {
 
 		$uploads = wp_upload_dir();
 
+		$this->logfile = $dir . DIRECTORY_SEPARATOR . "mb-books-api.log";
+
 		// Create the temp dir for building book packages
 		$this->tempDir = $uploads['basedir'] . DIRECTORY_SEPARATOR . $this->settings['temp_dir_name'];
 		if(! is_dir($this->tempDir))
@@ -31,6 +33,12 @@ class MB_API {
 		$this->shelves_dir = $uploads['basedir'] . DIRECTORY_SEPARATOR . $this->settings['shelves_dir_name'];
 		if(! is_dir($this->shelves_dir))
 			mkdir($this->shelves_dir);
+
+		// If missing, create the dir for holding publisher information,
+		// the "publishers" directory.
+		$this->publishers_dir = $uploads['basedir'] . DIRECTORY_SEPARATOR . $this->settings['publishers_dir_name'];
+		if(! is_dir($this->publishers_dir))
+			mkdir($this->publishers_dir);
 
 
 		add_action('template_redirect', array(&$this, 'template_redirect'));
@@ -137,8 +145,7 @@ class MB_API {
         if ($method == '404') {
           $this->error('Not found');
         }
-        
-        // Run the method
+		// Run the method
         $result = $this->controller->$method();
         
         // Handle the result
@@ -280,18 +287,25 @@ class MB_API {
 		
 
 		<h3>Publisher</h3>
-		<p>Enter the URL for your publisher's website. Leave this empty if you are publishing from this website.</p>
+		<p>
+			Enter the URL for your publisher's website <em>to which you wish to send published books</em>. Leave this empty if you are distributing books from this website.
+			<br/>
+			Enter your Default Publisher ID, the unique code that identifies you as a publisher. You can choose your publisher ID for each book, as well, on the book information pages.
+		</p>
+	
 		<table class="form-table">
 			<tr valign="top">
-				<th scope="row">Publisher Website:</th>
+				<th scope="row">Publish Books to Website:</th>
 				<td>
 					<input type="text" id="distribution_url" name="mb_api_book_publisher_url" size="64" value="<?php print get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url']));  ?>" />
-					<input type="text" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
+					<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
 				</td>
 			</tr>
 			<tr valign="top">
-				<th scope="row">Publisher ID:</th>
-				<td><input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', '123'); ?>" size="32" /></td>
+				
+				<th scope="row">Default Publisher ID:</th>
+				<td>
+					<input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', '123'); ?>" size="32" /></td>
 			</tr>
 		</table>
 		<!--
@@ -323,19 +337,20 @@ class MB_API {
 		-->
 	
 		</table>
-
+		<!--
 		<h3>Address</h3>
-		<p>Specify a base URL for MB API. For example, using <code>api</code> as your API base URL would enable the following <code><?php bloginfo('url'); ?>/api/get_recent_posts/</code>. If you assign a blank value the API will only be available by setting a <code>mb</code> query variable.</p>
+		<p>Specify a base URL for MB API. For example, using <code>mb</code> as your API base URL would enable the following <code><?php bloginfo('url'); ?>/mb/get_recent_posts/</code>. If you assign a blank value the API will only be available by setting a <code>mb</code> query variable.</p>
 		<table class="form-table">
 		<tr valign="top">
 			<th scope="row">API base</th>
-			<td><code><?php bloginfo('url'); ?>/</code><input type="text" name="mb_api_base" value="<?php echo get_option('mb_api_base', 'api'); ?>" size="15" /></td>
+			<td><code><?php bloginfo('url'); ?>/</code><input type="text" name="mb_api_base" value="<?php echo get_option('mb_api_base', 'mb'); ?>" size="15" /></td>
 		</tr>
 		</table>
+		-->
 
 		<?php if (!get_option('permalink_structure', '')) { ?>
 		<br />
-		<p><strong>Note:</strong> User-friendly permalinks are not currently enabled. <a target="_blank" class="button" href="options-permalink.php">Change Permalinks</a>
+		<p><strong>Note:</strong> User-friendly permalinks are not currently enabled. The plugin will fail without proper warning! <a target="_blank" class="button" href="options-permalink.php">Change Permalinks</a>
 		<?php } ?>
 		<p class="submit">
 		<input type="submit" class="button-primary" value="<?php _e('Save Changes') ?>" />
@@ -452,7 +467,7 @@ class MB_API {
   
   function get_method_url($controller, $method, $options = '') {
     $url = get_bloginfo('url');
-    $base = get_option('mb_api_base', 'api');
+    $base = get_option('mb_api_base', 'mb');
     $permalink_structure = get_option('permalink_structure', '');
     if (!empty($options) && is_array($options)) {
       $args = array();
