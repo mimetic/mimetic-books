@@ -305,7 +305,7 @@ class MB_API {
 				
 				<th scope="row">Default Publisher ID:</th>
 				<td>
-					<input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', '123'); ?>" size="32" /></td>
+					<input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', 'public'); ?>" size="32" /></td>
 			</tr>
 		</table>
 		<!--

@@ -255,6 +255,14 @@ $this->write_log("$id, $book_id, $u, $p");
 			// Attach the item.json file to the book posting
 			$filename = $dir . DIRECTORY_SEPARATOR . "item.json";
 			$this->attach_file_to_post($filename, $post_id);
+			
+			// Mark the book as published so it will appear in the shelves
+			update_post_meta($post_id, 'mb_published', true);
+		
+			// Mark the book as published so it will appear in the shelves
+			update_post_meta($post_id, 'mb_book_id', $book_id);
+		
+
 		}
 		
 
@@ -362,10 +370,6 @@ $this->write_log("$id, $book_id, $u, $p");
 		
 		// This will use the query to get the book post.
 		$book_post = $this->get_book_post($id);
-		
-		// Mark the book as published so it will appear in the shelves
-		update_post_meta($book_post->id, 'mb_published', true);
-		$meta_values = get_post_meta($book_post->id, "mb_published", true);
 		
 		$this->write_log(__FUNCTION__.": End");
 
@@ -530,13 +534,12 @@ $this->write_log("$id, $book_id, $u, $p");
 			'itemsByID'	=> array ()
 		);
 		
-
+		// Get all books
 		$posts = $mb_api->introspector->get_posts(array(
 				'post_type' => 'book',
-				'numberposts'	=> 1
+				'numberposts'	=> -1
 			), true);
-		
-
+	
 		/*
 		 * Book Info:
 			'id'			=> $book_id, 
@@ -553,16 +556,15 @@ $this->write_log("$id, $book_id, $u, $p");
 			'poster_url'	=> $poster_url,
 			'category_id'	=> $category_id
 		 */
-
 		foreach ($posts as $post) {
 			$info = $this->get_book_info_from_post($post->ID);
-			
+			$book_id = $info['id'];
 			// Only add the item if it is marked published with our custom meta field.
 			$is_published = get_post_meta($post->ID, "mb_published", true);
-			
 			// Also check the package's directory is there
-			$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $info['id'] . DIRECTORY_SEPARATOR . "item.tar";
+			$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
 			$is_published =  (file_exists($tarfilepath) && $is_published);
+
 			
 			if ($is_published) {
 			
@@ -570,7 +572,7 @@ $this->write_log("$id, $book_id, $u, $p");
 				// I've included some extras...maybe they'll be useful later.
 
 				$item = array (
-					'id'				=> $info['id'], 
+					'id'				=> $book_id, 
 					'title'				=> $info['title'], 
 					'author'			=> $info['author'], 
 					'publisherid'		=> $info['publisher_id'],  
@@ -579,12 +581,12 @@ $this->write_log("$id, $book_id, $u, $p");
 					'type'				=> $info['type'], 
 					'datetime'			=> $info['datetime'], 
 					'modified'			=> $info['modified'],
-					'path'				=> $info['id'],
+					'path'				=> $book_id,
 					'shelfpath'			=> $mb_api->settings['shelves_dir_name'],
 //					'itemShelfPath'		=>$mb_api->settings['shelves_dir_name'] . DIRECTORY_SEPARATOR . $info['id'],
 					'theme'				=> $info['theme']
 				);
-				$shelves['itemsByID'][$info['id']] = $item;
+				$shelves['itemsByID'][$book_id] = $item;
 			}
 		}
 		   $output = json_encode($shelves);
