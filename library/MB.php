@@ -318,6 +318,8 @@ class Mimetic_Book
 	
 	private function convert_page ($wp_page, $category)
 	{
+		global $mb_api;
+		
 		//print_r($wp_page);
 		
 		// Assign page attributes from the post
@@ -339,23 +341,46 @@ class Mimetic_Book
 		// wrap the text thus:
 		$text = array('@cdata'=>$text);
 		$title = array('@cdata'=>$title);
-
-		$textblocks = array (
-			'textblock' => array ('text' => $text, 'title' => $title )
+		
+		$textblock = array (
+			array ('title' => $title), 
+			array('text' => $text )
 		);
 		
-		$wp_page->format_id ? $mb_template_id = $wp_page->format_id : $mb_template_id = "";
+		$textblocks = array(
+			"textblock" => $textblock
+		);
+		
+		// This uses the built-in WP formats:
+		//$wp_page->format_id ? $mb_template_id = $wp_page->format_id : $mb_template_id = "";
+		
+		// This uses page format ID's from the themes
+		$themePageID = get_post_meta($wp_page->id, "mb_book_theme_page_id", true);
+		
+		// We want to minimize loading this...it can be slow.
+		if (!$mb_api->themes->themes) {
+			$mb_api->load_themes();
+		}
+		$themePageIDList = $mb_api->themes->themes[$this->theme_id]->format_ids;
+
+		// If we don't have a theme template page assigned, use the first one in the list
+		if (!$themePageID || !array_search($themePageID, $themePageIDList)) {
+			$themePageID = $themePageIDList[0];
+		}
 		
 		//Assign page values
+		// Do NOT assign blank ones! Blank entries will overwrite template
+		// entries, for backgrounds or whatever. Blank entries should only happen
+		// when the author wants the entry blank!
 		$page = array (
 			'@attributes'		=> $attr,
 			'title'				=> $wp_page->title,
 			'altTitle'			=> $category->name,
-			'backgroundfile'	=> '',
-			'audiofile'			=> '',
-			'video'				=> '',
+			//'backgroundfile'	=> '',
+			//'audiofile'		=> '',
+			//'video'			=> '',
 			'textblocks'		=> $textblocks,
-			'template'			=> $mb_template_id
+			'template'			=> $themePageID
 			);
 
 		// Get ATTACHED MEDIA: sounds, video
@@ -646,7 +671,7 @@ print ("-----------\n");
 				$mb_element['zoomedScale'] = "1";
 				
 				// haha, just for testing
-				$mb_element['addCorners'] = "true";
+				// $mb_element['addCorners'] = "true";
 				
 				// Convert the picture to one we can use, ready for packaging
 				$this->convert_img($attr['src'], $mb_element['width'], $mb_element['height']);

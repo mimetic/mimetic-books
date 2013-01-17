@@ -188,9 +188,11 @@ $this->write_log("$id, $book_id, $u, $p");
 		// 
 		// Update the shelves file with the new book
 		$this->write_shelves_file();
-		
+		$this->write_log(__FUNCTION__.": Wrote the shelves file.");
+
 		// Update the publishers file
 		$this->write_publishers_file();
+		$this->write_log(__FUNCTION__.": Wrote the publishers file.");
 		
 		// ------------------------------------------------------------
 		// Create or Update a post entry in the Wordpress for this book!
@@ -359,6 +361,7 @@ $this->write_log("$id, $book_id, $u, $p");
 			$tarfile = new PharData($tarfilename);
 			$tarfile->buildFromDirectory($build_files_dir);
 		} catch (Exception $e) {
+			$this->write_log(__FUNCTION__.": Unable to create tar file: $tarfilename");
 			$mb_api->error("$e: Unable to create tar file: $tarfilename");
 		}
 		
@@ -404,7 +407,7 @@ $this->write_log("$id, $book_id, $u, $p");
 
 		$dir = mb_api_dir();
 		require_once "$dir/library/MB.php";
-		
+				
 		$book_category_id = null;
 
 	   	if (!($id || $category_id || $category_slug)) {
@@ -438,6 +441,7 @@ $this->write_log("$id, $book_id, $u, $p");
 		$book_post_id = $id;
 		
 		if (!$book_category_id) {
+			$this->write_log(__FUNCTION__.": The book page does not have a category assigned.");
 			$mb_api->error("The book page does not have a category assigned.");
 		}
 
@@ -467,6 +471,8 @@ $this->write_log("$id, $book_id, $u, $p");
 			$mb = false;
 		}
 		
+		$this->write_log(__FUNCTION__.": End");
+
 		// Return the book object
 		return $mb;
 	}
@@ -565,6 +571,7 @@ $this->write_log("$id, $book_id, $u, $p");
 			$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
 			$is_published =  (file_exists($tarfilepath) && $is_published);
 
+			//$this->write_log(__FUNCTION__.":".$info['modified']);
 			
 			if ($is_published) {
 			
@@ -785,8 +792,13 @@ $this->write_log("$id, $book_id, $u, $p");
 		} else {
 			$mb_api->error(__FUNCTION__.": Missing id or book_id.");
 		}
-		$url = get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url'])); 
-		$url .=  "mb/book/publish_book_package/";
+		if (isset($this->settings['distribution_url'])) {
+			$url = get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url'])); 
+			$url .=  "mb/book/publish_book_package/";
+		} else {
+			$this->write_log("ERROR: Tried to send a book when no URL was provided.");
+			$mb_api->error(__FUNCTION__.": Tried to send a book when no URL was provided.");
+		}
 		
 		
 		//build the book
@@ -1141,6 +1153,9 @@ $this->write_log("$id, $book_id, $u, $p");
 			$modified = $book_post_modified;
 		}
 		
+		// Make NOW the modified time!
+		//$modified = date();
+		
 		
 		$category_id = $post->categories[0]->id;
 		
@@ -1162,6 +1177,27 @@ $this->write_log("$id, $book_id, $u, $p");
 		
 		return $result;
 	}
+	
+
+
+	/*
+	 * get_book_category from a book post ID
+	 */
+	public function get_book_category( $post_id = null ) {
+		global $mb_api;
+
+		if (! $this->confirm_auth() ) {
+			return false;
+		}
+
+
+		if ($post_id) {
+			$post = $this->get_book_post($post_id);
+			$category_id = $post->categories[0]->id;
+		}
+		return $category_id;
+	}
+	
 	
 
 	/*

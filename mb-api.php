@@ -46,6 +46,9 @@ function mb_api_init() {
 	
 	// Add custom metaboxes
 	add_custom_metaboxes_to_pages();
+
+	// Add custom metaboxes to posts
+	add_custom_metaboxes_to_posts();
 	
 }
 
@@ -92,7 +95,7 @@ function mb_api_dir() {
 
 /*
  * ----------------------------------------------------------------------
- * Add custom metaboxes to 'page' types.
+ * Add custom metaboxes to 'book' types.
  * This lets us add publisher ID's and other stuff to pages
  * ----------------------------------------------------------------------
  */
@@ -338,7 +341,7 @@ function delete_book_post($post_id)
 	}
 }
 
-/* META BOXES */
+/* META BOXES FOR BOOK PAGE */
 
 /* Meta box setup function. */
 function book_post_meta_boxes_setup() {
@@ -399,6 +402,7 @@ function book_add_post_meta_boxes() {
 	
 }
 
+/* ============== BOOK PAGE STUFF ============ */
 
 
 /* Display the post publish meta box. */
@@ -534,7 +538,273 @@ function book_post_meta_save_postdata( $post_id) {
 }
 
 
+/*
+	// Add boxes to Posts
+	add_meta_box(
+		'post-mb-page-theme',			// Unique ID
+		esc_html__( 'Page Design' ),	// Title
+		'post_mb_page_theme_meta_box',	// Callback function
+		'post',							// Admin page (or post type)
+		'side',							// Context
+		'high'							// Priority
+	);					
+	
+*/
+	
+	
 
+
+// ------------------------------------------------------
+/* META BOXES FOR POSTS */
+
+/*
+ * ----------------------------------------------------------------------
+ * Add custom metaboxes to 'post' types.
+ * This lets us add custom page stuff
+ * ----------------------------------------------------------------------
+ */
+
+function add_custom_metaboxes_to_posts() {
+	 post_meta_boxes_setup();
+}
+
+
+/* Meta box setup function. */
+function post_meta_boxes_setup() {
+
+	$jsURL = plugins_url( 'js/posts.js', __FILE__ );
+	wp_register_script('mb-posts', $jsURL, array('jquery'));
+	wp_enqueue_script('mb-posts');
+	
+	$jsCSS = plugins_url( 'js/style.css', __FILE__ );
+	wp_register_style( 'mb_api_style', $jsCSS);
+	wp_enqueue_style('mb_api_style');
+
+	// Create the meta box
+	add_action( 'add_meta_boxes', 'post_add_page_meta_boxes' );
+	add_action( 'save_post', 'post_meta_save_postdata');
+	
+}
+
+
+/* Create one or more meta boxes to be displayed on the post editor screen. */
+function post_add_page_meta_boxes() {
+
+	add_meta_box(
+		'book-post-page-format',					// Unique ID
+		esc_html__( 'Book Page Format' ),			// Title
+		'post_mb_page_theme_meta_box',				// Callback function
+		'post',										// Admin page (or post type)
+		'side',										// Context
+		'high'										// Priority
+	);
+	
+}
+
+function post_meta_save_postdata( $post_id) {
+	global $mb_api;
+	
+	// verify if this is an auto save routine. 
+	// If it is our form has not been submitted, so we dont want to do anything
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) 
+		return;
+
+	// verify this came from the our screen and with proper authorization,
+	// because save_post can be triggered at other times
+	if (!isset($_POST['mb_post_nonce']))
+		return;
+	
+	if ( !wp_verify_nonce( $_POST['mb_post_nonce'], basename( __FILE__ ) ) )
+		return;
+
+	// Check permissions
+	if ( 'page' == $_POST['post_type'] ) 
+	{
+		if ( !current_user_can( 'edit_page', $post_id ) )
+			return;
+	}
+	else
+	{
+		if ( !current_user_can( 'edit_post', $post_id ) )
+			return;
+	}
+
+	// OK, we're authenticated: we need to find and save the data
+	
+	// We want to minimize loading this...it can be slow.
+	if (!$mb_api->themes->themes) {
+		$mb_api->load_themes();
+	}
+	$theme_id = $_POST['mb_theme_id'];
+	$format_ids = $mb_api->themes->themes[$theme_id]->format_ids;
+
+	$themePageID = $format_ids[$_POST['mb_book_theme_page_id']];
+	update_post_meta( $post_id, 'mb_book_theme_page_id', $themePageID );
+}
+
+
+/* Display the post publish meta box. */
+function post_mb_page_theme_meta_box( $post) { 
+	global $mb_api;
+	
+	wp_nonce_field( basename( __FILE__ ), 'mb_post_nonce' ); 
+
+	// which book does this post belong to?
+	// 
+	// 
+	// which theme is that book using?
+	$book_id = get_post_book_id($post->ID);
+
+	// We want to minimize loading this...it can be slow.
+	if (!$mb_api->themes->themes) {
+		$mb_api->load_themes();
+	}
+	
+	$theme_id = get_post_theme_id($post->ID, $book_id);
+	
+	// Get list of theme page id's for this theme
+	$themePageIDList = $mb_api->themes->themes[$theme_id]->format_ids;
+
+	$themePageID = get_post_meta($post->ID, "mb_book_theme_page_id", true);
+	
+	// If there is no assigned theme page id, we use the first in the list
+	$themePageID || $themePageID = $themePageIDList[0];
+	
+	// If the themes have changed behind our back, the $theme_id could be invalid,
+	// Choose '1', the default theme that must always be there.
+	if (!$mb_api->themes->themes[$theme_id]) {
+		$theme_id = 1;
+		// Update the book to use theme 1!!!
+		update_post_meta($book_id, 'mb_book_id', 1);
+	}
+	
+	$f = $mb_api->themes->themes[$theme_id]->folder;
+	$previewsFolder = $mb_api->url .DIRECTORY_SEPARATOR. $mb_api->themes_dir_name .DIRECTORY_SEPARATOR. $f .DIRECTORY_SEPARATOR."template_previews";
+	// Get index of chosen page ID in the list of ID's
+	$i = array_search($themePageID, $themePageIDList) + 1;
+	// Use that index to choose the preview
+	$fn = $previewsFolder .DIRECTORY_SEPARATOR.  "format_" . $i . ".jpg";
+	$pageFormatPopupMenu = page_format_popup_menu($post->ID, $book_id);
+	
+	?>
+	<p>
+		<label for="mb_book_theme_page_id">
+			<?php _e( "Page Format:" ); ?>
+		</label>
+		<input type="hidden" id="mb_book_theme_page_previews" value="<?php echo($previewsFolder) ?>">
+		<input type="hidden" name="mb_theme_id" value="<?php echo($theme_id) ?>">
+		<?php 
+		echo ($pageFormatPopupMenu );
+		?>
+		
+		<br/>
+		<div class="theme_page_preview_box">
+			<label for="format_page_preview">
+			</label>
+			<div class="theme_page_preview">
+				<img id="format_page_preview" src="<?php echo ($fn); ?>"/>
+			</div>
+		</div>
+	</p>
+	<?php 
+}
+
+
+// For one book, used on a book post page
+// ONLY WORKS IF THE POST HAS ONE CATEGORY! IT GETS THE FIRST. NOT GREAT...
+function get_post_book_id($post_id) {
+	$thiscats = wp_get_post_categories($post_id);
+	$thiscat = $thiscats[0];
+	
+	$bbc = get_books_by_category();
+	$book_id = $bbc[$thiscat];
+	return $book_id;
+}
+
+	
+// For one book, used on a book post page
+// ONLY WORKS IF THE POST HAS ONE CATEGORY! IT GETS THE FIRST. NOT GREAT...
+function get_post_theme_id($post_id, $book_id) {
+	global $mb_api;
+	
+	if (!$book_id) {
+		$book_id = get_post_book_id($post_id);
+	}
+	$theme_id = get_post_meta($book_id, "mb_book_theme_id", true);
+	
+	return $theme_id;
+}
+
+
+// For one book, used on a book post page
+// ONLY WORKS IF THE POST HAS ONE CATEGORY! IT GETS THE FIRST. NOT GREAT...
+function page_format_popup_menu($post_id, $book_id) {
+	global $mb_api;
+
+
+	if (!$book_id) {
+		$book_id = get_post_book_id($post_id);
+	}
+	
+	if ($book_id) {
+		$book_post = get_post( array ('p' => $book_id) );
+	} else {
+		$mb_api->error(__FUNCTION__.": No book ID found.");
+	}
+	// We want to minimize loading this...it can be slow.
+	if (!$mb_api->themes->themes) {
+		$mb_api->load_themes();
+	}
+	
+	//	get the theme ID
+	$theme_id = get_post_meta($book_id, "mb_book_theme_id", true);
+	
+	$mytheme = $mb_api->themes->themes[$theme_id];
+	$values = $mytheme->format_ids;
+	// Default theme is 1;
+	// Get current checked item -- pass the index in the list of options, not the value!
+	$pid = get_post_meta($post_id, "mb_book_theme_page_id", true);
+	$checked = array_search($pid, $values);
+	empty($checked) && $checked = 0;
+	$listname = "mb_book_theme_page_id";
+	$sort = true;
+	$size = true;
+	// Use some JS to make previews appear
+	$extrahtml = "id=\"mb_book_theme_page_menu\"";
+	//$extrahtml = "id=\"mb_book_theme_page_menu\" onChange=\"javascript:alert('hello');\"";
+	$extraline = array();
+
+	$menu = $mb_api->funx->OptionListFromArray ($values, $listname, $checked, $sort, $size, $extrahtml, $extraline);
+
+	return $menu;
+
+}
+
+
+/*
+	* get an array of book id's by category they use.
+	* Handy do figure out which book a post belongs to.
+	*/
+function get_books_by_category() {
+	global $mb_api;
+
+	$books = get_posts(array(
+		'post_type' => 'book'
+	));
+
+	$a = array();
+
+	foreach ($books as $book) {
+		$cats = wp_get_post_categories($book->ID);
+		$a[$cats[0]] = $book->ID;
+	}
+
+
+
+	return $a;
+}
+
+	
 // ------------------------------------------------------
 
 // Add initialization and activation hooks

@@ -12,7 +12,13 @@ class MB_API {
 		$this->introspector = new MB_API_Introspector();
 		$this->response = new MB_API_Response();
 		$this->funx = new MB_API_Funx();
-		$this->themes = new MB_API_Themes();
+		$this->themes_dir_name = "themes";
+		$this->themes_dir = $dir .DIRECTORY_SEPARATOR. $this->themes_dir_name;
+		$this->themes = new MB_API_Themes($this->themes_dir);
+
+
+		// URL of this plugin
+		$this->url = plugins_url() .DIRECTORY_SEPARATOR. basename($dir);
 
 		$uploads = wp_upload_dir();
 
