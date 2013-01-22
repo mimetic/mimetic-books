@@ -252,6 +252,7 @@ class Mimetic_Book
     * @return   mixed   JSON string representation of input var or an error if a problem occurs
     * @access   public
     
+    * Note, the index is the number of the chapter. Hmm.
     
     <!ELEMENT chapter ( id? | page | title? )* >
 	<!ATTLIST chapter hasCaptions
@@ -261,10 +262,12 @@ class Mimetic_Book
 
 
     */
-    function convert_chapter($wp_chapter) 
+    function convert_chapter($wp_chapter, $index) 
     {
 		// WP category object
         $category = $wp_chapter['category'];
+		
+		$index || $index = "";
 		
 		$attr = array(
 				'id'					=> $category->term_id,
@@ -281,7 +284,7 @@ class Mimetic_Book
 			'title'			=> $category->name,
 			'id'			=> $category->term_id,
 			'altTitle'		=> $category->name,
-			'index'			=> $category->term_order,
+			'index'			=> $index,
 			'page'			=> $this->convert_pages($wp_chapter['pages'], $category)
 			);
 
@@ -361,11 +364,17 @@ class Mimetic_Book
 		if (!$mb_api->themes->themes) {
 			$mb_api->load_themes();
 		}
-		$themePageIDList = $mb_api->themes->themes[$this->theme_id]->format_ids;
+		$themePageIDList = $mb_api->themes->themes[$this->theme_id]->details->format_ids;
+		$themePageIsTOCList = $mb_api->themes->themes[$this->theme_id]->details->format_is_toc;
 
 		// If we don't have a theme template page assigned, use the first one in the list
 		if (!$themePageID || !array_search($themePageID, $themePageIDList)) {
 			$themePageID = $themePageIDList[0];
+		}
+		
+		// IF this is a table of contents page, add that to the attributes
+		if ($themePageIsTOCList[$themePageID]) {
+			$attr["contents"] = $themePageIsTOCList[$themePageID];
 		}
 		
 		//Assign page values
@@ -382,6 +391,12 @@ class Mimetic_Book
 			'textblocks'		=> $textblocks,
 			'template'			=> $themePageID
 			);
+		
+		
+		// Add a table of contents element to the page
+		if ($themePageIsTOCList[$themePageID]) {
+			$page['tableofcontents'] = "";
+		}
 
 		// Get ATTACHED MEDIA: sounds, video
 		

@@ -23,7 +23,7 @@ $dir = mb_api_dir();
 @include_once "$dir/models/attachment.php";
 
 // Themes
-@include_once "$dir/singletons/themes.php";
+include_once "$dir/singletons/themes.php";
 
 // Useful functions
 @include_once "$dir/singletons/funx.php";
@@ -49,6 +49,11 @@ function mb_api_init() {
 
 	// Add custom metaboxes to posts
 	add_custom_metaboxes_to_posts();
+	
+	// Add custom column to the book posts listing
+	add_filter('manage_posts_columns', 'book_custom_columns_head');
+	add_action('manage_posts_custom_column', 'book_custom_columns_content', 10, 2);
+
 	
 }
 
@@ -341,6 +346,56 @@ function delete_book_post($post_id)
 	}
 }
 
+
+
+
+/* MODIFY BOOK LISTING */
+
+// ADD NEW COLUMN  
+function book_custom_columns_head($defaults) {  
+    $defaults['publish_book'] = 'Publish';  
+    return $defaults;  
+}  
+  
+// SHOW THE PUBLISH BUTTON
+function book_custom_columns_content($column_name, $post_ID) {  
+
+	$jsURL = plugins_url( 'js/publish.js', __FILE__ );
+	wp_register_script('my-publish', $jsURL, array('jquery'));
+	wp_enqueue_script('my-publish');
+
+	$jsCSS = plugins_url( 'js/style.css', __FILE__ );
+	wp_register_style( 'mb_api_style', $jsCSS);
+	wp_enqueue_style('mb_api_style');
+	
+
+    if ($column_name == 'publish_book') {  
+		show_publish_button($post_ID) ;
+		  
+    }  
+}  
+
+function show_publish_button($post_ID) {
+	global $mb_api;
+	
+	$mb_book_id = get_post_meta($post_ID, "mb_book_id", true);
+	//$mb_book_publisher_id = get_post_meta($post_ID, "mb_publisher_id", get_option('mb_publisher_id', '1'));
+
+	?>
+	<input type="hidden" id="distribution_url_<?php echo $mb_book_id; ?>" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
+	<input type="hidden" id="base_url_<?php echo $mb_book_id; ?>" value="<?php print get_bloginfo('url');  ?>" />
+
+	<input type="button" class="publish_book_button" id="<?php echo "$mb_book_id"; ?>" class="button-primary" value="Publish eBook" />
+	<br>
+	<div style="margin-top:0px;text-align:left;" class="publishing_progress_message" id="publishing_progress_message_<?php echo $mb_book_id; ?>" ></div>
+	<?php 
+}
+
+
+
+
+
+
 /* META BOXES FOR BOOK PAGE */
 
 /* Meta box setup function. */
@@ -434,9 +489,9 @@ function book_post_publish_meta_box( $post) {
 		<input type="text" id="mb_publisher_id" name="mb_publisher_id" value="<?php print $mb_book_publisher_id;  ?>" />
 
 		<div class="submitbox" >
-			<span style="margin-right:20px;" id="publishing_progress_message" ></span>
+			<span style="margin-right:20px;" class="publishing_progress_message" id="publishing_progress_message" ></span>
 			<div style="text-align:right;float:right;">
-				<input type="button" id="publish_book_button" class="button-primary" value="Publish Book" />
+				<input type="button" id="publish_book_button" class="button-primary" value="Publish eBook" />
 			</div>
 		</div>
 		<div class="clear"></div>
@@ -631,15 +686,18 @@ function post_meta_save_postdata( $post_id) {
 
 	// OK, we're authenticated: we need to find and save the data
 	
-	// We want to minimize loading this...it can be slow.
-	if (!$mb_api->themes->themes) {
-		$mb_api->load_themes();
-	}
-	$theme_id = $_POST['mb_theme_id'];
-	$format_ids = $mb_api->themes->themes[$theme_id]->format_ids;
+	if (isset($_POST['mb_theme_id']) && isset($_POST['mb_book_theme_page_id'])) {
+	
+		// We want to minimize loading this...it can be slow.
+		if (!$mb_api->themes->themes) {
+			$mb_api->load_themes();
+		}
+		$theme_id = $_POST['mb_theme_id'];
+		$format_ids = $mb_api->themes->themes[$theme_id]->details->format_ids;
 
-	$themePageID = $format_ids[$_POST['mb_book_theme_page_id']];
-	update_post_meta( $post_id, 'mb_book_theme_page_id', $themePageID );
+		$themePageID = $format_ids[$_POST['mb_book_theme_page_id']];
+		update_post_meta( $post_id, 'mb_book_theme_page_id', $themePageID );
+	}
 }
 
 
@@ -654,59 +712,65 @@ function post_mb_page_theme_meta_box( $post) {
 	// 
 	// which theme is that book using?
 	$book_id = get_post_book_id($post->ID);
+	
+	if ($book_id) {
 
-	// We want to minimize loading this...it can be slow.
-	if (!$mb_api->themes->themes) {
-		$mb_api->load_themes();
-	}
+		// We want to minimize loading this...it can be slow.
+		if (!$mb_api->themes->themes) {
+			$mb_api->load_themes();
+		}
 	
-	$theme_id = get_post_theme_id($post->ID, $book_id);
+		$theme_id = get_post_theme_id($post->ID, $book_id);
 	
-	// Get list of theme page id's for this theme
-	$themePageIDList = $mb_api->themes->themes[$theme_id]->format_ids;
-
-	$themePageID = get_post_meta($post->ID, "mb_book_theme_page_id", true);
+		// Get list of theme page id's for this theme
+		$themePageIDList = $mb_api->themes->themes[$theme_id]->details->format_ids;
+		$themePageID = get_post_meta($post->ID, "mb_book_theme_page_id", true);
 	
-	// If there is no assigned theme page id, we use the first in the list
-	$themePageID || $themePageID = $themePageIDList[0];
+		// If there is no assigned theme page id, we use the first in the list
+		$themePageID || $themePageID = $themePageIDList[0];
 	
-	// If the themes have changed behind our back, the $theme_id could be invalid,
-	// Choose '1', the default theme that must always be there.
-	if (!$mb_api->themes->themes[$theme_id]) {
-		$theme_id = 1;
-		// Update the book to use theme 1!!!
-		update_post_meta($book_id, 'mb_book_id', 1);
-	}
+		// If the themes have changed behind our back, the $theme_id could be invalid,
+		// Choose '1', the default theme that must always be there.
+		if (!$mb_api->themes->themes[$theme_id]) {
+			$theme_id = 1;
+			// Update the book to use theme 1!!!
+			update_post_meta($book_id, 'mb_book_id', 1);
+		}
 	
-	$f = $mb_api->themes->themes[$theme_id]->folder;
-	$previewsFolder = $mb_api->url .DIRECTORY_SEPARATOR. $mb_api->themes_dir_name .DIRECTORY_SEPARATOR. $f .DIRECTORY_SEPARATOR."template_previews";
-	// Get index of chosen page ID in the list of ID's
-	$i = array_search($themePageID, $themePageIDList) + 1;
-	// Use that index to choose the preview
-	$fn = $previewsFolder .DIRECTORY_SEPARATOR.  "format_" . $i . ".jpg";
-	$pageFormatPopupMenu = page_format_popup_menu($post->ID, $book_id);
+		$f = $mb_api->themes->themes[$theme_id]->folder;
+		$previewsFolder = $mb_api->url .DIRECTORY_SEPARATOR. $mb_api->themes_dir_name .DIRECTORY_SEPARATOR. $f .DIRECTORY_SEPARATOR."template_previews";
+		// Get index of chosen page ID in the list of ID's
+		$i = array_search($themePageID, $themePageIDList) + 1;
+		// Use that index to choose the preview
+		$fn = $previewsFolder .DIRECTORY_SEPARATOR.  "format_" . $i . ".jpg";
+		$pageFormatPopupMenu = page_format_popup_menu($post->ID, $book_id);
 	
-	?>
-	<p>
-		<label for="mb_book_theme_page_id">
-			<?php _e( "Page Format:" ); ?>
-		</label>
-		<input type="hidden" id="mb_book_theme_page_previews" value="<?php echo($previewsFolder) ?>">
-		<input type="hidden" name="mb_theme_id" value="<?php echo($theme_id) ?>">
-		<?php 
-		echo ($pageFormatPopupMenu );
 		?>
-		
-		<br/>
-		<div class="theme_page_preview_box">
-			<label for="format_page_preview">
+		<p>
+			<label for="mb_book_theme_page_id">
+				<?php _e( "Page Format:" ); ?>
 			</label>
-			<div class="theme_page_preview">
-				<img id="format_page_preview" src="<?php echo ($fn); ?>"/>
+			<input type="hidden" id="mb_book_theme_page_previews" value="<?php echo($previewsFolder) ?>">
+			<input type="hidden" name="mb_theme_id" value="<?php echo($theme_id) ?>">
+			<?php 
+			echo ($pageFormatPopupMenu );
+			?>
+		
+			<br/>
+			<div class="theme_page_preview_box">
+				<label for="format_page_preview">
+				</label>
+				<div class="theme_page_preview">
+					<img id="format_page_preview" src="<?php echo ($fn); ?>"/>
+				</div>
 			</div>
-		</div>
-	</p>
-	<?php 
+		</p>
+		<?php
+	} else {
+		
+		_e( "Unknown Book &mdash; check your category setting?" );
+		
+	}
 }
 
 
@@ -714,11 +778,17 @@ function post_mb_page_theme_meta_box( $post) {
 // ONLY WORKS IF THE POST HAS ONE CATEGORY! IT GETS THE FIRST. NOT GREAT...
 function get_post_book_id($post_id) {
 	$thiscats = wp_get_post_categories($post_id);
-	$thiscat = $thiscats[0];
-	
-	$bbc = get_books_by_category();
-	$book_id = $bbc[$thiscat];
-	return $book_id;
+	if ($thiscats) {
+		$thiscat = $thiscats[0];
+		if ($thiscat) {
+			$bbc = get_books_by_category();
+			if ($bbc and isset($bbc[$thiscat]) ) {
+				$book_id = $bbc[$thiscat];
+				return $book_id;
+			}
+		}
+	}
+	return null;
 }
 
 	
@@ -760,7 +830,7 @@ function page_format_popup_menu($post_id, $book_id) {
 	$theme_id = get_post_meta($book_id, "mb_book_theme_id", true);
 	
 	$mytheme = $mb_api->themes->themes[$theme_id];
-	$values = $mytheme->format_ids;
+	$values = $mytheme->details->format_ids;
 	// Default theme is 1;
 	// Get current checked item -- pass the index in the list of options, not the value!
 	$pid = get_post_meta($post_id, "mb_book_theme_page_id", true);
