@@ -79,8 +79,10 @@ class MB_API_Themes
 			
 			$myTheme->id = str_replace (":","_",$myTheme->id);	// just making sure there are no ":" in the ID!
 			
-			// Load id's of the theme pages
-			$myTheme->format_ids = $this->LoadFormatIDs ($themepath, $myTheme);		
+			// Get details of the theme:
+			// 'format_ids' : format ID's to build a list of page templates in a theme
+			// 'format_is_toc_by_id'	: true if a given page template is a table of contents page
+			$myTheme->details = $this->LoadFormatDetails ($themepath, $myTheme);	
 
 			// Save the disk path of the theme
 			$myTheme->path = $themepath;
@@ -162,12 +164,14 @@ class MB_API_Themes
 
 
 	/*
+	 * Load Theme details for each page setting:
+	 * 1) list of format pages for each theme
 	 * Load list of theme format pages, for each theme.
 	 * We get this list from the theme.json file, NOT from the actual XML
 	 * files. This way, we don't have to parse the XML.
 	 * This lets us choose the formatting page by ID, e.g. for a post
 	*/
-	function LoadFormatIDs ($themepath, $myTheme) {
+	function LoadFormatDetails ($themepath, $myTheme) {
 		$infoFileName = "theme.json";
 		$fn = "$themepath/$infoFileName";
 		
@@ -182,17 +186,27 @@ class MB_API_Themes
 		$xmlFileName = "templates.xml";
 		$fn = "$themepath/$xmlFileName";
 		$theme_ids = array();
+		$toc = array();
 		
 		if (file_exists($fn)) {
 			$themeXML = file_get_contents($fn);
 			$theme = new SimpleXMLElement($themeXML);
 			
 			foreach ($theme->chapter[0]->page as $page) {
-				$theme_ids[] = (string)$page->attributes()->id;
+				$id = (string)$page->attributes()->id;
+				$theme_ids[] = $id;
+				(isset($page->tableofcontents)) ? $toc[$id] = true : $toc[] = false;
 			}
+		} else {
+			$mb_api->error(__FUNCTION__.": The theme at $themepath is missing the $xmlFileName file!");
 		}
-		
-		return $theme_ids;
+
+		$details = array (
+			'format_ids' => $theme_ids,
+			'format_is_toc' => $toc
+			);
+		$details = (object) $details;
+		return $details;
 	}
 	
 }

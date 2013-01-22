@@ -182,18 +182,6 @@ $this->write_log("$id, $book_id, $u, $p");
 			$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item: " . $e);
 		}
 
-		// Must do AFTER writing it to the directory where it can be downloaded from
-		// since we check that files are there before we really show a book as
-		// published.
-		// 
-		// Update the shelves file with the new book
-		$this->write_shelves_file();
-		$this->write_log(__FUNCTION__.": Wrote the shelves file.");
-
-		// Update the publishers file
-		$this->write_publishers_file();
-		$this->write_log(__FUNCTION__.": Wrote the publishers file.");
-		
 		// ------------------------------------------------------------
 		// Create or Update a post entry in the Wordpress for this book!
 		// First, look for an existing entry with this ID
@@ -204,12 +192,12 @@ $this->write_log("$id, $book_id, $u, $p");
 		$info = json_decode( file_get_contents($dir . DIRECTORY_SEPARATOR . "item.json") );
 
 
-		// If post does not exist, create it.
 		if ($book_post) {
-			// This must be a remote publish, since the book post does not exist.
-			$post_id = $book_post->id;
+			$post_id = $book_post->ID;
 		} else {
-			
+			// If post does not exist, create it.
+			// This must be a remote publish, since the book post does not exist,
+			// meaning the book page posts exists on another website.		
 			// see: http://codex.wordpress.org/Function_Reference/wp_insert_post
 			$post = array(
 				'comment_status' => 'open', // 'closed' means no comments.
@@ -257,19 +245,15 @@ $this->write_log("$id, $book_id, $u, $p");
 			// Attach the item.json file to the book posting
 			$filename = $dir . DIRECTORY_SEPARATOR . "item.json";
 			$this->attach_file_to_post($filename, $post_id);
-			
-			// Mark the book as published so it will appear in the shelves
-			update_post_meta($post_id, 'mb_published', true);
-		
+					
 			// Mark the book as published so it will appear in the shelves
 			update_post_meta($post_id, 'mb_book_id', $book_id);
-		
-
 		}
 		
-
-		
 		// Custom fields:
+		
+		// Mark the book as published so it will appear in the shelves
+		update_post_meta($post_id, 'mb_published', true);
 		
 		
 		// Nope...
@@ -280,7 +264,19 @@ $this->write_log("$id, $book_id, $u, $p");
 		// Book author field
 		update_post_meta($post_id, "mb_book_author", $info->author);
 
-	
+
+		// Must do AFTER writing it to the directory where it can be downloaded from
+		// since we check that files are there before we really show a book as
+		// published.
+		// 
+		// Update the shelves file with the new book
+		$this->write_shelves_file();
+		$this->write_log(__FUNCTION__.": Wrote the shelves file.");
+
+		// Update the publishers file
+		$this->write_publishers_file();
+		$this->write_log(__FUNCTION__.": Wrote the publishers file.");
+		
 		if ($error) {
 			//data,textStatus
 			$error['data'] = $error;
@@ -571,8 +567,6 @@ $this->write_log("$id, $book_id, $u, $p");
 			$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
 			$is_published =  (file_exists($tarfilepath) && $is_published);
 
-			//$this->write_log(__FUNCTION__.":".$info['modified']);
-			
 			if ($is_published) {
 			
 				// almost all names are same, but not completely....
@@ -1127,7 +1121,14 @@ $this->write_log("$id, $book_id, $u, $p");
 		 * This means that updating info on the book page itself also
 		 * sets the modification date.
 		 */
-  
+ 
+ 
+ 		/*
+ 		Modified Problem: What if we update a theme, or do something unorthodox?
+		The book won't be marked updated.
+		Make NOW the modified time!
+ 		*/
+		/*
 		// Get most recent post
 		$book_posts = get_posts(array(
 			'category'		=> $category_id,
@@ -1144,7 +1145,7 @@ $this->write_log("$id, $book_id, $u, $p");
 		} else {
 			$modified = date(RSS);
 		}
-		
+
 		$book_post_modified = $post->modified;
 		
 		// If the book page itself was modified more recently, use it as the modification date.
@@ -1152,10 +1153,10 @@ $this->write_log("$id, $book_id, $u, $p");
 		if (strtotime($book_post_modified) > strtotime($modified)) {
 			$modified = $book_post_modified;
 		}
-		
-		// Make NOW the modified time!
-		//$modified = date();
-		
+		*/
+
+
+		$modified = date("Y-m-d H:i:s");
 		
 		$category_id = $post->categories[0]->id;
 		
