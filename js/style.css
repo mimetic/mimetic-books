@@ -1,6 +1,8 @@
-/* @override http://localhost/photobook/wordpress/wp-content/plugins/mimetic-books-api/js/style.css?ver=3.5 */
-
-/* @override http://localhost/photobook/wordpress/wp-content/plugins/mimetic-books-api/js/image_upload.js?ver=3.5 */
+/* @override 
+	http://localhost/photobook/wordpress/wp-content/plugins/mimetic-books-api/js/style.css?ver=3.5
+	http://localhost/photobook/wordpress/wp-content/plugins/mimetic-books-api/js/image_upload.js?ver=3.5
+	http://localhost/photobook/wordpress/wp-admin/load-styles.php?c=1&dir=ltr&load=admin-bar,wp-admin,buttons&ver=3.5
+*/
 
 /* CSS for image uploader */
 
@@ -10,13 +12,18 @@
 }
 
 .poster_url {
+	
 }
 
 .poster_id {
+	
 }
 
 .poster_button {
 	
+}
+
+.publish_book_button {
 }
 
 .publishing_progress_message {
@@ -25,16 +32,17 @@
 }
 
 div .theme_page_preview_box {
+	
 }
+
 div .theme_page_preview {
 	width: 250px;
 	height: 200px;
 	background: url(img/page-preview-bkgd-small.png) no-repeat center center;
 }
+
 .theme_page_preview img {
 	width: 200px;
-	height:  150px;
+	height: 150px;
 	margin: 23px 24px;
 }
-
-

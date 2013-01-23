@@ -57,7 +57,7 @@ We use some of the WP fields for our own purposes:
 				return false;
 			}
 
-		$this->write_log("\n=======================\n".__FUNCTION__.": Begin");
+		$this->write_log("\n======================= ".__FUNCTION__.": Begin");
 
 		extract($mb_api->query->get(array('remote')));
 		
@@ -1158,9 +1158,11 @@ $this->write_log("$id, $book_id, $u, $p");
 		}
 		*/
 
-
-		$modified = date("Y-m-d H:i:s");
-		
+		//date("Y-m-d H:i:s");
+	
+		// Modified time is NOW!
+		$modified = date('Y-m-d H:i:s',current_time('timestamp',1));
+				
 		$category_id = $post->categories[0]->id;
 		
 		$result = array (

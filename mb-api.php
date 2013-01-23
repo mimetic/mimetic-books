@@ -385,7 +385,7 @@ function show_publish_button($post_ID) {
 	<input type="hidden" id="distribution_url_<?php echo $mb_book_id; ?>" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
 	<input type="hidden" id="base_url_<?php echo $mb_book_id; ?>" value="<?php print get_bloginfo('url');  ?>" />
 
-	<input type="button" class="publish_book_button" id="<?php echo "$mb_book_id"; ?>" class="button-primary" value="Publish eBook" />
+	<input type="button" class="wp-core-ui button-primary publish_book_button" id="<?php echo "$mb_book_id"; ?>" value="Publish eBook" />
 	<br>
 	<div style="margin-top:0px;text-align:left;" class="publishing_progress_message" id="publishing_progress_message_<?php echo $mb_book_id; ?>" ></div>
 	<?php 
@@ -446,6 +446,15 @@ function book_add_post_meta_boxes() {
 	);
 	
 	add_meta_box(
+		'book-post-settings',			// Unique ID
+		esc_html__( 'Book Settings' ),		// Title
+		'book_post_settings_meta_box',		// Callback function
+		'book',					// Admin page (or post type)
+		'side',					// Context
+		'high'					// Priority
+	);
+	
+	add_meta_box(
 		'book-post-poster',			// Unique ID
 		esc_html__( 'Book Poster' ),		// Title
 		'book_post_poster_meta_box',		// Callback function
@@ -499,7 +508,7 @@ function book_post_publish_meta_box( $post) {
 	<?php 
 }
 
-/* Display the post publish meta box. */
+/* Display the post theme meta box. */
 function book_post_theme_meta_box( $post) { 
 	global $mb_api;
 	
@@ -514,6 +523,26 @@ function book_post_theme_meta_box( $post) {
 			<br/>
 			<?php echo $mb_api->book_theme_popup_menu($post->ID) ?>
 		</label>
+
+	</p>
+	<?php 
+}
+
+/* Display the post settings meta box. */
+function book_post_settings_meta_box( $post) { 
+	global $mb_api;
+	
+	wp_nonce_field( basename( __FILE__ ), 'book_post_nonce' ); 
+	
+	?>
+	<p>
+	Something should go here. We can put some basic settings in. 
+	</p>
+	
+		<label for="has_captions">
+			Captions
+		</label>
+		<input type="checkbox" name="has_captions" /> 
 
 	</p>
 	<?php 

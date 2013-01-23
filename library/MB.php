@@ -279,13 +279,18 @@ class Mimetic_Book
 				'stopAudioWhenLeaving'	=> 'true'
 				);
 		$chapter_id = $category->term_id;
+		
+		list($page, $settings) = $this->convert_pages($wp_chapter['pages'], $category);
+		
+		$attr = array_merge($attr, $settings);
+		
 		$chapter = array (
 			'@attributes'	=> $attr,
 			'title'			=> $category->name,
 			'id'			=> $category->term_id,
 			'altTitle'		=> $category->name,
 			'index'			=> $index,
-			'page'			=> $this->convert_pages($wp_chapter['pages'], $category)
+			'page'			=> $page
 			);
 
         $this->book['chapter'][] = $chapter;
@@ -296,11 +301,18 @@ class Mimetic_Book
 	private function convert_pages ($wp_posts, $category)
 	{
 		$pages = array();
+		$settings = array();
 		foreach ($wp_posts as $page) {
-			$pages[] = $this->convert_page($page, $category);
+			 $p =  $this->convert_page($page, $category);
+			 $pages[] = $p;
+			 if ($p['caption'])
+				 $settings['hasCaptions'] = "true";
 		}
-		return $pages;
+
+		return array($pages, $settings);
 	}
+	
+	
 	
 	/*
 	DTD Page Definition:
@@ -325,12 +337,21 @@ class Mimetic_Book
 		
 		//print_r($wp_page);
 		
-		// Assign page attributes from the post
+		// Get page attributes from the post
 		$attr = array ();
 		$attr_items = array ( "id", "caption", "city", "state", "country", "date", "headline", "imagefile", "label", "order", "pagedate", "modified");
 		foreach ($attr_items as $item) {
 			isset($wp_page->$item) && $attr[$item] = $wp_page->$item;
 		}
+
+		/*
+		$attr_names = array ( "id", "caption", "city", "state", "country", "date", "headline", "imagefile", "label", "order", "pagedate", "modified", "caption");
+		for ($i=0; $i<count($attr_names); $i++) {
+			$item = $attr_items[$i];
+			$itemName = $attr_names[$i];
+			isset($wp_page->$item) && $attr[$itemName] = $wp_page->$item;
+		}
+		*/
 		
 		// Build the textblock
 		$text = $wp_page->content;
@@ -373,7 +394,7 @@ class Mimetic_Book
 		}
 		
 		// IF this is a table of contents page, add that to the attributes
-		if ($themePageIsTOCList[$themePageID]) {
+		if (isset($themePageIsTOCList[$themePageID])) {
 			$attr["contents"] = $themePageIsTOCList[$themePageID];
 		}
 		
@@ -389,12 +410,13 @@ class Mimetic_Book
 			//'audiofile'		=> '',
 			//'video'			=> '',
 			'textblocks'		=> $textblocks,
-			'template'			=> $themePageID
+			'template'			=> $themePageID,
+			'caption'			=> $wp_page->excerpt,
 			);
 		
 		
 		// Add a table of contents element to the page
-		if ($themePageIsTOCList[$themePageID]) {
+		if (isset($themePageIsTOCList[$themePageID])) {
 			$page['tableofcontents'] = "";
 		}
 
@@ -415,9 +437,8 @@ class Mimetic_Book
 		// Get EMBEDDED elements in the post's HTML,
 		// Convert the embedded elements, e.g. img tags, to MB format arrays
 		$embedded = $this->get_embedded_pictures($wp_page);
-		$page = array_merge($page, $embedded);
-
-
+		$embedded && $page = array_merge($page, $embedded);
+		
 		return $page;
 	}
 
@@ -539,6 +560,10 @@ print ("-----------\n");
 	private function get_embedded_elements($wp_page, $element_type="img") {
 		$text = $wp_page->content;
 		
+		if (!$text) {
+			return null;
+		}
+		
 		// Use PHP XML/HTML extract functionality!
 		$doc = new DOMDocument();
 		$doc->loadHTML($text);
@@ -558,6 +583,30 @@ print ("-----------\n");
 			}
 			$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
 			$attributes['id'] = $id;
+			
+			// Strip text from the id
+			// TO DO
+			
+			// SET IMAGE ALIGNMENT BASED ON THE CLASS.
+			// This works PERFECTLY, however: 
+			// PROBLEM: what works on the blog sucks in some templates.
+			// Most likely, we want the template to take care of this.
+			// This allows really cool things, like fitting into a centered 
+			// area, but we'd better figure a different way to have a template 
+			// center a picture.
+			
+			// Get the alignment from the class
+			// aligncenter, alignnone, alignright, alignleft(?)
+			/*
+			$p = "/align(\w+)/i";
+			if (preg_match($p, $attributes['class'], $matches)) {
+				$alignment = $matches[1];
+				if ($alignment != "none")
+					$attributes['x'] = $alignment;
+			} else {
+				$alignment = "";
+			}
+			*/
 
 			$element['attributes'] = $attributes;
 			
@@ -682,8 +731,10 @@ print ("-----------\n");
 			case "img" :
 				isset($attr['width']) ? $mb_element['width'] = $attr['width'] : $mb_element['width'] = null;
 				isset($attr['height']) ? $mb_element['height'] = $attr['height'] : $mb_element['height'] = null;
+				isset($attr['x']) ? $mb_element['x'] = $attr['x'] : $mb_element['x'] = null;
 				$mb_element['filename'] = "*" . DIRECTORY_SEPARATOR . $this->pictureFolder . basename($attr['src']);
-				$mb_element['zoomedScale'] = "1";
+				// zoomedScale is set by the templates, now! We won't worry about it here.
+				//$mb_element['zoomedScale'] = "1";
 				
 				// haha, just for testing
 				// $mb_element['addCorners'] = "true";

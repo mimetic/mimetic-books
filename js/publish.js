@@ -59,8 +59,8 @@ jQuery(document).ready(function($){
 		
 		if (res && id) {
 			// Update progress on page:
-			jQuery('#publishing_progress_message_'+id).html("Working...");
-			//jQuery(this).prop("value","Working...");
+			//jQuery('#publishing_progress_message_'+id).html("Working...");
+			jQuery(this).prop("value","Working...");
 			
 			//alert ("contacting :" + url);
 			jQuery.get(
@@ -71,10 +71,10 @@ jQuery(document).ready(function($){
 						alert (data.status + ":" + data.error)
 						console.log("Publish.js error:", data, textStatus);
 					} else {
-						alert ("The book was published.");
+						//alert ("The book was published.");
 					}
-					jQuery('#publishing_progress_message_'+id).html("");
-					//thisButton.prop("value","Publish eBook");
+					//jQuery('#publishing_progress_message_'+id).html("");
+					thisButton.prop("value","Publish eBook");
 				});
 		}
 		return false;
