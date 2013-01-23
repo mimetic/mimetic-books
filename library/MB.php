@@ -611,7 +611,7 @@ print ("-----------\n");
 			$element['attributes'] = $attributes;
 			
 			// Add in all post info for the item
-			$post = get_post( $id, ARRAY_A );
+			//$post = get_post( $id, ARRAY_A );
 			
 			// DON'T add the actual element to the page. Let's only return 
 			// elements suitable for use by MB.php.
@@ -727,12 +727,21 @@ print ("-----------\n");
 		
 		switch ($name) {
 			case "image":
-				
+			
+			// Assign width,height,x if they are set and NOT empty.
 			case "img" :
-				isset($attr['width']) ? $mb_element['width'] = $attr['width'] : $mb_element['width'] = null;
-				isset($attr['height']) ? $mb_element['height'] = $attr['height'] : $mb_element['height'] = null;
-				isset($attr['x']) ? $mb_element['x'] = $attr['x'] : $mb_element['x'] = null;
+				if (isset($attr['width']) && $attr['width'] != "")
+					$mb_element['width'] = $attr['width'];
+					
+				if (isset($attr['height']) && $attr['height'] != "")
+					$mb_element['height'] = $attr['height'];
+					
+				if (isset($attr['x']) && $attr['x'] != "")
+					$mb_element['x'] = $attr['x'];
+
+							
 				$mb_element['filename'] = "*" . DIRECTORY_SEPARATOR . $this->pictureFolder . basename($attr['src']);
+				
 				// zoomedScale is set by the templates, now! We won't worry about it here.
 				//$mb_element['zoomedScale'] = "1";
 				
