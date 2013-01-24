@@ -1126,12 +1126,6 @@ $this->write_log("$id, $book_id, $u, $p");
 		 */
  
  
- 		/*
- 		Modified Problem: What if we update a theme, or do something unorthodox?
-		The book won't be marked updated.
-		Make NOW the modified time!
- 		*/
-		/*
 		// Get most recent post
 		$book_posts = get_posts(array(
 			'category'		=> $category_id,
@@ -1156,12 +1150,13 @@ $this->write_log("$id, $book_id, $u, $p");
 		if (strtotime($book_post_modified) > strtotime($modified)) {
 			$modified = $book_post_modified;
 		}
-		*/
 
+		// We can't simply say the modified date is now, or else any time we
+		// ask about a book, we get a new modified date. Then, the app will
+		// think all books need updating all the time.
 		//date("Y-m-d H:i:s");
-	
 		// Modified time is NOW!
-		$modified = date('Y-m-d H:i:s',current_time('timestamp',1));
+		// $modified = date('Y-m-d H:i:s',current_time('timestamp',1));
 				
 		$category_id = $post->categories[0]->id;
 		

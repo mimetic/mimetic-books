@@ -728,8 +728,17 @@ print ("-----------\n");
 		switch ($name) {
 			case "image":
 			
-			// Assign width,height,x if they are set and NOT empty.
+			/*
+			Do NOT assign width, height, etc. These are specified by the template. 
+			Why? Because it is unlikely the images in the blog are the right size for the
+			template, so it would be a bad idea to force the template to use the blog images.
+			That would only make sense if the only purpose of the blog was to build the book.
+			
+			Assign width,height,x if they are set and NOT empty.
+			*/
 			case "img" :
+				
+				/*
 				if (isset($attr['width']) && $attr['width'] != "")
 					$mb_element['width'] = $attr['width'];
 					
@@ -738,7 +747,7 @@ print ("-----------\n");
 					
 				if (isset($attr['x']) && $attr['x'] != "")
 					$mb_element['x'] = $attr['x'];
-
+				*/
 							
 				$mb_element['filename'] = "*" . DIRECTORY_SEPARATOR . $this->pictureFolder . basename($attr['src']);
 				
@@ -749,7 +758,8 @@ print ("-----------\n");
 				// $mb_element['addCorners'] = "true";
 				
 				// Convert the picture to one we can use, ready for packaging
-				$this->convert_img($attr['src'], $mb_element['width'], $mb_element['height']);
+				//$this->convert_img($attr['src'], $mb_element['width'], $mb_element['height']);
+				$this->convert_img($attr['src'], $attr['width'], $attr['height']);
 				
 				
 				break;
