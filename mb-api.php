@@ -51,7 +51,7 @@ function mb_api_init() {
 	add_custom_metaboxes_to_posts();
 	
 	// Add custom column to the book posts listing
-	add_filter('manage_posts_columns', 'book_custom_columns_head');
+	add_filter('manage_book_posts_columns', 'book_custom_columns_head');
 	add_action('manage_posts_custom_column', 'book_custom_columns_content', 10, 2);
 
 	
@@ -359,19 +359,19 @@ function book_custom_columns_head($defaults) {
   
 // SHOW THE PUBLISH BUTTON
 function book_custom_columns_content($column_name, $post_ID) {  
+	switch ( $column_name ) {
+	case 'publish_book':
 
-	$jsURL = plugins_url( 'js/publish.js', __FILE__ );
-	wp_register_script('my-publish', $jsURL, array('jquery'));
-	wp_enqueue_script('my-publish');
+		$jsURL = plugins_url( 'js/publish.js', __FILE__ );
+		wp_register_script('my-publish', $jsURL, array('jquery'));
+		wp_enqueue_script('my-publish');
 
-	$jsCSS = plugins_url( 'js/style.css', __FILE__ );
-	wp_register_style( 'mb_api_style', $jsCSS);
-	wp_enqueue_style('mb_api_style');
-	
+		$jsCSS = plugins_url( 'js/style.css', __FILE__ );
+		wp_register_style( 'mb_api_style', $jsCSS);
+		wp_enqueue_style('mb_api_style');
 
-    if ($column_name == 'publish_book') {  
-		show_publish_button($post_ID) ;
-		  
+		show_publish_button($post_ID) ;		  
+		break;
     }  
 }  
 
@@ -740,7 +740,7 @@ function post_mb_page_theme_meta_box( $post) {
 	// 
 	// 
 	// which theme is that book using?
-	$book_id = get_post_book_id($post->ID);
+	$book_id = $mb_api->get_post_book_id($post->ID);
 	
 	if ($book_id) {
 
@@ -749,7 +749,12 @@ function post_mb_page_theme_meta_box( $post) {
 			$mb_api->load_themes();
 		}
 	
-		$theme_id = get_post_theme_id($post->ID, $book_id);
+		$theme_id = get_post_meta($book_id, "mb_book_theme_id", true);
+		
+		// If the theme_id is not valid, reset to default theme.
+		if (!isset($mb_api->themes->themes[$theme_id])) {
+			$theme_id = 1;
+		}
 	
 		// Get list of theme page id's for this theme
 		$themePageIDList = $mb_api->themes->themes[$theme_id]->details->format_ids;
@@ -804,45 +809,12 @@ function post_mb_page_theme_meta_box( $post) {
 
 
 // For one book, used on a book post page
-// ONLY WORKS IF THE POST HAS ONE CATEGORY! IT GETS THE FIRST. NOT GREAT...
-function get_post_book_id($post_id) {
-	$thiscats = wp_get_post_categories($post_id);
-	if ($thiscats) {
-		$thiscat = $thiscats[0];
-		if ($thiscat) {
-			$bbc = get_books_by_category();
-			if ($bbc and isset($bbc[$thiscat]) ) {
-				$book_id = $bbc[$thiscat];
-				return $book_id;
-			}
-		}
-	}
-	return null;
-}
-
-	
-// For one book, used on a book post page
-// ONLY WORKS IF THE POST HAS ONE CATEGORY! IT GETS THE FIRST. NOT GREAT...
-function get_post_theme_id($post_id, $book_id) {
-	global $mb_api;
-	
-	if (!$book_id) {
-		$book_id = get_post_book_id($post_id);
-	}
-	$theme_id = get_post_meta($book_id, "mb_book_theme_id", true);
-	
-	return $theme_id;
-}
-
-
-// For one book, used on a book post page
-// ONLY WORKS IF THE POST HAS ONE CATEGORY! IT GETS THE FIRST. NOT GREAT...
 function page_format_popup_menu($post_id, $book_id) {
 	global $mb_api;
 
 
 	if (!$book_id) {
-		$book_id = get_post_book_id($post_id);
+		$book_id = $mb_api->get_post_book_id($post_id);
 	}
 	
 	if ($book_id) {
@@ -858,7 +830,13 @@ function page_format_popup_menu($post_id, $book_id) {
 	//	get the theme ID
 	$theme_id = get_post_meta($book_id, "mb_book_theme_id", true);
 	
-	$mytheme = $mb_api->themes->themes[$theme_id];
+	// If the theme_id is not valid, reset to default theme.
+	if (!isset($mb_api->themes->themes[$theme_id])) {
+		$theme_id = 1;
+	}
+	
+	$mytheme = $mb_api->themes->themes[$theme_id];	
+	
 	$values = $mytheme->details->format_ids;
 	// Default theme is 1;
 	// Get current checked item -- pass the index in the list of options, not the value!
@@ -880,28 +858,6 @@ function page_format_popup_menu($post_id, $book_id) {
 }
 
 
-/*
-	* get an array of book id's by category they use.
-	* Handy do figure out which book a post belongs to.
-	*/
-function get_books_by_category() {
-	global $mb_api;
-
-	$books = get_posts(array(
-		'post_type' => 'book'
-	));
-
-	$a = array();
-
-	foreach ($books as $book) {
-		$cats = wp_get_post_categories($book->ID);
-		$a[$cats[0]] = $book->ID;
-	}
-
-
-
-	return $a;
-}
 
 	
 // ------------------------------------------------------

@@ -789,9 +789,15 @@ $this->write_log("$id, $book_id, $u, $p");
 		} else {
 			$mb_api->error(__FUNCTION__.": Missing id or book_id.");
 		}
-		if (isset($this->settings['distribution_url'])) {
-			$url = get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url'])); 
+
+		$url = get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url'])); 
+		
+		// be sure there's an ending slash
+		$url = preg_replace("/(\/*)$/", '', $url) . "/";
+		
+		if (isset($url)) {
 			$url .=  "mb/book/publish_book_package/";
+$this->write_log("URL: $url");		
 		} else {
 			$this->write_log("ERROR: Tried to send a book when no URL was provided.");
 			$mb_api->error(__FUNCTION__.": Tried to send a book when no URL was provided.");

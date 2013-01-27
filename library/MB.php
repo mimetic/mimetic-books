@@ -356,6 +356,16 @@ class Mimetic_Book
 		// Build the textblock
 		$text = $wp_page->content;
 		$title = $wp_page->title;
+		
+		// Do NOT include a title or text if it begins with the special 'do not include' marker!
+		// The marker is ... $mb_api->ignore_me_code
+		if (preg_match("/^".$mb_api->ignore_me_code."/", $title)) {
+			$title = "";
+		}
+
+		if (preg_match("/^".$mb_api->ignore_me_code."/", $text)) {
+			$text = "";
+		}
 
 		// delete embedded stuff like img or a
 		$text = str_replace( "\xC2\xA0", " ", $text);

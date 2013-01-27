@@ -17,6 +17,10 @@ class MB_API {
 		$this->themes = new MB_API_Themes($this->themes_dir);
 
 
+		// Special "Do Not Use Me" marker for title or text blocks.
+		// Anything beginning with this code will be ignored!
+		$this->ignore_me_code = "###";
+
 		// URL of this plugin
 		$this->url = plugins_url() .DIRECTORY_SEPARATOR. basename($dir);
 
@@ -314,6 +318,18 @@ class MB_API {
 					<input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', 'public'); ?>" size="32" /></td>
 			</tr>
 		</table>
+		
+		
+		<h3>Hints</h3>
+		<ul style="list-style-type:circle;">
+			<li>Any title or text block that begins with "<?php echo $this->ignore_me_code; ?>" will be ignored. This is useful for design templates that don't use titles, for example.
+			</li>
+			<li>For each publisher, you should make a new Page (not a post), and set the publisher ID on the page.
+			</li>
+		</ul>
+
+		
+		
 		<!--
 		<tr valign="top">
 			<th scope="row">Title</th>
@@ -652,6 +668,69 @@ class MB_API {
 	{
 
 	}
+
+	/*
+	* Get an array of book id's by category they use.
+	* Handy do figure out which book a post belongs to.
+	*/
+	function get_books_by_category() {
+		wp_reset_query();
+		$books = get_posts(array(
+			'numberposts'	=> -1,
+			'post_type'		=> 'book',
+			'post_status'	=> 'any'
+		));
+		
+		$a = array();
+		foreach ($books as $book) {
+			$cats = wp_get_post_categories($book->ID);
+			foreach ($cats as $cat) {
+				$a["$cat"] = $book->ID;
+			}
+		}
+
+		return $a;
+	}
+
+	
+	
+	// Get the book that a post belongs to.
+	// We do this by checking the category of the post.
+	// The first category that belongs to a book is this post's book!
+	// Could a post belong to two books? In theory, yes, although the 
+	// you would have problems if the books had two templates.
+	function get_post_book_id($post_id)
+	{
+		$cats = wp_get_post_categories($post_id);
+		if (!$cats)
+			return null;
+
+		if ($cats) {
+			$book_id = null;
+			$bbc = $this->get_books_by_category();
+			if (!$bbc)
+				return null;
+
+			foreach ($cats as $cat) {
+				//$cat = (Int) $cat;
+				if (isset ($bbc[$cat]) ) {
+					$book_id = $bbc[$cat];
+					return $book_id;
+				}
+			}
+		}
+	}
+	
+	
+	// Given a post ID, get the book theme id it uses.
+	// This means first getting the book the post belongs to.
+	function get_post_theme_id ($post_id)
+	{
+		$book_id = (Int)$this->get_post_book_id($post_id);
+		$theme_id = get_post_meta($book_id, "mb_book_theme_id", true);
+		return $theme_id;
+	}
+	
   
 
 	function load_themes() {
