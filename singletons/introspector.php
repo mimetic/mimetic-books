@@ -280,8 +280,8 @@ class MB_API_Introspector {
 		if (!$query) {
 			$query = array();
 		}
-		
-		$query = array_merge($query, $wp_query->query);
+		if (is_array($wp_query->query))
+			$query = array_merge($query, $wp_query->query);
 		
 		if ($mb_api->query->page) {
 			$query['paged'] = $mb_api->query->page;

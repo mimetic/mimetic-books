@@ -77,7 +77,7 @@ We use some of the WP fields for our own purposes:
 			$p = "nookie";
 
 $this->write_log("Publish from remote site...getting file ");
-$this->write_log("$id, $book_id, $u, $p");
+$this->write_log("book_id = $book_id, username = $u, password = $p");
 
 			if (!($book_id || $id) || !$u || !$p || !$f) {
 				$mb_api->error(__FUNCTION__.": Missing book id (book_id), username (u), password (p), and/or file data (f) ($book_id, $u, $p).");
@@ -131,6 +131,9 @@ $this->write_log("$id, $book_id, $u, $p");
 				$mb_api->error(__FUNCTION__.": Local publishing must include a book id (book_id) or a book post id (id).");
 			}
 			
+			// Update the book post so the modification date for this book is Now.
+			wp_update_post( array ('ID'=>$id ) );
+
 
 			$this->build_book_package($id);
 					
@@ -191,8 +194,7 @@ $this->write_log("$id, $book_id, $u, $p");
 
 		$info = json_decode( file_get_contents($dir . DIRECTORY_SEPARATOR . "item.json") );
 
-
-		if ($book_post) {
+		if ($book_post && isset($book_post->ID)) {
 			$post_id = $book_post->ID;
 		} else {
 			// If post does not exist, create it.
@@ -274,7 +276,7 @@ $this->write_log("$id, $book_id, $u, $p");
 		$this->write_log(__FUNCTION__.": Wrote the shelves file.");
 
 		// Update the publishers file
-		$this->write_publishers_file();
+		$mb_api->write_publishers_file();
 		$this->write_log(__FUNCTION__.": Wrote the publishers file.");
 		
 		if ($error) {
@@ -456,6 +458,10 @@ $this->write_log("$id, $book_id, $u, $p");
 		
 		// get the array of wp chapters using id or slug of the book category
 		$book = $this->get_book($book_post_id);
+
+
+		// Add settings from the book post page
+		$mb->hideHeaderOnPoster = $book_info['hideHeaderOnPoster'];
 		
 		if ($book) {
 			// Add chapters to new $mb book object.
@@ -484,7 +490,7 @@ $this->write_log("$id, $book_id, $u, $p");
 	 */
 	protected function write_book_info_file($book_obj = null) {
 		global $mb_api;
-		
+
 		if ($book_obj) {
 			$info = array (
 				'type'					=> $book_obj->type,
@@ -496,7 +502,8 @@ $this->write_log("$id, $book_id, $u, $p");
 				'date'					=> $book_obj->date,
 				'datetime'				=> $book_obj->datetime,
 				'modified'				=> $book_obj->modified,
-				'publisherid'			=> $book_obj->publisher_id
+				'publisherid'			=> $book_obj->publisher_id,
+				'hideHeaderOnPoster'	=> $book_obj->hideHeaderOnPoster
 			);
 			
 			$output = json_encode($info);
@@ -542,7 +549,8 @@ $this->write_log("$id, $book_id, $u, $p");
 		// Get all books
 		$posts = $mb_api->introspector->get_posts(array(
 				'post_type' => 'book',
-				'numberposts'	=> -1
+				'posts_per_page'	=> -1,
+				'post_status' => 'any'
 			), true);
 	
 		/*
@@ -588,7 +596,8 @@ $this->write_log("$id, $book_id, $u, $p");
 					'path'				=> $book_id,
 					'shelfpath'			=> $mb_api->settings['shelves_dir_name'],
 //					'itemShelfPath'		=>$mb_api->settings['shelves_dir_name'] . DIRECTORY_SEPARATOR . $info['id'],
-					'theme'				=> $info['theme']
+					'theme'				=> $info['theme'],				
+					'hideHeaderOnPoster'	=> $info['hideHeaderOnPoster']
 				);
 				$shelves['itemsByID'][$book_id] = $item;
 			}
@@ -604,95 +613,6 @@ $this->write_log("$id, $book_id, $u, $p");
 	
 	
 	/*
-	 * Write the Publishers file
-	 * This is a json file, "publishers.json", used by the Mimetic Books app to know
-	 * the info about publishers.
-	 */
-	public function write_publishers_file() {
-		global $mb_api;
-
-		$this->write_log(__FUNCTION__);
-
-		
-		$publishers = array (
-			'title'		=> "Publishers",
-			'maxsize'	=> 100,
-			'id'		=> "publishers",
-			'password'	=> "mypassword",
-			'filename'	=> "publishers.json",
-			'itemsByID'	=> array ()
-		);
-		
-
-		$posts = $mb_api->introspector->get_posts(array(
-				'post_type' => 'page',
-				'meta_key' => 'mb_publisher_id',
-				'numberposts'	=> -1
-			), false);
-		
-		// Delete all icons in the folder.
-		// Create the icons folder if necessary.
-		$dir = $mb_api->publishers_dir . DIRECTORY_SEPARATOR . "icons";
-		if (file_exists($dir)) {
-			$files = array_diff(scandir($dir), array('.','..'));
-			foreach ($files as $file) {
-				(!is_dir($dir. DIRECTORY_SEPARATOR .$file)) && unlink($dir. DIRECTORY_SEPARATOR .$file);
-			}
-		} else {
-			mkdir ($dir);
-		}
-
-		
-		
-		foreach ($posts as $post) {
-			
-			$publisher_id = get_post_meta($post->id, "mb_publisher_id", true);
-			
-			if (isset($post->thumbnail) && $post->thumbnail != "") {
-				$icon = $post->thumbnail;
-				
-				$ext = strtolower(substr($icon, -4));
-				if ($ext == ".png") {
-					// Copy the local file to the publishers directory
-					$filename = $mb_api->publishers_dir . DIRECTORY_SEPARATOR . "icons" . DIRECTORY_SEPARATOR . "icon_{$publisher_id}.png";
-					$success = copy($icon, $filename);
-					if (!$success) {
-						$mb_api->error(__FUNCTION__.": Failed to copy $icon to $filename.");
-					}
-				} else {
-					$this->write_log("Publisher icon must be a PNG file.");
-				}
-
-			} else {
-				$icon = "";
-			}
-			
-			$item = array (
-				'id'				=> $publisher_id, 
-				'title'				=> $post->title_plain, 
-				'description'		=> $post->content, 
-				'shortDescription'	=> $post->excerpt, 
-				'datetime'			=> $post->date, 
-				'modified'			=> $post->modified,
-				'author'			=> join (" ", array ($post->author->first_name, $post->author->last_name)),
-				'icon'				=> $icon
-			);
-			$publishers['itemsByID'][$publisher_id] = $item;
-		}
-		
-		$output = json_encode($publishers);
-		$fn = $mb_api->publishers_dir . DIRECTORY_SEPARATOR . "publishers.json";
-		// Delete previous version of the shelves
-		if (file_exists($fn))
-			unlink ($fn);
-		file_put_contents ($fn, $output, LOCK_EX);
-		return $output;
-	}
-	
-	
-
-
-	/*
 	 * Delete all attachments to a post
 	 * $filesToKeep = string "file1.ext, file2.text, ...)
 	 */
@@ -701,9 +621,10 @@ $this->write_log("$id, $book_id, $u, $p");
 		$goodfiles = split(",", $filesToKeep);
 		$args = array(
 			'post_type' => 'attachment',
-			'numberposts' => -1,
+			'posts_per_page' => -1,
 			'post_status' => null,
-			'post_parent' => $post_id
+			'post_parent' => $post_id,
+			'post_status' => 'any'
 		);
 		$attachments = get_posts( $args );
 		if ( $attachments ) {
@@ -727,9 +648,10 @@ $this->write_log("$id, $book_id, $u, $p");
 		// Check to see if file is already attached to the post.
 		$args = array(
 			'post_type' => 'attachment',
-			'numberposts' => -1,
+			'posts_per_page' => -1,
 			'post_status' => null,
-			'post_parent' => $post_id
+			'post_parent' => $post_id,
+			'post_status' => 'any'
 		);
 		$attachments = get_posts($args, true);
 		$guids = array();
@@ -789,15 +711,17 @@ $this->write_log("$id, $book_id, $u, $p");
 		} else {
 			$mb_api->error(__FUNCTION__.": Missing id or book_id.");
 		}
+		
 
-		$url = get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url'])); 
+		isset($this->settings['distribution_url']) ? $d = trim($this->settings['distribution_url']) : $d = "";
+
+		$url = get_option('mb_api_book_publisher_url', $d); 
 		
 		// be sure there's an ending slash
 		$url = preg_replace("/(\/*)$/", '', $url) . "/";
 		
 		if (isset($url)) {
 			$url .=  "mb/book/publish_book_package/";
-$this->write_log("URL: $url");		
 		} else {
 			$this->write_log("ERROR: Tried to send a book when no URL was provided.");
 			$mb_api->error(__FUNCTION__.": Tried to send a book when no URL was provided.");
@@ -909,7 +833,8 @@ $this->write_log("URL: $url");
 		if ($post_id) {
 			$response = $mb_api->introspector->get_posts(array(
 				'p' => $post_id,
-				'post_type' => 'book'
+				'post_type' => 'book',
+				'post_status' => 'any'
 			));
 			$post = $response[0];
 		} elseif ($category_id) {
@@ -946,12 +871,15 @@ $this->write_log("URL: $url");
 	
 	private function get_book_post_from_book_id( $id ) {
 		global $mb_api;
+		wp_reset_query();
 		$posts = $mb_api->introspector->get_posts(array(
 			'meta_key' => 'mb_book_id',
 			'meta_value' => $id,
 			'post_type' => 'book',
-			'numberposts'	=> 1
+			'post_status' => 'any',
+			'posts_per_page'	=> 1
 		), true);
+
 		if ($posts) {
 			$book_post = $posts[0];
 		} else {
@@ -963,7 +891,7 @@ $this->write_log("URL: $url");
 	
 	private function get_book_post_from_category_id( $id ) {
 		global $mb_api;
-		$posts = $mb_api->introspector->get_posts(array( 'cat' => $id, 'post-type' => 'book' ));	
+		$posts = $mb_api->introspector->get_posts(array( 'cat' => $id, 'post-type' => 'book', 'post_status' => 'any' ));	
 		if ($posts) {
 			$book_post = $posts[0];
 		}
@@ -972,7 +900,7 @@ $this->write_log("URL: $url");
 
 	private function get_book_post_from_category_slug( $slug ) {
 		global $mb_api;
-		$posts = $mb_api->introspector->get_posts(array( 'category_name' => $slug, 'post-type' => 'book' ));	
+		$posts = $mb_api->introspector->get_posts(array( 'category_name' => $slug, 'post-type' => 'book', 'post_status' => 'any' ));	
 		if ($posts) {
 			$book_post = $posts[0];
 		}
@@ -1065,7 +993,7 @@ $this->write_log("URL: $url");
 		if (isset($custom_fields['mb_publication_type']) && $custom_fields['mb_publication_type']) {
 			$type = $custom_fields['mb_publication_type'][0];
 		} else {
-			$type = "book";
+			$type = 'book';
 		}
 
 		// Use the post thumbnail as the icon. It will be small, so it won't get
@@ -1098,7 +1026,8 @@ $this->write_log("URL: $url");
 			$args = array(
 				'post_type' => 'attachment',
 				'p'			=> $custom_fields['mb_poster_attachment_id'][0],
-				'numberposts' => 1
+				'posts_per_page' => 1,
+				'post_status' => 'any'
 			); 
 			$poster_attachment = get_posts($args);
 			if ($poster_attachment && $poster_attachment[0]) {
@@ -1107,7 +1036,15 @@ $this->write_log("URL: $url");
 			}
 		}
 			
-			
+		// Get settings from the book post page
+		if ( isset($custom_fields['mb_no_header_on_poster'][0]) ) {
+			$hideHeaderOnPoster = $custom_fields['mb_no_header_on_poster'][0];
+		} else {
+			$hideHeaderOnPoster = false;
+		}
+		
+		
+		
 			
 		/*
 		// Get the poster from the post text itself.
@@ -1135,10 +1072,11 @@ $this->write_log("URL: $url");
 		// Get most recent post
 		$book_posts = get_posts(array(
 			'category'		=> $category_id,
-			'numberposts'	=> 1,
+			'posts_per_page'	=> 1,
 			'post_type'		=> 'post',
 			'orderby'		=> 'modified',
-			'order'			=> 'DESC'
+			'order'			=> 'DESC',
+			'post_status' 	=> 'any'
 		));
 		
 		if ($book_posts) {
@@ -1146,13 +1084,13 @@ $this->write_log("URL: $url");
 			$modified = $book_posts->post_modified;
 			//$mod = $post->post_modified_gmt;
 		} else {
-			$modified = date(RSS);
+			// If no posts (?), then use now? Huh?
+			$modified = date('d M Y H:i:s');
 		}
-
-		$book_post_modified = $post->modified;
 		
 		// If the book page itself was modified more recently, use it as the modification date.
 		// This ensures that changing the poster will change the modification date.
+		$book_post_modified = $post->modified;
 		if (strtotime($book_post_modified) > strtotime($modified)) {
 			$modified = $book_post_modified;
 		}
@@ -1179,7 +1117,8 @@ $this->write_log("URL: $url");
 			'modified'		=> $modified, 
 			'icon_url'		=> $icon_url, 
 			'poster_url'	=> $poster_url,
-			'category_id'	=> $category_id
+			'category_id'	=> $category_id,
+			'hideHeaderOnPoster' => $hideHeaderOnPoster
 			);
 		
 		return $result;
@@ -1276,16 +1215,18 @@ $this->write_log("URL: $url");
 		$chapters = array();
 		
 		$book_cat = $mb_api->introspector->get_category_by_id($category_id);
-		
+
 		// The order is alphabetical if the plugin allowing term_order is NOT used.
 		// If term_order is installed, the chapters appear in that order.
 		
+		// Get children of the category, i.e. chapters
+		// This does not get categories when the hide_empty is true, and the posts are private!!!
 		$args = array(
 			'type'			=> 'post',
 			'child_of'		=> $book_cat->id,
 			'orderby'		=> 'name',
 			'order'			=> 'asc',
-			'hide_empty'	=> 1,
+			'hide_empty'	=> 0,
 			'hierarchical'	=> 1,
 			'exclude'		=> '',
 			'include'		=> '',
@@ -1295,11 +1236,18 @@ $this->write_log("URL: $url");
 		);
 		
 		$chapter_categories = get_categories($args);
+// write_log ("-------Categories");
+// write_log(print_r($chapter_categories, true) );
+// write_log ("-------");
+
+
+		// If there are no chapters, then the chapter is simply the collection tagged with the book category.
+		// This does not get categories when the hide_empty is true, and the posts are private!!!
 		
 		if (count($chapter_categories)<1) {
 			$args = array(
 				'type'			=> 'post',
-				'hide_empty'	=> 1,
+				'hide_empty'	=> 0,
 				'include'		=> $book_cat->id,
 				'number'		=> 1,
 				'taxonomy'		=> 'category',
@@ -1310,9 +1258,17 @@ $this->write_log("URL: $url");
 
 		}
 		
+		// OK, now we have all the possible categories. They might be empty, but we try to
+		// get the posts from them.
+		// ONLY GET PUBLISH, PRIVATE POSTS, not drafts.
 		foreach($chapter_categories as $chapter_category) {
 			$posts = array();
-			$posts = $mb_api->introspector->get_posts(array( 'cat' => $chapter_category->term_id ));
+			$posts = $mb_api->introspector->get_posts(array( 	'cat' => $chapter_category->term_id, 
+																'post_status' => 'publish,private' 
+																));
+
+//write_log(print_r($posts, true) );
+//write_log("** Page count: ".count($posts) . " in category #".$chapter_category->term_id );
 			if ($posts) {
 				$chapter = array (
 						"pages"		=> $posts,
@@ -1731,13 +1687,14 @@ $this->write_log("URL: $url");
 
 		$pages = array();
 		// Thanks to blinder for the fix!
-		$numberposts = empty($mb_api->query->count) ? -1 : $mb_api->query->count;
+		$posts_per_page = empty($mb_api->query->count) ? -1 : $mb_api->query->count;
 		$wp_posts = get_posts(array(
 			'post_type' => 'page',
 			'post_parent' => 0,
 			'order' => 'ASC',
 			'orderby' => 'menu_order',
-			'numberposts' => $numberposts
+			'posts_per_page' => $posts_per_page,
+			'post_status' => 'any'
 		));
 		foreach ($wp_posts as $wp_post) {
 			$pages[] = new MB_API_Post($wp_post);

@@ -5,6 +5,7 @@ jQuery(document).ready(function($){
 		var id = jQuery('#mb_book_id').val();
 		var distURL = jQuery('#distribution_url').val().trim();
 		url = jQuery('#base_url').val().trim() + "/";
+		var thisButton = jQuery(this);
 
 		if (distURL) {
 			url = url + "mb/book/send_book_package/?" + "book_id=" + id;
@@ -17,20 +18,22 @@ jQuery(document).ready(function($){
 		
 		if (res && id) {
 			// Update progress on page:
-			jQuery('#publishing_progress_message').html("Working...");
+			//jQuery('#publishing_progress_message').html("Working...");
+			jQuery(this).prop("value","Working...");
 			
 			//alert ("contacting :" + url);
 			jQuery.get(
 				url,
 				function(data, textStatus, jqXHR) {
-					console.log("Publish.js results:", data, textStatus);
+					console.log("mb_api.js results:", data, textStatus);
 					if (data.error) {
 						alert (data.status + ":" + data.error)
-						console.log("Publish.js error:", data, textStatus);
+						console.log("mb_api.js error:", data, textStatus);
 					} else {
-						alert ("The book was published.");
+						//alert ("The book was published.");
 					}
-					jQuery('#publishing_progress_message').html("");
+					//jQuery('#publishing_progress_message').html("");
+					thisButton.prop("value","Publish eBook");
 				});
 		}
 		return false;
@@ -66,10 +69,10 @@ jQuery(document).ready(function($){
 			jQuery.get(
 				url,
 				function(data, textStatus, jqXHR) {
-					console.log("Publish.js results:", data, textStatus);
+					console.log("mb_api.js results:", data, textStatus);
 					if (data.error) {
 						alert (data.status + ":" + data.error)
-						console.log("Publish.js error:", data, textStatus);
+						console.log("mb_api.js error:", data, textStatus);
 					} else {
 						//alert ("The book was published.");
 					}

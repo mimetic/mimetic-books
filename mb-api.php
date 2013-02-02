@@ -42,6 +42,8 @@ function mb_api_init() {
 	add_filter('rewrite_rules_array', 'mb_api_rewrites');
 	$mb_api = new MB_API();
 	
+	
+	// THIS SHOULD PROBABLY BE IN THE MB_API CLASS!
 	make_custom_post_type_init();
 	
 	// Add custom metaboxes
@@ -53,7 +55,11 @@ function mb_api_init() {
 	// Add custom column to the book posts listing
 	add_filter('manage_book_posts_columns', 'book_custom_columns_head');
 	add_action('manage_posts_custom_column', 'book_custom_columns_content', 10, 2);
-
+	
+	// Add cleanup actions to handle deleting of books and publishers.
+	// Note, we do 'before' the delete so we still have access to the post info.
+	add_action('before_delete_post', 'delete_book_post');
+	add_action('before_delete_post', 'publisher_page_delete');
 	
 }
 
@@ -98,12 +104,20 @@ function mb_api_dir() {
 	}
 }
 
+
+
+
+
+
+
+
 /*
  * ----------------------------------------------------------------------
  * Add custom metaboxes to 'book' types.
  * This lets us add publisher ID's and other stuff to pages
  * ----------------------------------------------------------------------
  */
+ 
 function add_custom_metaboxes_to_pages() {
 	 book_page_meta_boxes_setup();
 }
@@ -121,6 +135,8 @@ function book_page_meta_boxes_setup() {
 	
 	// Create the meta box
 	add_action( 'add_meta_boxes', 'book_add_page_meta_boxes' );
+	
+	// When any page is saved, run the processing for the metabox
 	add_action( 'save_post', 'book_page_meta_save_postdata');
 	
 }
@@ -131,7 +147,7 @@ function book_add_page_meta_boxes() {
 
 	add_meta_box(
 		'book-page-publisher_info',					// Unique ID
-		esc_html__( 'Book Publisher Info' ),		// Title
+		esc_html__( 'Book Publisher ID' ),		// Title
 		'book_page_publisher_meta_box',				// Callback function
 		'page',										// Admin page (or post type)
 		'side',										// Context
@@ -151,7 +167,8 @@ function book_page_publisher_meta_box( $post) {
 	
 	?>
 	<p>
-		If you enter an value here, the publishing system will assume this is a publisher's information page.
+		If this page represents a book publisher, you must enter the publisher ID code here. Otherwise, ignore this box.
+		If you enter a code, the book publishing system will assume this is a publisher's information page.
 	</p>
 		<label for="mb_publisher_id">
 			Publisher ID:
@@ -161,8 +178,9 @@ function book_page_publisher_meta_box( $post) {
 	<?php 
 }
 
-
 function book_page_meta_save_postdata( $post_id) {
+	global $mb_api;
+	
 	// verify if this is an auto save routine. 
 	// If it is our form has not been submitted, so we dont want to do anything
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) 
@@ -189,9 +207,16 @@ function book_page_meta_save_postdata( $post_id) {
 	}
 
 	// OK, we're authenticated: we need to find and save the data
-
-	update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
+	$pid = $_POST['mb_publisher_id'];
+	$pid = trim($pid);
+	if ( $pid ) {
+		update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
+		$mb_api->write_publishers_file();
+	}
+		
 }
+
+
 
 /*
  * ----------------------------------------------------------------------
@@ -203,6 +228,8 @@ function book_page_meta_save_postdata( $post_id) {
 
 // Init to create the custom post type
 function make_custom_post_type_init() {
+	global $dir;
+	
 	// Create a custom post type, "book"	
 	$labels = array(
     'name' => _x('Books', 'post type general name', 'your_text_domain'),
@@ -220,6 +247,9 @@ function make_custom_post_type_init() {
     'menu_name' => __('Books', 'your_text_domain')
 
 	);
+	
+	$icon_url = plugins_url('images/mb-book-icon.png', __FILE__);
+	
 	$args = array(
 		'labels' => $labels,
 		'public' => true,
@@ -238,12 +268,34 @@ function make_custom_post_type_init() {
 	); 
 	register_post_type('book', $args);
 	
-		/* Fire our meta box setup function on the post editor screen. */
+	/* Fire our meta box setup function on the post editor screen. */
 	//add_action( 'load-post.php', 'book_post_meta_boxes_setup' );
 	//add_action( 'load-post-new.php', 'book_post_meta_boxes_setup' );
 	add_action('save_post', 'book_post_meta_save_postdata');
-
 	
+	// Custom Icon for book type
+	add_action( 'admin_head', 'wpt_book_icons' );
+	
+}
+
+
+// Styling for the custom post type icon
+function wpt_book_icons() {
+	global $dir;
+	$icon_url = plugins_url('images/mb-book-icon.png', __FILE__);
+    ?>
+    <style type="text/css" media="screen">
+	#menu-posts-book .wp-menu-image {
+            background: url(<?php echo ($icon_url); ?>) no-repeat 6px 6px !important;
+        }
+	#menu-posts-book:hover .wp-menu-image, #menu-posts-book.wp-has-current-submenu .wp-menu-image {
+            background-position: 6px -18px !important;
+        }
+	#icon-edit.icon32-posts-book {
+		background: url(<?php echo ($dir); ?>/images/book-32x32.png) no-repeat;
+		}
+    </style>
+<?php 
 }
  
 // Add filter to ensure the text Book, or book, is displayed when user updates a book 
@@ -317,7 +369,8 @@ function delete_all_attachments($post_id, $filesToKeep = "" )
 		'post_type' => 'attachment',
 		'numberposts' => -1,
 		'post_status' => null,
-		'post_parent' => $post_id
+		'post_parent' => $post_id,
+		'post_status' => 'any'
 	);
 	$attachments = get_posts( $args );
 	if ( $attachments ) {
@@ -338,7 +391,7 @@ function delete_book_post($post_id)
 	$funx = new MB_API_Funx();
 	
 	$post = get_post($post_id);
-	if ($post->post_type == "book") {
+	if ($post->post_type == 'book') {
 		delete_all_attachments($post_id);
 		$book_id = str_replace("item_", "", $post->post_name);
 		$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
@@ -362,7 +415,7 @@ function book_custom_columns_content($column_name, $post_ID) {
 	switch ( $column_name ) {
 	case 'publish_book':
 
-		$jsURL = plugins_url( 'js/publish.js', __FILE__ );
+		$jsURL = plugins_url( 'js/mb_api.js', __FILE__ );
 		wp_register_script('my-publish', $jsURL, array('jquery'));
 		wp_enqueue_script('my-publish');
 
@@ -408,7 +461,7 @@ function book_post_meta_boxes_setup() {
 	wp_register_script('my-upload', $jsURL, array('jquery'));
 	wp_enqueue_script('my-upload');
 	
-	$jsURL = plugins_url( 'js/publish.js', __FILE__ );
+	$jsURL = plugins_url( 'js/mb_api.js', __FILE__ );
 	wp_register_script('my-publish', $jsURL, array('jquery'));
 	wp_enqueue_script('my-publish');
 
@@ -533,18 +586,20 @@ function book_post_settings_meta_box( $post) {
 	global $mb_api;
 	
 	wp_nonce_field( basename( __FILE__ ), 'book_post_nonce' ); 
-	
-	?>
-	<p>
-	Something should go here. We can put some basic settings in. 
-	</p>
-	
-		<label for="has_captions">
-			Captions
-		</label>
-		<input type="checkbox" name="has_captions" /> 
+	$mb_no_header_on_poster = checkbox_is_checked( get_post_meta($post->ID, "mb_no_header_on_poster", true) );
 
+	?>
+	<p> 
 	</p>
+
+	<p>
+		<label for="no_header_on_poster">
+			<input type="checkbox" name="no_header_on_poster" value="true" <?php echo($mb_no_header_on_poster); ?>/> 
+			Do not show title & author on store poster.
+		</label>
+	
+	</p>
+
 	<?php 
 }
 
@@ -574,6 +629,8 @@ function book_post_poster_meta_box( $post) {
 }
 
 function book_post_meta_save_postdata( $post_id) {
+	global $book, $mb_api;
+	
 	// verify if this is an auto save routine. 
 	// If it is our form has not been submitted, so we dont want to do anything
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) 
@@ -601,11 +658,64 @@ function book_post_meta_save_postdata( $post_id) {
 	}
 
 	// OK, we're authenticated: we need to find and save the data
-
-	update_post_meta( $post_id, 'mb_book_theme_id', $_POST['mb_book_theme_id'] );
-	update_post_meta( $post_id, 'mb_book_id', $_POST['mb_book_id'] );
-	update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
+	$book_id = preg_replace("/[_\s]+/", "-", $_POST['mb_book_id']);
 	
+	
+	// If there is no category for this book, make one.
+	// The slug is the book id
+	// The name is the title of the book
+	if ($book_id) {
+	
+		$old_id = wp_is_post_revision( $post_id );
+		if ($old_id) {
+			$old_book_id = get_post_meta( $old_id, "mb_book_id", true);
+			$cat = get_category_by_slug( $old_book_id );
+		} else {
+			$cat = get_category_by_slug( $book_id );
+		}
+		
+		
+		$cat_desc = "Pages in the book \"".$_POST['post_title']."\"";
+		if (!$cat) {
+			$mycat = array(
+				  'cat_name' => $_POST['post_title'],
+				  'category_description' => $cat_desc,
+				  'category_nicename' => $book_id,
+				  'category_parent' => '',
+				  'taxonomy' => 'category' 
+				);
+			$cat_id = wp_insert_category( $mycat );
+		} else {
+			wp_update_term($cat->cat_ID, 'category', array(
+				'name' => $_POST['post_title'],
+				'slug' => $book_id,
+				'description' => $cat_desc
+				));
+		}		
+	} else {
+		// IF NO BOOK ID, TRY TO GET IT FROM THE FIRST CHOSEN CATEGORY!
+		// Might be in use, then we get a duplicate, but I can't figure out how to check
+		// here without screwing up the query stuff of WP.
+		$pcats = $_POST['post_category'];
+		// [0] is always 0
+		if (count($pcats) > 1) {
+			$cat = get_category($pcats[1]);
+			$book_id = $cat->slug;
+		}				
+	}
+	
+	
+	// Now, assign this book to this category
+	wp_set_object_terms( $post_id, $book_id, "category" );
+	
+	// Now update the meta fields
+	update_post_meta( $post_id, 'mb_book_theme_id', $_POST['mb_book_theme_id'] );
+	update_post_meta( $post_id, 'mb_book_id', $book_id);
+	update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
+
+	// Update mb book settings, e.g. no head on poster setting
+	$nhop = isset($_POST['no_header_on_poster']);
+	update_post_meta( $post_id, 'mb_no_header_on_poster', $nhop );
 
 	//$is_rev = wp_is_post_revision( $post_id );
 	
@@ -622,6 +732,51 @@ function book_post_meta_save_postdata( $post_id) {
 }
 
 
+
+// -------------------
+// Cleanup when deleting a publisher
+// - delete any book files on the shelves
+// - rebuild the shelves
+function publisher_page_delete($post_id) {
+	global $mb_api, $post_type;  
+	if ( $post_type != 'page' ) return;
+
+	$post = get_post($post_id);
+	if ($post->post_type == 'page' && get_post_meta($post_id, "mb_publisher_id", false) ) {
+		$mb_api->write_publishers_file();
+	}
+}
+
+
+/*
+ * ----------------------------------------------------------------------
+ * Book Post functions
+ * ----------------------------------------------------------------------
+ */
+
+function get_book_post_from_book_id( $id ) {
+	global $mb_api;
+	//wp_reset_query();
+	$posts = $mb_api->introspector->get_posts(array(
+		'meta_key' => 'mb_book_id',
+		'meta_value' => $id,
+		'post_type' => 'book',
+		'post_status' => 'any',
+		'posts_per_page'	=> 1
+	), true);
+
+	if ($posts) {
+		$book_post = $posts[0];
+	} else {
+		$book_post = array();
+	}
+	
+	return $book_post;
+}
+	
+
+
+
 /*
 	// Add boxes to Posts
 	add_meta_box(
@@ -636,6 +791,17 @@ function book_post_meta_save_postdata( $post_id) {
 */
 	
 	
+/*
+ * ----------------------------------------------------------------------
+ * Create a new category from a book's id
+ * ----------------------------------------------------------------------
+ */
+function book_create_category( $post_id ) {
+
+
+}
+
+
 
 
 // ------------------------------------------------------
@@ -858,6 +1024,17 @@ function page_format_popup_menu($post_id, $book_id) {
 }
 
 
+function checkbox_is_checked($v) {
+	if ($v && $v != "")
+		return "CHECKED";
+	else
+		return "";
+}
+
+function write_log($text) {
+	global $mb_api;
+	error_log (date('Y-m-d H:i:s') . ": {$text}\n", 3, $mb_api->logfile);
+}
 
 	
 // ------------------------------------------------------
@@ -871,7 +1048,6 @@ register_deactivation_hook("$dir/mb-api.php", 'mb_api_deactivation');
 add_filter( 'post_updated_messages', 'mb_api_book_updated_messages' );
 // Handle our custom post type, 'book', in case of theme change
 add_action( 'after_switch_theme', 'my_rewrite_flush' );
-add_action('before_delete_post', 'delete_book_post')
 
 	
 ?>

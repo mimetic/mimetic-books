@@ -246,7 +246,7 @@ class MB_API {
     ?>
 <div class="wrap">
   <div id="icon-options-general" class="icon32"><br /></div>
-  <h2>Mimetic Books API Settings</h2>
+  <h2>Blookify/Mimetic Books API Settings</h2>
   <form action="options-general.php?page=mb-api" method="post">
     <?php wp_nonce_field('update-options'); ?>
 
@@ -285,7 +285,7 @@ class MB_API {
 					?>      
 
 					<span style="margin-right:2em;">&nbsp;</span>
-					<input type="button" id="publish" class="button-primary" value="<?php _e('Publish Book') ?>" />
+					<input type="button" id="publish_book_button" class="button-primary" value="<?php _e('Publish Book') ?>" />
 					<span style="margin-left:20px;" id="publishing_progress_message" ></span>
 				</td>
 			</tr>
@@ -295,27 +295,31 @@ class MB_API {
 			</tr>
 		</table>
 		
+					<input type="button" id="update_publishers" class="button-primary" value="<?php _e('Update Publishers') ?>" />
 
 		<h3>Publisher</h3>
 		<p>
-			Enter the URL for your publisher's website <em>to which you wish to send published books</em>. Leave this empty if you are distributing books from this website.
-			<br/>
-			Enter your Default Publisher ID, the unique code that identifies you as a publisher. You can choose your publisher ID for each book, as well, on the book information pages.
+			Enter the URL for your publisher's website <em>to which you wish to send published books</em>. Leave this empty if you are distributing books from this website. <i>Do not add "http://", we will do that for you.</i>
 		</p>
 	
 		<table class="form-table">
 			<tr valign="top">
 				<th scope="row">Publish Books to Website:</th>
 				<td>
-					<input type="text" id="distribution_url" name="mb_api_book_publisher_url" size="64" value="<?php print get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url']));  ?>" />
+					http://<input type="text" id="distribution_url" name="mb_api_book_publisher_url" size="64" value="<?php print get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url']));  ?>" />
 					<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
 				</td>
 			</tr>
-			<tr valign="top">
-				
+		</table>
+		<p>
+			Enter your Default Publisher ID, the unique code that identifies you as a publisher. You can choose your publisher ID for each book, as well, on the book information pages.
+		</p>
+		<table class="form-table">
+			<tr valign="top">				
 				<th scope="row">Default Publisher ID:</th>
 				<td>
-					<input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', 'public'); ?>" size="32" /></td>
+					<input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', 'public'); ?>" size="32" />
+				</td>
 			</tr>
 		</table>
 		
@@ -323,6 +327,8 @@ class MB_API {
 		<h3>Hints</h3>
 		<ul style="list-style-type:circle;">
 			<li>Any title or text block that begins with "<?php echo $this->ignore_me_code; ?>" will be ignored. This is useful for design templates that don't use titles, for example.
+			</li>
+			<li>You can add returns to titles, which is cool if you want a multi-line title. Using our magic return code: <tt>[[[br]]]</tt> 
 			</li>
 			<li>For each publisher, you should make a new Page (not a post), and set the publisher ID on the page.
 			</li>
@@ -644,7 +650,7 @@ class MB_API {
 		if ($book_id) {
 			$book_post = get_post( array ('p' => $book_id) );
 		} else {
-			$mb_api->error(__FUNCTION__.": No book ID passed to me.");
+			$this->error(__FUNCTION__.": No book ID passed to me.");
 		}
 		// We want to minimize loading this...it can be slow.
 		$this->load_themes();
@@ -741,202 +747,95 @@ class MB_API {
 	}
 
 
-/*
- * ========== upload images to the plugin options ============
- */
- 
- /*
-	 function wp_plugin_image_get_default_options() {
-		$options = array(
-			'logo' => ''
+
+	/*
+	 * ============================================================
+	 * Write the Publishers file
+	 * This is a json file, "publishers.json", used by the Mimetic Books app to know
+	 * the info about publishers.
+	 * ============================================================
+	 */
+	function write_publishers_file() {
+
+		$this->write_log(__FUNCTION__);
+
+		
+		$publishers = array (
+			'title'		=> "Publishers",
+			'maxsize'	=> 100,
+			'id'		=> "publishers",
+			'password'	=> "mypassword",
+			'filename'	=> "publishers.json",
+			'itemsByID'	=> array ()
 		);
-		return $options;
-	}
-	
-	
-	function wp_plugin_image_options_init() {
-		 $wp_plugin_image_options = get_option( 'theme_wp_plugin_image_options' );
-		 
-		 // Are our options saved in the DB?
-		 if ( false === $wp_plugin_image_options ) {
-			// If not, we'll save our default options
-			$wp_plugin_image_options = wp_plugin_image_get_default_options();
-			add_option( 'theme_wp_plugin_image_options', $wp_plugin_image_options );
-		 }
-		 
-		 // In other case we don't need to update the DB
-	}
-
-	function wp_plugin_image_options_setup() {
-		global $pagenow;
-		if ('media-upload.php' == $pagenow || 'async-upload.php' == $pagenow) {
-			// Now we'll replace the 'Insert into Post Button inside Thickbox' 
-			add_filter( 'gettext', 'replace_thickbox_text' , 1, 2 );
+		
+		// Get all pages
+		$posts = $this->introspector->get_posts(array(
+				'post_type' => 'page',
+				'posts_per_page'	=> -1,
+				'post_status' => 'any'
+			), false);
+		
+		// Delete all icons in the folder.
+		// Create the icons folder if necessary.
+		$dir = $this->publishers_dir . DIRECTORY_SEPARATOR . "icons";
+		if (file_exists($dir)) {
+			$files = array_diff(scandir($dir), array('.','..'));
+			foreach ($files as $file) {
+				(!is_dir($dir. DIRECTORY_SEPARATOR .$file)) && unlink($dir. DIRECTORY_SEPARATOR .$file);
+			}
+		} else {
+			mkdir ($dir);
 		}
-	}
- 
 
-	function replace_thickbox_text($translated_text, $text ) {	
-		if ( 'Insert into Post' == $text ) {
-			$referer = strpos( wp_get_referer(), 'wp_plugin_image-settings' );
-			if ( $referer != '' ) {
-				return __('I want this to be my logo!', 'wp_plugin_image' );
+		
+		// For all pages which have a publisher id meta data in them...
+		foreach ($posts as $post) {
+			$publisher_id = get_post_meta($post->id, "mb_publisher_id", true);
+			if ($publisher_id) {
+				if (isset($post->thumbnail) && $post->thumbnail != "") {
+					$icon = $post->thumbnail;
+				
+					$ext = strtolower(substr($icon, -4));
+					if ($ext == ".png") {
+						// Copy the local file to the publishers directory
+						$filename = $this->publishers_dir . DIRECTORY_SEPARATOR . "icons" . DIRECTORY_SEPARATOR . "icon_{$publisher_id}.png";
+						$success = copy($icon, $filename);
+						if (!$success) {
+							$this->error(__FUNCTION__.": Failed to copy $icon to $filename.");
+						}
+					} else {
+						$this->write_log("Publisher icon must be a PNG file.");
+					}
+
+				} else {
+					$icon = "";
+				}
+			
+				$item = array (
+					'id'				=> $publisher_id, 
+					'title'				=> $post->title_plain, 
+					'description'		=> $post->content, 
+					'shortDescription'	=> $post->excerpt, 
+					'datetime'			=> $post->date, 
+					'modified'			=> $post->modified,
+					'author'			=> join (" ", array ($post->author->first_name, $post->author->last_name)),
+					'icon'				=> $icon
+				);
+				$publishers['itemsByID'][$publisher_id] = $item;
 			}
 		}
-	
-		return $translated_text;
+		
+		$output = json_encode($publishers);
+		$fn = $this->publishers_dir . DIRECTORY_SEPARATOR . "publishers.json";
+		// Delete previous version of the shelves
+		if (file_exists($fn))
+			unlink ($fn);
+		file_put_contents ($fn, $output, LOCK_EX);
+		return $output;
 	}
 	
-	function wp_plugin_image_admin_options_page() {
-		?>
-			<!-- 'wrap','submit','icon32','button-primary' and 'button-secondary' are classes 
-			for a good WP Admin Panel viewing and are predefined by WP CSS -->
-			
-			
-			
-			<div class="wrap">
-				
-				<div id="icon-themes" class="icon32"><br /></div>
-			
-				<h2><?php _e( 'WP-MBs Options', 'wp_plugin_image' ); ?></h2>
-				
-				<!-- If we have any error by submiting the form, they will appear here -->
-				<?php settings_errors( 'wp_plugin_image-settings-errors' ); ?>
-				
-				<form id="form-wp_plugin_image-options" action="options.php" method="post" enctype="multipart/form-data">
-				
-					<?php
-						settings_fields('theme_wp_plugin_image_options');
-						do_settings_sections('wp_plugin_image');
-					?>
-				
-					<p class="submit">
-						<input name="theme_wp_plugin_image_options[submit]" id="submit_options_form" type="submit" class="button-primary" value="<?php esc_attr_e('Save Settings', 'wp_plugin_image'); ?>" />
-						<input name="theme_wp_plugin_image_options[reset]" type="submit" class="button-secondary" value="<?php esc_attr_e('Reset Defaults', 'wp_plugin_image'); ?>" />		
-					</p>
-				
-				</form>
-				
-			</div>
-		<?php
-	}
 	
-	function wp_plugin_image_options_validate( $input ) {
-		$default_options = wp_plugin_image_get_default_options();
-		$valid_input = $default_options;
-		
-		$wp_plugin_image_options = get_option('theme_wp_plugin_image_options');
-		
-		$submit = ! empty($input['submit']) ? true : false;
-		$reset = ! empty($input['reset']) ? true : false;
-		$delete_logo = ! empty($input['delete_logo']) ? true : false;
-		
-		if ( $submit ) {
-			if ( $wp_plugin_image_options['logo'] != $input['logo']  && $wp_plugin_image_options['logo'] != '' )
-				delete_image( $wp_plugin_image_options['logo'] );
-			
-			$valid_input['logo'] = $input['logo'];
-		}
-		elseif ( $reset ) {
-			delete_image( $wp_plugin_image_options['logo'] );
-			$valid_input['logo'] = $default_options['logo'];
-		}
-		elseif ( $delete_logo ) {
-			delete_image( $wp_plugin_image_options['logo'] );
-			$valid_input['logo'] = '';
-		}
-		
-		return $valid_input;
-	}
-	
-	function delete_image( $image_url ) {
-		global $wpdb;
-		
-		// We need to get the image's meta ID..
-		$query = "SELECT ID FROM wp_posts where guid = '" . esc_url($image_url) . "' AND post_type = 'attachment'";  
-		$results = $wpdb -> get_results($query);
-	
-		// And delete them (if more than one attachment is in the Library
-		foreach ( $results as $row ) {
-			wp_delete_attachment( $row -> ID );
-		}	
-	}
-	
-	// --------------- JAVASCRIPT ------------------
-	function wp_plugin_image_options_enqueue_scripts() {
-		wp_register_script( 'image_upload', get_template_directory_uri() .'/js/image_upload.js', array('jquery','media-upload','thickbox') );	
-	
-		if ( 'appearance_page_wp_plugin_image-settings' == get_current_screen() -> id ) {
-			wp_enqueue_script('jquery');
-			
-			wp_enqueue_script('thickbox');
-			wp_enqueue_style('thickbox');
-			
-			wp_enqueue_script('media-upload');
-			wp_enqueue_script('image_upload');
-			
-		}
-		
-	}
-
-
-	 function wp_plugin_image_options_settings_init() {
-		register_setting( 'theme_wp_plugin_image_options', 'theme_wp_plugin_image_options', 'wp_plugin_image_options_validate' );
-		
-		// Add a form section for the Logo
-		add_settings_section('wp_plugin_image_settings_header', __( 'Logo Options', 'wp_plugin_image' ), 'wp_plugin_image_settings_header_text', 'wp_plugin_image');
-		
-		// Add Logo uploader
-		add_settings_field('wp_plugin_image_setting_logo',  __( 'Logo', 'wp_plugin_image' ), 'wp_plugin_image_setting_logo', 'wp_plugin_image', 'wp_plugin_image_settings_header');
-		
-		// Add Current Image Preview 
-		add_settings_field('wp_plugin_image_setting_logo_preview',  __( 'Logo Preview', 'wp_plugin_image' ), 'wp_plugin_image_setting_logo_preview', 'wp_plugin_image', 'wp_plugin_image_settings_header');
-	}
- 
-	function wp_plugin_image_setting_logo_preview() {
-		$wp_plugin_image_options = get_option( 'theme_wp_plugin_image_options' );  ?>
-		<div id="upload_logo_preview" style="min-height: 100px;">
-			<img style="max-width:100%;" src="<?php echo esc_url( $wp_plugin_image_options['logo'] ); ?>" />
-		</div>
-		<?php
-	}
-	
-	function wp_plugin_image_settings_header_text() {
-		?>
-			<p><?php _e( 'Manage Logo Options for Wp-MBs Theme.', 'wp_plugin_image' ); ?></p>
-		<?php
-	}
-	
-	function wp_plugin_image_setting_logo() {
-		$wp_plugin_image_options = get_option( 'theme_wp_plugin_image_options' );
-		?>
-			<input type="hidden" id="logo_url" name="theme_wp_plugin_image_options[logo]" value="<?php echo esc_url( $wp_plugin_image_options['logo'] ); ?>" />
-			<input id="upload_logo_button" type="button" class="button" value="<?php _e( 'Upload Logo', 'wp_plugin_image' ); ?>" />
-			<?php if ( '' != $wp_plugin_image_options['logo'] ): ?>
-				<input id="delete_logo_button" name="theme_wp_plugin_image_options[delete_logo]" type="submit" class="button" value="<?php _e( 'Delete Logo', 'wp_plugin_image' ); ?>" />
-			<?php endif; ?>
-			<span class="description"><?php _e('Upload an image for the banner.', 'wp_plugin_image' ); ?></span>
-		<?php
-	}
-
-
-	function wp_plugin_image_options_enqueue_scripts() {
-		wp_register_script( 'image_upload', get_template_directory_uri() .'/js/image_upload.js', array('jquery','media-upload','thickbox') );	
-	
-		if ( 'appearance_page_wp_plugin_image-settings' == get_current_screen() -> id ) {
-			wp_enqueue_script('jquery');
-			
-			wp_enqueue_script('thickbox');
-			wp_enqueue_style('thickbox');
-			
-			wp_enqueue_script('media-upload');
-			wp_enqueue_script('image_upload');
-			
-		}
-		
-	}
-*/
-
 	// ==================== easier uploader
 
 	function plugin_admin_init() { 
@@ -950,7 +849,7 @@ class MB_API {
 		//wp_register_script('image_upload', $url, array('jquery','media-upload','thickbox'));
 		//wp_enqueue_script('image_upload');
 
-		$url = plugins_url( 'js/publish.js', __FILE__ );
+		$url = plugins_url( 'js/mb_api_settings.js', __FILE__ );
 		wp_register_script('publish', $url, array('jquery'));
 	}
 	
@@ -962,6 +861,12 @@ class MB_API {
 	function image_uploader_styles() { 
 		wp_enqueue_style('thickbox');
 	} 
+
+
+
+	public function write_log($text) {
+		error_log (date('Y-m-d H:i:s') . ": {$text}\n", 3, $this->logfile);
+	}
 
 
 
