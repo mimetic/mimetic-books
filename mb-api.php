@@ -161,7 +161,7 @@ function book_page_publisher_meta_box( $post) {
 	global $mb_api;
 	
 	// default is 1, the public library
-	$mb_publisher_id = get_post_meta($post->ID, "mb_publisher_id", 1);
+	$mb_publisher_id = get_post_meta($post->ID, "mb_publisher_id", true);
 	
 	wp_nonce_field( basename( __FILE__ ), 'book_page_nonce' ); 
 	
@@ -432,7 +432,7 @@ function show_publish_button($post_ID) {
 	global $mb_api;
 	
 	$mb_book_id = get_post_meta($post_ID, "mb_book_id", true);
-	//$mb_book_publisher_id = get_post_meta($post_ID, "mb_publisher_id", get_option('mb_publisher_id', '1'));
+	//$mb_book_publisher_id = get_post_meta($post_ID, "mb_publisher_id", get_option('mb_publisher_id', true));
 
 	?>
 	<input type="hidden" id="distribution_url_<?php echo $mb_book_id; ?>" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
@@ -587,6 +587,26 @@ function book_post_settings_meta_box( $post) {
 	
 	wp_nonce_field( basename( __FILE__ ), 'book_post_nonce' ); 
 	$mb_no_header_on_poster = checkbox_is_checked( get_post_meta($post->ID, "mb_no_header_on_poster", true) );
+	
+	$did = get_post_meta($post->ID, "mb_target_device", true);
+	$values = array (
+			"iphone" => "Apple iPhone/iPod",
+			"iphone5" => "Apple iPhone5",
+			"ipad" => "Apple iPad",
+			"ipadretina" => "Apple iPad 2+",
+			"iphone" => "Apple iPhone",
+			"kindlefire" => "Kindle Fire 7&quot;"
+		);
+	$listname = "mb_target_device";
+	$checked = $did;
+	empty($checked) && $checked = "ipad";	// default to ipad
+	$sort = false;
+	$size = true;
+	$extrahtml = "";
+	$extraline = "";
+	
+	$devicemenu = $mb_api->funx->OptionListFromArray ($values, $listname, $checked, $sort, $size, $extrahtml, $extraline);
+
 
 	?>
 	<p> 
@@ -596,6 +616,13 @@ function book_post_settings_meta_box( $post) {
 		<label for="no_header_on_poster">
 			<input type="checkbox" name="no_header_on_poster" value="true" <?php echo($mb_no_header_on_poster); ?>/> 
 			Do not show title & author on store poster.
+		</label>
+	
+	</p>
+	<p>
+		<label for="mb_target_device">
+			Target device for this book: 
+			<?php echo($devicemenu); ?>
 		</label>
 	
 	</p>
@@ -716,6 +743,9 @@ function book_post_meta_save_postdata( $post_id) {
 	// Update mb book settings, e.g. no head on poster setting
 	$nhop = isset($_POST['no_header_on_poster']);
 	update_post_meta( $post_id, 'mb_no_header_on_poster', $nhop );
+
+	// target device
+	update_post_meta( $post_id, 'mb_target_device', $_POST['mb_target_device'] );
 
 	//$is_rev = wp_is_post_revision( $post_id );
 	

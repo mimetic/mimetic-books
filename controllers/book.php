@@ -443,8 +443,12 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 			$mb_api->error("The book page does not have a category assigned.");
 		}
 
-		
-		$options = array ('tempDir' => $mb_api->tempDir);
+		$options = array (
+			'tempDir' => $mb_api->tempDir,
+			'dimensions' => $book_info['dimensions'],
+			'save2x'	=> $book_info['save2x']
+			);
+
 		$params = array (
 			'book_id'			=> $book_info['id'],
 			'title'				=> $book_info['title'],
@@ -1006,16 +1010,6 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 			$icon_url = '';
 		}
 	
-	// Use the post thumbnail as the icon. It will be small, so it won't get
-		// cropped by the theme. A large file is cropped to fit the header...not good for us.
-		$t = wp_get_attachment_image_src( get_post_thumbnail_id( $post->id, 'full'));
-		
-		if ($t) {
-			$icon_url = $t[0];
-		} else {
-			$icon_url = '';
-		}
-	
 		
 		/*
 		 * Now we have a custom field for posters!
@@ -1035,15 +1029,30 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 				$poster_url = $poster_attachment->guid;
 			}
 		}
-			
+		
+		// -----------
 		// Get settings from the book post page
+		
+		// Hide header on the poster in the listing of books on the shelves in the app.
 		if ( isset($custom_fields['mb_no_header_on_poster'][0]) ) {
 			$hideHeaderOnPoster = $custom_fields['mb_no_header_on_poster'][0];
 		} else {
 			$hideHeaderOnPoster = false;
 		}
 		
+		// Get dimensions of the target device, e.g. 1024x768 (iPad)
+		if ( isset($custom_fields['mb_target_device'][0]) ) {
+			$target_device = strtolower($custom_fields['mb_target_device'][0]);
+		} else {
+			$target_device = "ipad";
+		}
 		
+		// Get dimensions of target device for the book.
+		// Default is 1024x768 (iPad)
+		$dimensions = $mb_api->getDimensionsForDevice($target_device);
+		$save2x = $mb_api->getSave2XForDevice($target_device);
+		
+//write_log (__FUNCTION__. ": ".print_r($dimensions, true));
 		
 			
 		/*
@@ -1104,6 +1113,11 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 				
 		$category_id = $post->categories[0]->id;
 		
+		
+
+		//$theme_id = (string)get_option('mb_api_book_theme', 1);
+		
+		
 		$result = array (
 			'id'		=> $book_id, 
 			'title'			=> $title, 
@@ -1118,7 +1132,9 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 			'icon_url'		=> $icon_url, 
 			'poster_url'	=> $poster_url,
 			'category_id'	=> $category_id,
-			'hideHeaderOnPoster' => $hideHeaderOnPoster
+			'hideHeaderOnPoster' => $hideHeaderOnPoster,
+			'dimensions'	=> $dimensions,
+			'save2x'		=> $save2x
 			);
 		
 		return $result;
@@ -1178,7 +1194,12 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 		return $book;
 	}
 	
-	
+
+	// Just return the ID part of a WP chapter object
+	private function get_chapter_id($chapter_obj) {
+		//write_log ("get_chapter_id!!! ".print_r($chapter_obj, true) );
+		return $chapter_obj->cat_ID;
+	}
 	
 	/*
 	 * get_book_chapters ( $category_id )
@@ -1213,8 +1234,6 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 		global $mb_api;
 		
 		$chapters = array();
-		
-		$book_cat = $mb_api->introspector->get_category_by_id($category_id);
 
 		// The order is alphabetical if the plugin allowing term_order is NOT used.
 		// If term_order is installed, the chapters appear in that order.
@@ -1223,7 +1242,7 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 		// This does not get categories when the hide_empty is true, and the posts are private!!!
 		$args = array(
 			'type'			=> 'post',
-			'child_of'		=> $book_cat->id,
+			'child_of'		=> $category_id,
 			'orderby'		=> 'name',
 			'order'			=> 'asc',
 			'hide_empty'	=> 0,
@@ -1234,41 +1253,79 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 			'taxonomy'		=> 'category',
 			'pad_counts'	=> 1
 		);
-		
 		$chapter_categories = get_categories($args);
-// write_log ("-------Categories");
-// write_log(print_r($chapter_categories, true) );
-// write_log ("-------");
 
-
-		// If there are no chapters, then the chapter is simply the collection tagged with the book category.
-		// This does not get categories when the hide_empty is true, and the posts are private!!!
+		// Get posts ONLY with the book category tag, not with a child tag.
+		// Some posts might have "My Book" category AND "Chapter 1" category.
+		// These posts should only appear in "Chapter 1".
 		
-		if (count($chapter_categories)<1) {
-			$args = array(
-				'type'			=> 'post',
-				'hide_empty'	=> 0,
-				'include'		=> $book_cat->id,
-				'number'		=> 1,
-				'taxonomy'		=> 'category',
-				'pad_counts'	=> 1
+		// Get list of child categories to exclude when checking the main, book category
+		$child_cat_ids = array_map(array($this, 'get_chapter_id'), $chapter_categories);
+
+		$posts = array();
+		$q = array (
+			'post_type' => 'post',
+			'post_status' => 'publish,private',
+			'tax_query' => array (	
+								'relation' => 'AND',
+								array (
+									'taxonomy' => 'category', 
+									'field' => 'id',
+									'terms' => $category_id,
+									'include_children' => false
+								),
+								array (
+									'taxonomy' => 'category', 
+									'field' => 'id',
+									'terms' => $child_cat_ids,
+									'include_children' => false,
+									'operator' => 'NOT IN'
+								)
+
+							)
 			);
+		// This is the first chapter
+		//$posts = get_posts($q);
+		$posts = $mb_api->introspector->get_posts($q);
+		$book_cat = get_category($category_id);
 
-			$chapter_categories = get_categories($args);
-
+		if ($posts) {
+			$chapter = array (
+					"pages"		=> $posts,
+					"id"		=> $book_cat->term_id,
+					"title"		=> $book_cat->name,
+					"category"	=> $book_cat
+				);
+			$chapters[] = $chapter;
 		}
+
+
+		// Get the book category add begin with it:
+		// best to start list with book entries, typically cover, contents, etc.
+		//array_unshift($chapter_categories, $book_cat );
+
 		
-		// OK, now we have all the possible categories. They might be empty, but we try to
-		// get the posts from them.
+		
+		// OK, now add the chapters (sub-categories) to the first chapter
 		// ONLY GET PUBLISH, PRIVATE POSTS, not drafts.
 		foreach($chapter_categories as $chapter_category) {
 			$posts = array();
-			$posts = $mb_api->introspector->get_posts(array( 	'cat' => $chapter_category->term_id, 
-																'post_status' => 'publish,private' 
-																));
+			$q = array (
+				//'cat' => $chapter_category->term_id, 
+				'post_type' => 'post',
+				'post_status' => 'publish,private',
+				'tax_query' => array (	
+									array (
+										'taxonomy' => 'category', 
+										'field' => 'id',
+										'terms' => $chapter_category->term_id,
+										'include_children' => false
+									)
+								)
+				);
+			//$posts = get_posts($q);
+			$posts = $mb_api->introspector->get_posts($q);
 
-//write_log(print_r($posts, true) );
-//write_log("** Page count: ".count($posts) . " in category #".$chapter_category->term_id );
 			if ($posts) {
 				$chapter = array (
 						"pages"		=> $posts,

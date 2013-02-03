@@ -136,7 +136,6 @@ class Mimetic_Book
 		
 		$this->date = substr($book_info['datetime'], 0, 10);
 		$this->datetime = $book_info['datetime'];
-		$this->modified = $book_info['modified'];
 		
 		$this->book = array();
 		$this->book['title'] = $this->title;
@@ -144,6 +143,10 @@ class Mimetic_Book
     	$this->book['author'] = $this->author;
     	$this->book['publisher_id'] = $this->publisher_id;
 		$this->book['theme_id'] = $this->theme_id;
+		
+		if (!isset($options['dimensions']) ) { 
+			$options['dimensions'] = array("width"=>1024,"height"=>768);
+		}
 		
         $this->options = $options;
 		
@@ -362,6 +365,7 @@ class Mimetic_Book
 		if (preg_match("/^".$mb_api->ignore_me_code."/", $title)) {
 			$title = "";
 		}
+		$title = trim($title);
 
 		if (preg_match("/^".$mb_api->ignore_me_code."/", $text)) {
 			$text = "";
@@ -370,11 +374,14 @@ class Mimetic_Book
 		// delete embedded stuff like img or a
 		$text = str_replace( "\xC2\xA0", " ", $text);
 		$text = $this->delete_embedded_media($text);
+		$text = trim($text);
 		
 		// To make CDATA work with the XML generator we are using, we need to
-		// wrap the text thus:
-		$text = array('@cdata'=>$text);
-		$title = array('@cdata'=>$title);
+		// wrap the text thus. Unless it is blank, of course.
+		if ($text)
+			$text = array('@cdata'=>$text);
+		if ($title)
+			$title = array('@cdata'=>$title);
 		
 		$textblock = array (
 			array ('title' => $title), 
@@ -456,6 +463,7 @@ class Mimetic_Book
 	
 	
 	/*
+	 * NOT IN USE!!!!
 	 * Get all the attached media items for this post.
 	 * $include_images : true means include attached images, false means exclude.
 	 * Important: Not all attached images appear on the page! Some were uploaded to the page
@@ -505,6 +513,7 @@ print ("-----------\n");
 				if ($include_images && wp_attachment_is_image( $attachment->ID)) {
 					// Images
 					$image_attributes = wp_get_attachment_image_src( $attachment->ID, "full"); // returns an array
+					
 					$attributes['src'] = $image_attributes[0];
 					$attributes['width'] = $image_attributes[1];
 					$attributes['height'] = $image_attributes[2];
@@ -641,8 +650,8 @@ print ("-----------\n");
 				$page_elements[$mb_name] = $this->element_to_mb($element);
 			}
 		}
+	
 
-		
 		//print_r($page_elements);
 		return $page_elements;
 	}
@@ -728,6 +737,8 @@ print ("-----------\n");
 
 	*/
 	private function element_to_mb($element) {
+		global $mb_api;
+
 		$attr = $element['attributes'];
 		$mb_element = array ();
 		
@@ -758,18 +769,78 @@ print ("-----------\n");
 				if (isset($attr['x']) && $attr['x'] != "")
 					$mb_element['x'] = $attr['x'];
 				*/
-							
-				$mb_element['filename'] = "*" . DIRECTORY_SEPARATOR . $this->pictureFolder . basename($attr['src']);
 				
+				
+				$post = get_post( $attr['id'], ARRAY_A );
+				$src = $post['guid'];	// src file name (not a resized file)
+				$mb_element['filename'] = "*" . DIRECTORY_SEPARATOR . $this->pictureFolder . basename( $src );
+				
+				// This would use the $attr class for the id, but we get it free from $attr already. Somehow.
+				//$id = preg_replace("/.*?wp-image-/", "", $attr['class']);
+				//
 				// zoomedScale is set by the templates, now! We won't worry about it here.
 				//$mb_element['zoomedScale'] = "1";
 				
 				// haha, just for testing
 				// $mb_element['addCorners'] = "true";
 				
-				// Convert the picture to one we can use, ready for packaging
-				//$this->convert_img($attr['src'], $mb_element['width'], $mb_element['height']);
-				$this->convert_img($attr['src'], $attr['width'], $attr['height']);
+				// This is the SIZE OF THE PIC IN THE POST (that is, resized).
+				// We don't use this because we want a pic to fit the template,
+				// so we take a screen-size pic knowing it won't be bigger than that,
+				// but not knowing just how big it should be.
+				// Resize and convert the picture to one we can use, ready for packaging,
+				// and put the copy in the pictures folder.
+				//$w = $attr['width'];
+				//$h = $attr['height'];
+				
+				list($w,$h) = getimagesize($src);
+				//$s = $attr['src'];
+				
+				$targetW = $this->options['dimensions']['width'];
+				$targetH = $this->options['dimensions']['height'];
+				
+				/*
+				// Don't need this, the resizer uses max height/width to fit 
+				// the resize proportionately.
+				if ($w > $h) {
+					$newW = $targetW;
+					$newH = round(($targetW / $w) * $h);
+				} else {
+					$newH = $targetH;
+					$newW = round( ($targetH / $h) * $w);
+				}
+				 */
+				
+				$dir = $this->build_files_dir . $this->pictureFolder;
+				if(! is_dir($dir)) {
+					mkdir($dir);
+				}
+
+				$filename = basename($src);	
+				$filepath = $dir.$filename;
+
+				// Save normal sized image
+				$image = wp_get_image_editor( $src);
+				if (! is_wp_error($image) ) {
+					 $image->resize( $targetW, $targetH, false );	// false = no-crop
+					 $image->set_quality( 80 );
+					 $image->save($filepath);
+				}
+				
+				// Save double-sized image
+				if ($this->options['save2x'] && ( ($w > ($targetW*2) || ($h > ($targetH*2)) ) ) ) {
+					$image = wp_get_image_editor( $src);
+					if (! is_wp_error($image) ) {
+							$image->resize( $targetW*2, $targetH*2, false );	// false = no-crop
+							$image->set_quality( 80 );
+
+							$info = pathinfo($src);
+							$ext = '.' . $info['extension'];
+							$name = $info['filename'];
+							$filepath = $dir.$name."@2x{$ext}";
+							$image->save($filepath);
+						}
+				}
 				
 				
 				break;
@@ -854,12 +925,14 @@ print ("-----------\n");
 
 		if ($IMAGE_TOOL == "gd") {
 			// SLIDES: RESIZE TO LARGE VIEWING SIZE (RESIZE ORIGINAL -> SLIDE)
+			//write_log(__FUNCTION__.": Resize using GD");
 			$success = ResizeImage($slide_size, $filepath, "$filepath", $default_border, $watermark);
 			if (!$success) return false;
 
 		}
 		else	// using ImageMagick
 		{
+			//write_log(__FUNCTION__.": Resize using ImageMagick");
 			$quality = " -quality " .$FP_IMAGEMAGICK_QUALITY;
 			// unshapr mask radius=.5, sigma=.5, amount=1.2, threshhold=0.05
 			$sharpen = " -unsharp .5x.5+1.2+0.05";
@@ -868,6 +941,8 @@ print ("-----------\n");
 			//$profile = " -intent Perceptual -profile '$BASEDIR/$FP_PROFILE_SRGB'";
 			$profile = "";
 			$filter = "";
+			
+			//$filepath = preg_replace("/ /","\ ", $filepath);
 
 			$cmd = $FP_IM_CONVERT . " -colorspace LAB '{$filepath}' $basics $quality $sharpen $filter $profile -colorspace sRGB -strip ";
 			if ($width && $height) {
@@ -877,6 +952,7 @@ print ("-----------\n");
 			}
 
 			exec ($cmd, $output, $response);
+			//write_log(__FUNCTION__.":".print_r($cmd,true));
 		}
 
 		if ($response >= 300) {

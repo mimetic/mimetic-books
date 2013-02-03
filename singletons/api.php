@@ -836,7 +836,67 @@ class MB_API {
 	}
 	
 	
-	// ==================== easier uploader
+	// Returns width, height on the assumption 
+	function getDimensionsForDevice($id) {
+		$dim = array ('width'=>1024,'height'=>768);
+		
+		switch ($id) {
+			case "ipad" :
+				$dim = array ('width'=>1024,'height'=>768);
+				break;
+			case "ipadretina" :
+				$dim = array ('width'=>1024,'height'=>768);
+				break;
+			case "kindlefire" :
+				$dim = array ('width'=>1024,'height'=>600);
+				break;
+			case "iphone" :
+				$dim = array ('width'=>480,'height'=>320);
+				break;
+			case "iphone5" :
+				$dim = array ('width'=>1136,'height'=>640);
+				break;
+			default :
+				$dim = array ('width'=>1024,'height'=>768);
+				break;
+		}
+		
+		return $dim;
+	}
+	
+	
+	// Returns whether to save a 2x version of the image, as for the iPad2 
+	function getSave2XForDevice($id) {
+		$r = false;
+		
+		switch ($id) {
+			case "ipad" :
+				$r = false;
+				break;
+			case "ipadretina" :
+				$r = true;
+				break;
+			case "kindlefire" :
+				$r = false;
+				break;
+			case "iphone" :
+				$r = false;
+				break;
+			case "iphone5" :
+				$r = false;
+				break;
+			default :
+				$r = true;
+				break;
+		}
+		
+		return $r;
+	}
+	
+	
+	
+	
+	// ====================
 
 	function plugin_admin_init() { 
 	

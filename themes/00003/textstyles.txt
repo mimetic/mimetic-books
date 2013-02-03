@@ -1,0 +1,7 @@
+﻿[No Paragraph Style]=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+[Basic Paragraph]=HelveticaNeue,14,26.88,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+Title=HelveticaNeue-Light,34,50,180,180,180,,100%,NORMAL,left,0,0,0,0,0
+Section Title=HelveticaNeue-Light,34,44,180,180,180,,100%,NORMAL,left,0,0,0,0,0
+TOC Title=HelveticaNeue,24,26.88,0,0,0,,100%,ALL_CAPS,left,0,0,0,0,0
+TOC Item=HelveticaNeue-Light,18,35,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+Format Code=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
