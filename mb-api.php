@@ -283,6 +283,7 @@ function make_custom_post_type_init() {
 function wpt_book_icons() {
 	global $dir;
 	$icon_url = plugins_url('images/mb-book-icon.png', __FILE__);
+	$icon_32_url = plugins_url('images/book-32x32.png', __FILE__);
     ?>
     <style type="text/css" media="screen">
 	#menu-posts-book .wp-menu-image {
@@ -292,7 +293,7 @@ function wpt_book_icons() {
             background-position: 6px -18px !important;
         }
 	#icon-edit.icon32-posts-book {
-		background: url(<?php echo ($dir); ?>/images/book-32x32.png) no-repeat;
+		background: url(<?php echo ($icon_32_url); ?>) no-repeat;
 		}
     </style>
 <?php 

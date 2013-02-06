@@ -640,12 +640,12 @@ print ("-----------\n");
 			// then we need to create a <pictures> element to hold
 			// the <picture> which is the 'img'.
 			list($mb_name, $mb_encaps_name) = $this->name_for_element($element['name']);
-			
-			if ($mb_encaps_name) {
+			$e = $this->element_to_mb($element);
+			if ($e && $mb_encaps_name) {
 				if (!isset($page_elements[$mb_encaps_name])) {
 					$page_elements[$mb_encaps_name] = array ();
 				}
-				$page_elements[$mb_encaps_name][$mb_name][] = $this->element_to_mb($element);
+				$page_elements[$mb_encaps_name][$mb_name][] = $e;
 			} else {
 				$page_elements[$mb_name] = $this->element_to_mb($element);
 			}
@@ -822,15 +822,14 @@ print ("-----------\n");
 				// Save normal sized image
 				$image = wp_get_image_editor( $src);
 				if (! is_wp_error($image) ) {
-					 $image->resize( $targetW, $targetH, false );	// false = no-crop
-					 $image->set_quality( 80 );
-					 $image->save($filepath);
-				}
-				
-				// Save double-sized image
-				if ($this->options['save2x'] && ( ($w > ($targetW*2) || ($h > ($targetH*2)) ) ) ) {
-					$image = wp_get_image_editor( $src);
-					if (! is_wp_error($image) ) {
+					$image->resize( $targetW, $targetH, false );	// false = no-crop
+					$image->set_quality( 80 );
+					$image->save($filepath);
+					
+					// Save double-sized image
+					if ($this->options['save2x'] && ( ($w > ($targetW*2) || ($h > ($targetH*2)) ) ) ) {
+						$image = wp_get_image_editor( $src);
+						if (! is_wp_error($image) ) {
 							$image->resize( $targetW*2, $targetH*2, false );	// false = no-crop
 							$image->set_quality( 80 );
 
@@ -839,10 +838,14 @@ print ("-----------\n");
 							$name = $info['filename'];
 							$filepath = $dir.$name."@2x{$ext}";
 							$image->save($filepath);
+						} else {
+							return nil;
 						}
-				}
+					}
 				
-				
+				} else {
+					return nil;
+				}				
 				break;
 			
 			case "panorama" :
@@ -854,7 +857,10 @@ print ("-----------\n");
 			case "audio" :
 				$mb_element['value'] = "*" . DIRECTORY_SEPARATOR . $this->audioFolder . basename($attr['src']);
 				// Copy the audio file to the audio folder
-				$this->copy_audio_file($attr['src']);
+				$success = $this->copy_audio_file($attr['src']);
+				if (!$success)
+					return nil;
+					
 				break;
 		}
 		return $mb_element;

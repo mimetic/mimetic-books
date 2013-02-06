@@ -1,5 +1,6 @@
 ﻿[No Paragraph Style]=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 [Basic Paragraph]=HelveticaNeue,14,26.88,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+Basic Paragraph on Dark=HelveticaNeue,14,26.88,220,220,220,,100%,NORMAL,left,0,0,0,0,0
 H1=HelveticaNeue-Bold,18,26.88,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 H2=HelveticaNeue,18,26.88,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 H3=HelveticaNeue-Bold,14,26.88,0,0,0,,100%,NORMAL,left,0,0,0,0,0
