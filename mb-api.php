@@ -28,6 +28,9 @@ include_once "$dir/singletons/themes.php";
 // Useful functions
 @include_once "$dir/singletons/funx.php";
 
+// Commerce functions
+include_once "$dir/singletons/commerce.php";
+
 
 function mb_api_init() {
 	global $mb_api;
@@ -44,22 +47,22 @@ function mb_api_init() {
 	
 	
 	// THIS SHOULD PROBABLY BE IN THE MB_API CLASS!
-	make_custom_post_type_init();
+	mb_make_custom_post_type_init();
 	
 	// Add custom metaboxes
-	add_custom_metaboxes_to_pages();
+	mb_add_custom_metaboxes_to_pages();
 
 	// Add custom metaboxes to posts
-	add_custom_metaboxes_to_posts();
+	mb_add_custom_metaboxes_to_posts();
 	
 	// Add custom column to the book posts listing
-	add_filter('manage_book_posts_columns', 'book_custom_columns_head');
-	add_action('manage_posts_custom_column', 'book_custom_columns_content', 10, 2);
+	add_filter('manage_book_posts_columns', 'mb_book_custom_columns_head');
+	add_action('manage_posts_custom_column', 'mb_book_custom_columns_content', 10, 2);
 	
 	// Add cleanup actions to handle deleting of books and publishers.
 	// Note, we do 'before' the delete so we still have access to the post info.
-	add_action('before_delete_post', 'delete_book_post');
-	add_action('before_delete_post', 'publisher_page_delete');
+	add_action('before_delete_post', 'mb_delete_book_post');
+	add_action('before_delete_post', 'mb_publisher_page_delete');
 	
 }
 
@@ -118,13 +121,13 @@ function mb_api_dir() {
  * ----------------------------------------------------------------------
  */
  
-function add_custom_metaboxes_to_pages() {
-	 book_page_meta_boxes_setup();
+function mb_add_custom_metaboxes_to_pages() {
+	 mb_book_page_meta_boxes_setup();
 }
 
 
 /* Meta box setup function. */
-function book_page_meta_boxes_setup() {
+function mb_book_page_meta_boxes_setup() {
 	/*
 	wp_enqueue_script('thickbox');
 	
@@ -134,21 +137,21 @@ function book_page_meta_boxes_setup() {
 	*/
 	
 	// Create the meta box
-	add_action( 'add_meta_boxes', 'book_add_page_meta_boxes' );
+	add_action( 'add_meta_boxes', 'mb_book_add_page_meta_boxes' );
 	
 	// When any page is saved, run the processing for the metabox
-	add_action( 'save_post', 'book_page_meta_save_postdata');
+	add_action( 'save_post', 'mb_book_page_meta_save_postdata');
 	
 }
 
 
 /* Create one or more meta boxes to be displayed on the post editor screen. */
-function book_add_page_meta_boxes() {
+function mb_book_add_page_meta_boxes() {
 
 	add_meta_box(
 		'book-page-publisher_info',					// Unique ID
 		esc_html__( 'Book Publisher ID' ),		// Title
-		'book_page_publisher_meta_box',				// Callback function
+		'mb_book_page_publisher_meta_box',				// Callback function
 		'page',										// Admin page (or post type)
 		'side',										// Context
 		'high'										// Priority
@@ -157,7 +160,7 @@ function book_add_page_meta_boxes() {
 }
 
 /* Display the post publish meta box. */
-function book_page_publisher_meta_box( $post) { 
+function mb_book_page_publisher_meta_box( $post) { 
 	global $mb_api;
 	
 	// default is 1, the public library
@@ -178,7 +181,7 @@ function book_page_publisher_meta_box( $post) {
 	<?php 
 }
 
-function book_page_meta_save_postdata( $post_id) {
+function mb_book_page_meta_save_postdata( $post_id) {
 	global $mb_api;
 	
 	// verify if this is an auto save routine. 
@@ -227,7 +230,7 @@ function book_page_meta_save_postdata( $post_id) {
  
 
 // Init to create the custom post type
-function make_custom_post_type_init() {
+function mb_make_custom_post_type_init() {
 	global $dir;
 	
 	// Create a custom post type, "book"	
@@ -264,23 +267,23 @@ function make_custom_post_type_init() {
 		'menu_position' => null,
 		'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments', 'custom-fields', 'revisions' ),
 		'taxonomies'	=> array('category'),
-		'register_meta_box_cb'	=> 'book_post_meta_boxes_setup'
+		'register_meta_box_cb'	=> 'mb_book_post_meta_boxes_setup'
 	); 
 	register_post_type('book', $args);
 	
-	/* Fire our meta box setup function on the post editor screen. */
-	//add_action( 'load-post.php', 'book_post_meta_boxes_setup' );
-	//add_action( 'load-post-new.php', 'book_post_meta_boxes_setup' );
-	add_action('save_post', 'book_post_meta_save_postdata');
+	/* Fire our meta box setup function mb_on the post editor screen. */
+	//add_action( 'load-post.php', 'mb_book_post_meta_boxes_setup' );
+	//add_action( 'load-post-new.php', 'mb_book_post_meta_boxes_setup' );
+	add_action('save_post', 'mb_book_post_meta_save_postdata');
 	
 	// Custom Icon for book type
-	add_action( 'admin_head', 'wpt_book_icons' );
+	add_action( 'admin_head', 'mb_wpt_book_icons' );
 	
 }
 
 
 // Styling for the custom post type icon
-function wpt_book_icons() {
+function mb_wpt_book_icons() {
 	global $dir;
 	$icon_url = plugins_url('images/mb-book-icon.png', __FILE__);
 	$icon_32_url = plugins_url('images/book-32x32.png', __FILE__);
@@ -352,7 +355,7 @@ add_action( 'contextual_help', 'mb_api_add_help_text', 10, 3 );
 
 
 
-function my_rewrite_flush() {
+function mb_rewrite_flush() {
 	make_custom_post_type_init();
 	flush_rewrite_rules();
 }
@@ -363,7 +366,7 @@ function my_rewrite_flush() {
 	* Delete all attachments to a post
 	* $filesToKeep = string "file1.ext, file2.text, ...)
 	*/
-function delete_all_attachments($post_id, $filesToKeep = "" )
+function mb_delete_all_attachments($post_id, $filesToKeep = "" )
 {
 	$goodfiles = split(",", $filesToKeep);
 	$args = array(
@@ -385,7 +388,7 @@ function delete_all_attachments($post_id, $filesToKeep = "" )
 
 
 	
-function delete_book_post($post_id)
+function mb_delete_book_post($post_id)
 {
 	global $mb_api;
 	
@@ -393,7 +396,7 @@ function delete_book_post($post_id)
 	
 	$post = get_post($post_id);
 	if ($post->post_type == 'book') {
-		delete_all_attachments($post_id);
+		mb_delete_all_attachments($post_id);
 		$book_id = str_replace("item_", "", $post->post_name);
 		$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
 		$funx->rrmdir($dir);
@@ -406,13 +409,13 @@ function delete_book_post($post_id)
 /* MODIFY BOOK LISTING */
 
 // ADD NEW COLUMN  
-function book_custom_columns_head($defaults) {  
+function mb_book_custom_columns_head($defaults) {  
     $defaults['publish_book'] = 'Publish';  
     return $defaults;  
 }  
   
 // SHOW THE PUBLISH BUTTON
-function book_custom_columns_content($column_name, $post_ID) {  
+function mb_book_custom_columns_content($column_name, $post_ID) {  
 	switch ( $column_name ) {
 	case 'publish_book':
 
@@ -424,12 +427,12 @@ function book_custom_columns_content($column_name, $post_ID) {
 		wp_register_style( 'mb_api_style', $jsCSS);
 		wp_enqueue_style('mb_api_style');
 
-		show_publish_button($post_ID) ;		  
+		mb_show_publish_button($post_ID) ;		  
 		break;
     }  
 }  
 
-function show_publish_button($post_ID) {
+function mb_show_publish_button($post_ID) {
 	global $mb_api;
 	
 	$mb_book_id = get_post_meta($post_ID, "mb_book_id", true);
@@ -453,7 +456,7 @@ function show_publish_button($post_ID) {
 /* META BOXES FOR BOOK PAGE */
 
 /* Meta box setup function. */
-function book_post_meta_boxes_setup() {
+function mb_book_post_meta_boxes_setup() {
 
 	wp_enqueue_script('media-upload');
 	wp_enqueue_script('thickbox');
@@ -473,18 +476,18 @@ function book_post_meta_boxes_setup() {
 	wp_enqueue_style('mb_api_style');
 	
 	// Create the meta box
-	book_add_post_meta_boxes();
+	mb_book_add_post_meta_boxes();
 	
 }
 
 
 /* Create one or more meta boxes to be displayed on the post editor screen. */
-function book_add_post_meta_boxes() {
+function mb_book_add_post_meta_boxes() {
 
 	add_meta_box(
 		'book-post-publish',			// Unique ID
 		esc_html__( 'Publish Book' ),		// Title
-		'book_post_publish_meta_box',		// Callback function
+		'mb_book_post_publish_meta_box',		// Callback function
 		'book',					// Admin page (or post type)
 		'side',					// Context
 		'high'					// Priority
@@ -493,7 +496,7 @@ function book_add_post_meta_boxes() {
 	add_meta_box(
 		'book-post-theme',			// Unique ID
 		esc_html__( 'Book Design Theme' ),		// Title
-		'book_post_theme_meta_box',		// Callback function
+		'mb_book_post_theme_meta_box',		// Callback function
 		'book',					// Admin page (or post type)
 		'side',					// Context
 		'high'					// Priority
@@ -502,7 +505,7 @@ function book_add_post_meta_boxes() {
 	add_meta_box(
 		'book-post-settings',			// Unique ID
 		esc_html__( 'Book Settings' ),		// Title
-		'book_post_settings_meta_box',		// Callback function
+		'mb_book_post_settings_meta_box',		// Callback function
 		'book',					// Admin page (or post type)
 		'side',					// Context
 		'high'					// Priority
@@ -511,7 +514,7 @@ function book_add_post_meta_boxes() {
 	add_meta_box(
 		'book-post-poster',			// Unique ID
 		esc_html__( 'Book Poster' ),		// Title
-		'book_post_poster_meta_box',		// Callback function
+		'mb_book_post_poster_meta_box',		// Callback function
 		'book',					// Admin page (or post type)
 		'side',					// Context
 		'high'					// Priority
@@ -524,7 +527,7 @@ function book_add_post_meta_boxes() {
 
 
 /* Display the post publish meta box. */
-function book_post_publish_meta_box( $post) { 
+function mb_book_post_publish_meta_box( $post) { 
 	global $mb_api;
 	
 	$mb_book_id = get_post_meta($post->ID, "mb_book_id", true);
@@ -563,7 +566,7 @@ function book_post_publish_meta_box( $post) {
 }
 
 /* Display the post theme meta box. */
-function book_post_theme_meta_box( $post) { 
+function mb_book_post_theme_meta_box( $post) { 
 	global $mb_api;
 	
 	$mb_book_theme_id = get_post_meta($post->ID, "mb_book_theme_id", true);
@@ -583,11 +586,11 @@ function book_post_theme_meta_box( $post) {
 }
 
 /* Display the post settings meta box. */
-function book_post_settings_meta_box( $post) { 
+function mb_book_post_settings_meta_box( $post) { 
 	global $mb_api;
 	
 	wp_nonce_field( basename( __FILE__ ), 'book_post_nonce' ); 
-	$mb_no_header_on_poster = checkbox_is_checked( get_post_meta($post->ID, "mb_no_header_on_poster", true) );
+	$mb_no_header_on_poster = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_no_header_on_poster", true) );
 	
 	$did = get_post_meta($post->ID, "mb_target_device", true);
 	$values = array (
@@ -632,7 +635,7 @@ function book_post_settings_meta_box( $post) {
 }
 
 /* Display the book post poster meta box. */
-function book_post_poster_meta_box( $post) { 
+function mb_book_post_poster_meta_box( $post) { 
 	
 	$mb_poster_attachment_url = get_post_meta($post->ID, "mb_poster_attachment_url", true);
 	$mb_poster_attachment_id = get_post_meta($post->ID, "mb_poster_attachment_id", true);
@@ -656,110 +659,142 @@ function book_post_poster_meta_box( $post) {
 	<?php 
 }
 
-function book_post_meta_save_postdata( $post_id) {
-	global $book, $mb_api;
+/*
+ * Save a book post entry.
+ * This is not applied if the save is a Bulk Edit.
+ * If save is an inline-edit (Quick Edit), then only some of this is applied.
+ */
+function mb_book_post_meta_save_postdata( $post_id) {
+	global $mb_api;
 	
 	// verify if this is an auto save routine. 
 	// If it is our form has not been submitted, so we dont want to do anything
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) 
 		return;
 
-	// verify this came from the our screen and with proper authorization,
-	// because save_post can be triggered at other times
-	if (!isset($_POST['book_post_nonce']))
-		return;
-	
-	if ( !wp_verify_nonce( $_POST['book_post_nonce'], basename( __FILE__ ) ) )
-		return;
-
-
-	// Check permissions
-	if ( 'book' == $_POST['post_type'] ) 
-	{
-	if ( !current_user_can( 'edit_page', $post_id ) )
-		return;
-	}
-	else
-	{
-	if ( !current_user_can( 'edit_post', $post_id ) )
-		return;
-	}
-
-	// OK, we're authenticated: we need to find and save the data
-	$book_id = preg_replace("/[_\s]+/", "-", $_POST['mb_book_id']);
-	
-	
-	// If there is no category for this book, make one.
-	// The slug is the book id
-	// The name is the title of the book
-	if ($book_id) {
-	
-		$old_id = wp_is_post_revision( $post_id );
-		if ($old_id) {
-			$old_book_id = get_post_meta( $old_id, "mb_book_id", true);
-			$cat = get_category_by_slug( $old_book_id );
-		} else {
-			$cat = get_category_by_slug( $book_id );
-		}
-		
-		
-		$cat_desc = "Pages in the book \"".$_POST['post_title']."\"";
-		if (!$cat) {
-			$mycat = array(
-				  'cat_name' => $_POST['post_title'],
-				  'category_description' => $cat_desc,
-				  'category_nicename' => $book_id,
-				  'category_parent' => '',
-				  'taxonomy' => 'category' 
-				);
-			$cat_id = wp_insert_category( $mycat );
-		} else {
-			wp_update_term($cat->cat_ID, 'category', array(
-				'name' => $_POST['post_title'],
-				'slug' => $book_id,
-				'description' => $cat_desc
-				));
-		}		
+	// Check post type and permissions
+	// NOTE: A bulk edit won't have a post_type!
+	if ( isset($_POST['post_type']) && 'book' == $_POST['post_type'] ) {
+		if ( !current_user_can( 'edit_page', $post_id ) )
+			return;
 	} else {
-		// IF NO BOOK ID, TRY TO GET IT FROM THE FIRST CHOSEN CATEGORY!
-		// Might be in use, then we get a duplicate, but I can't figure out how to check
-		// here without screwing up the query stuff of WP.
-		$pcats = $_POST['post_category'];
-		// [0] is always 0
-		if (count($pcats) > 1) {
-			$cat = get_category($pcats[1]);
-			$book_id = $cat->slug;
-		}				
+		return;
 	}
 	
+	// Different kinds of saving: inline, bulk, normal
 	
-	// Now, assign this book to this category
-	wp_set_object_terms( $post_id, $book_id, "category" );
+	if ($_POST['action'] != "inline-save") {
+		// -----------------------
+		// NORMAL SAVE
+
+		// Verify this came from the our screen and with proper authorization,
+		// because save_post can be triggered at other times
+		if (!isset($_POST['book_post_nonce']) || !wp_verify_nonce( $_POST['book_post_nonce'], basename( __FILE__ ) ) )
+			return;
+
+		// OK, we're authenticated: we need to find and save the data
+		$book_id = null;
+		if (isset($_POST['mb_book_id']))
+			$book_id = preg_replace("/[_\s]+/", "-", $_POST['mb_book_id']);
+
+
+		// If there is no category for this book, make one.
+		// The slug is the book id
+		// The name is the title of the book
+		if ($book_id) {
+
+			$old_id = wp_is_post_revision( $post_id );
+			if ($old_id) {
+				$old_book_id = get_post_meta( $old_id, "mb_book_id", true);
+				$cat = get_category_by_slug( $old_book_id );
+			} else {
+				$cat = get_category_by_slug( $book_id );
+			}
+
+
+			$cat_desc = "Pages in the book \"".$_POST['post_title']."\"";
+			if (!$cat) {
+				$mycat = array(
+					'cat_name' => $_POST['post_title'],
+					'category_description' => $cat_desc,
+					'category_nicename' => $book_id,
+					'category_parent' => '',
+					'taxonomy' => 'category' 
+					);
+				$cat_id = wp_insert_category( $mycat );
+			} else {
+				wp_update_term($cat->cat_ID, 'category', array(
+					'name' => $_POST['post_title'],
+					'slug' => $book_id,
+					'description' => $cat_desc
+					));
+			}		
+		} else {
+			// IF NO BOOK ID, TRY TO GET IT FROM THE FIRST CHOSEN CATEGORY!
+			// Might be in use, then we get a duplicate, but I can't figure out how to check
+			// here without screwing up the query stuff of WP.
+			$pcats = $_POST['post_category'];
+			// [0] is always 0
+			if (count($pcats) > 1) {
+				$cat = get_category($pcats[1]);
+				$book_id = $cat->slug;
+			}				
+		}
+
+
+		// Now, assign this book to this category
+		wp_set_object_terms( $post_id, $book_id, "category" );
+
+		// Now update the meta fields
+		if (isset($_POST['mb_book_theme_id']))
+			update_post_meta( $post_id, 'mb_book_theme_id', $_POST['mb_book_theme_id'] );
+		if ($book_id)
+			update_post_meta( $post_id, 'mb_book_id', $book_id);
+		if (isset($_POST['mb_publisher_id']))
+			update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
+
+		// Update mb book settings, e.g. no head on poster setting
+		$nhop = isset($_POST['no_header_on_poster']);
+		update_post_meta( $post_id, 'mb_no_header_on_poster', $nhop );
+
+		// target device
+		update_post_meta( $post_id, 'mb_target_device', $_POST['mb_target_device'] );
+
+		//$is_rev = wp_is_post_revision( $post_id );
+
+		//if ( is_int( wp_is_post_revision( $post_id ) ) )
+		//	return;
+
+		// Be sure the poster is a jpg file.
+		$filetype = wp_check_filetype($_POST['mb_poster_attachment_url']);
+		if ($filetype['ext'] == "jpg") {
+			// Do something with $mydata 
+			update_post_meta( $post_id, 'mb_poster_attachment_url', $_POST['mb_poster_attachment_url'] );
+			update_post_meta( $post_id, 'mb_poster_attachment_id', $_POST['mb_poster_attachment_id'] );
+		}
+
 	
-	// Now update the meta fields
-	update_post_meta( $post_id, 'mb_book_theme_id', $_POST['mb_book_theme_id'] );
-	update_post_meta( $post_id, 'mb_book_id', $book_id);
-	update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
-
-	// Update mb book settings, e.g. no head on poster setting
-	$nhop = isset($_POST['no_header_on_poster']);
-	update_post_meta( $post_id, 'mb_no_header_on_poster', $nhop );
-
-	// target device
-	update_post_meta( $post_id, 'mb_target_device', $_POST['mb_target_device'] );
-
-	//$is_rev = wp_is_post_revision( $post_id );
-	
-	//if ( is_int( wp_is_post_revision( $post_id ) ) )
-	//	return;
-
-	// Be sure the poster is a jpg file.
-	$filetype = wp_check_filetype($_POST['mb_poster_attachment_url']);
-	if ($filetype['ext'] == "jpg") {
-		// Do something with $mydata 
-		update_post_meta( $post_id, 'mb_poster_attachment_url', $_POST['mb_poster_attachment_url'] );
-		update_post_meta( $post_id, 'mb_poster_attachment_id', $_POST['mb_poster_attachment_id'] );
+	} else {
+		// -----------------------
+		// INLINE SAVE (QUICK EDIT)
+		check_ajax_referer( "inlineeditnonce", "_inline_edit" );
 	}
+
+	// Applied in both quick edit and normal save:
+
+	// COMMERCE
+	// If there is not a linked item for sale, create one.
+	if ( ! wp_is_post_revision( $post_id ) ){
+		// unhook this function so it doesn't loop infinitely
+		remove_action('save_post', 'mb_book_post_meta_save_postdata');
+
+		$mb_api->commerce->update_linked_item_for($post_id);
+
+		// re-hook this function
+		add_action('save_post', 'mb_book_post_meta_save_postdata');
+	}
+
+	
 }
 
 
@@ -768,7 +803,7 @@ function book_post_meta_save_postdata( $post_id) {
 // Cleanup when deleting a publisher
 // - delete any book files on the shelves
 // - rebuild the shelves
-function publisher_page_delete($post_id) {
+function mb_publisher_page_delete($post_id) {
 	global $mb_api, $post_type;  
 	if ( $post_type != 'page' ) return;
 
@@ -785,7 +820,7 @@ function publisher_page_delete($post_id) {
  * ----------------------------------------------------------------------
  */
 
-function get_book_post_from_book_id( $id ) {
+function mb_get_book_post_from_book_id( $id ) {
 	global $mb_api;
 	//wp_reset_query();
 	$posts = $mb_api->introspector->get_posts(array(
@@ -813,7 +848,7 @@ function get_book_post_from_book_id( $id ) {
 	add_meta_box(
 		'post-mb-page-theme',			// Unique ID
 		esc_html__( 'Page Design' ),	// Title
-		'post_mb_page_theme_meta_box',	// Callback function
+		'mb_post_mb_page_theme_meta_box',	// Callback function
 		'post',							// Admin page (or post type)
 		'side',							// Context
 		'high'							// Priority
@@ -827,7 +862,7 @@ function get_book_post_from_book_id( $id ) {
  * Create a new category from a book's id
  * ----------------------------------------------------------------------
  */
-function book_create_category( $post_id ) {
+function mb_book_create_category( $post_id ) {
 
 
 }
@@ -845,13 +880,13 @@ function book_create_category( $post_id ) {
  * ----------------------------------------------------------------------
  */
 
-function add_custom_metaboxes_to_posts() {
-	 post_meta_boxes_setup();
+function mb_add_custom_metaboxes_to_posts() {
+	 mb_post_meta_boxes_setup();
 }
 
 
 /* Meta box setup function. */
-function post_meta_boxes_setup() {
+function mb_post_meta_boxes_setup() {
 
 	$jsURL = plugins_url( 'js/posts.js', __FILE__ );
 	wp_register_script('mb-posts', $jsURL, array('jquery'));
@@ -862,19 +897,19 @@ function post_meta_boxes_setup() {
 	wp_enqueue_style('mb_api_style');
 
 	// Create the meta box
-	add_action( 'add_meta_boxes', 'post_add_page_meta_boxes' );
-	add_action( 'save_post', 'post_meta_save_postdata');
+	add_action( 'add_meta_boxes', 'mb_post_add_page_meta_boxes' );
+	add_action( 'save_post', 'mb_post_meta_save_postdata');
 	
 }
 
 
 /* Create one or more meta boxes to be displayed on the post editor screen. */
-function post_add_page_meta_boxes() {
+function mb_post_add_page_meta_boxes() {
 
 	add_meta_box(
 		'book-post-page-format',					// Unique ID
 		esc_html__( 'Book Page Format' ),			// Title
-		'post_mb_page_theme_meta_box',				// Callback function
+		'mb_post_mb_page_theme_meta_box',				// Callback function
 		'post',										// Admin page (or post type)
 		'side',										// Context
 		'high'										// Priority
@@ -882,7 +917,7 @@ function post_add_page_meta_boxes() {
 	
 }
 
-function post_meta_save_postdata( $post_id) {
+function mb_post_meta_save_postdata( $post_id) {
 	global $mb_api;
 	
 	// verify if this is an auto save routine. 
@@ -928,7 +963,7 @@ function post_meta_save_postdata( $post_id) {
 
 
 /* Display the post publish meta box. */
-function post_mb_page_theme_meta_box( $post) { 
+function mb_post_mb_page_theme_meta_box( $post) { 
 	global $mb_api;
 	
 	wp_nonce_field( basename( __FILE__ ), 'mb_post_nonce' ); 
@@ -974,7 +1009,7 @@ function post_mb_page_theme_meta_box( $post) {
 		$i = array_search($themePageID, $themePageIDList) + 1;
 		// Use that index to choose the preview
 		$fn = $previewsFolder .DIRECTORY_SEPARATOR.  "format_" . $i . ".jpg";
-		$pageFormatPopupMenu = page_format_popup_menu($post->ID, $book_id);
+		$pageFormatPopupMenu = mb_page_format_popup_menu($post->ID, $book_id);
 	
 		?>
 		<p>
@@ -1006,7 +1041,7 @@ function post_mb_page_theme_meta_box( $post) {
 
 
 // For one book, used on a book post page
-function page_format_popup_menu($post_id, $book_id) {
+function mb_page_format_popup_menu($post_id, $book_id) {
 	global $mb_api;
 
 
@@ -1055,14 +1090,14 @@ function page_format_popup_menu($post_id, $book_id) {
 }
 
 
-function checkbox_is_checked($v) {
+function mb_checkbox_is_checked($v) {
 	if ($v && $v != "")
 		return "CHECKED";
 	else
 		return "";
 }
 
-function write_log($text) {
+function mb_write_log($text) {
 	global $mb_api;
 	error_log (date('Y-m-d H:i:s') . ": {$text}\n", 3, $mb_api->logfile);
 }
@@ -1078,7 +1113,7 @@ register_deactivation_hook("$dir/mb-api.php", 'mb_api_deactivation');
 // custom post: book
 add_filter( 'post_updated_messages', 'mb_api_book_updated_messages' );
 // Handle our custom post type, 'book', in case of theme change
-add_action( 'after_switch_theme', 'my_rewrite_flush' );
+add_action( 'after_switch_theme', 'mb_rewrite_flush' );
 
 	
 ?>

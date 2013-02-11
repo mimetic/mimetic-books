@@ -223,9 +223,9 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 			}
 
 			// Delete all attachments to the post, so they can be replaced.
-			$this->delete_all_attachments($post_id);
+			$this->mb_delete_all_attachments($post_id);
 			// Do NOT delete the tar file.
-			// $this->delete_all_attachments($post_id, "item.tar");
+			// $this->mb_delete_all_attachments($post_id, "item.tar");
 			
 			// Attach new files to the book post:
 			// 
@@ -306,7 +306,7 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 	 * $category_id : category ID of the book's category
 	 * $category_slug : slug of the book's category
 	 */
-	function build_book_package($id = null, $category_id = null, $category_slug = null) {
+	public function build_book_package($id = null, $category_id = null, $category_slug = null) {
 		global $mb_api;
 		
 		if (! $this->confirm_auth() ) {
@@ -620,7 +620,7 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 	 * Delete all attachments to a post
 	 * $filesToKeep = string "file1.ext, file2.text, ...)
 	 */
-	private function delete_all_attachments($post_id, $filesToKeep="")
+	private function mb_delete_all_attachments($post_id, $filesToKeep="")
 	{
 		$goodfiles = split(",", $filesToKeep);
 		$args = array(
@@ -974,7 +974,11 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 		if (!$mb_api->themes->themes) {
 			$mb_api->load_themes();
 		}
-		$theme = $mb_api->themes->themes[$theme_id];
+		$theme = false;
+		
+		if (isset($mb_api->themes->themes[$theme_id])) {
+			$theme = $mb_api->themes->themes[$theme_id];
+		}
 		if (!$theme) {
 			$mb_api->error(__FUNCTION__.": The chosen theme ({$theme}) does not exist!");
 		}
@@ -1889,6 +1893,15 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 
 
 
+	public function write_publishers_file() {
+		global $mb_api;
+		$result = $mb_api->write_publishers_file();
+		return $result;
+	}
+
+
+
+
 	/*
 	 * Confirms that the transaction is authorized, i.e. remote has signed in properly.
 	 * If the authorization module of this plugin is not activated, just return true,
@@ -1953,6 +1966,12 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 	public function write_log($text) {
 		global $mb_api;
 		error_log (date('Y-m-d H:i:s') . ": {$text}\n", 3, $mb_api->logfile);
+	}
+	
+	
+	public function error($message = 'Unknown error', $status = 'error') {
+		global $mb_api;
+		$mb_api->error($message, $status);
 	}
 
 	

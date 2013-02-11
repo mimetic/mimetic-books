@@ -46,7 +46,7 @@ jQuery(document).ready(function($){
 		var thisButton = jQuery(this);
 
 		url = jQuery('#base_url').val().trim() + "/";
-		url = url + "mb/book/write_publishers_file/";
+		url = url + "mb/shelf/write_publishers_file/";
 
 		jQuery(this).prop("value","Working...");
 			
