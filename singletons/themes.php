@@ -35,6 +35,7 @@ class MB_API_Themes
 	// This can be hundreds of files (mostly code snippets).
 	// Set the themes directory if parameter given.
 	function LoadAllThemes ($themes_dir = "") {
+		global $mb_api;
 		
 		if ($themes_dir) {
 			$this->themes_dir = $themes_dir;
@@ -49,6 +50,7 @@ class MB_API_Themes
 			$this->LoadTheme($themepath);
 		}
 		
+		//$mb_api->write_log(print_r($this->themes_list,true));
 	}
 
 	/*

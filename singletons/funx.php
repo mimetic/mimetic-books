@@ -32,7 +32,7 @@ class MB_API_Funx
 	// Two fields are retrieved: $set and $fieldlabel
 	// example: $ArtistIDList = OptionListFromArray ($values, "ID", array("1"), true, true, "", array("0"=>"empty"));
 	
-	public function OptionListFromArray ($values, $listname, $checked = array(), $sort = TRUE, $size = true, $extrahtml="", $extraline = array()) {
+	public function OptionListFromArray ($values, $listname, $checked = array(), $sort = TRUE, $size = true, $extrahtml="", $extraline = array(), $defaultItemClass = "") {
 
 		// internal use only for ease of reading
 		$OPTION_LIST_IS_POPUP = true;
@@ -49,6 +49,13 @@ class MB_API_Funx
 		$optionlist = "";
 	
 		$extraline && $optionlist .= "<OPTION VALUE=\"" . $extraline['value'] . "\" " . $extraline['checked'] . ">" . $extraline['label'] ."</OPTION>\n";
+
+		if ($defaultItemClass) {
+			$class = " class=\"$defaultItemClass\" ";
+		} else {
+			$class = "";
+		}
+
 	
 		reset($values);
 		$k = 1;
@@ -57,7 +64,7 @@ class MB_API_Funx
 			$name = trim($name);
 			if ($name[0] != "/") {
 				in_array($ID, $checked) ? $check = " selected" : $check = "";
-				$optionlist .= "<OPTION VALUE=\"$ID\" $check>$name</OPTION>\n";
+				$optionlist .= "<OPTION $class VALUE=\"$ID\" $check>$name</OPTION>\n";
 				$k++;
 			}
 		}
@@ -71,6 +78,33 @@ class MB_API_Funx
 		}
 		$block = "\n<SELECT NAME=\"$listname\" $size $extrahtml>\n$optionlist</SELECT>\n";
 	
+		return $block;
+	
+	}
+	
+	
+	// Used for jQuery UI popup lists
+	public function jQuerySelectableFromArray ($fieldID, $values, $checked = "") {
+
+		is_array($values) || $values = array();
+	
+		$optionlist = "";
+	
+		$class = " class=\"ui-state-default\" ";
+	
+		reset($values);
+		$k = 1;
+		while (list($ID, $name) = each ($values)) {
+			$ID = trim($ID);
+			$name = trim($name);
+			if ($name[0] != "/") {
+				($ID == $checked) ? $check = " selected" : $check = "";
+				$optionlist .= "<li><img src=\"$name\"></li>\n";
+				$k++;
+			}
+		}
+
+		$block = "\n<ol class=\"selectable\" id=\"$fieldID\">\n$optionlist</ol>\n";
 		return $block;
 	
 	}

@@ -434,7 +434,7 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 		//  OR
 		// If it cannot find those values, it will use the 
 		// book page ID from the settings page.
-		$book_info = $this->get_book_info_from_post($id);
+		$book_info = $mb_api->get_book_info_from_post($id);
 		$book_category_id = $book_info['category_id'];
 		$book_post_id = $id;
 		
@@ -574,7 +574,7 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 			'category_id'	=> $category_id
 		 */
 		foreach ($posts as $post) {
-			$info = $this->get_book_info_from_post($post->ID);
+			$info = $mb_api->get_book_info_from_post($post->ID);
 			$book_id = $info['id'];
 			// Only add the item if it is marked published with our custom meta field.
 			$is_published = get_post_meta($post->ID, "mb_published", true);
@@ -706,11 +706,11 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 		// Get book ID, username, password
 		extract($mb_api->query->get(array('id', 'book_id')));
 		if ($id) {
-			$info = $this->get_book_info_from_post($id);
+			$info = $mb_api->get_book_info_from_post($id);
 			$book_id = $info['id'];
 		} elseif ($book_id) {
 			$book_post = $this->get_book_post_from_book_id( $book_id );
-			$info = $this->get_book_info_from_post($book_post->ID);
+			$info = $mb_api->get_book_info_from_post($book_post->ID);
 			$id = $book_post->ID;
 		} else {
 			$mb_api->error(__FUNCTION__.": Missing id or book_id.");
@@ -921,227 +921,7 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 	 */
 	public function get_book_info_from_post( $post_id = null, $category_id = null ) {
 		global $mb_api;
-
-		if (! $this->confirm_auth() ) {
-			return false;
-		}
-
-
-		if ($post_id) {
-			$post = $this->get_book_post($post_id);
-			$category_id = $post->categories[0]->id;
-		} elseif ($category_id) {
-			$post = get_book_post_from_category_id($category_id);
-		} else {
-			extract($mb_api->query->get(array('id', 'post_id')));
-			$post_id || $post_id = $id;
-			$post = $this->get_book_post($post_id);
-			$category_id = $post->categories[0]->id;
-			
-			$post || $mb_api->error(__FUNCTION__.": Invalid post id.");
-			$post_id || $mb_api->error(__FUNCTION__.": Missing post id.");
-		}
-		
-		
-		// Get custom fields
-		$custom_fields = get_post_custom($post->id);
-		//print_r($custom_fields);
-		
-		if (isset($custom_fields['mb_book_id']) && $custom_fields['mb_book_id']) {
-			$book_id = $custom_fields['mb_book_id'][0];
-		} elseif (isset($post->slug)) {
-			$book_id = $post->slug;
-		} else {
-			$book_id = "mb_".uniqid();
-			add_post_meta( $post->id, 'mb_book_id', $book_id );
-		}
-
-		$title = $post->title_plain;
-		$author = join (" ", array ($post->author->first_name, $post->author->last_name));
-		
-		// Theme is set with a custom field, or taken from the settings page, or is the default theme.
-		// Default theme is 1.
-		if (isset($custom_fields['mb_book_theme_id']) && $custom_fields['mb_book_theme_id']) {
-			// Get from book post
-			$theme_id =  $custom_fields['mb_book_theme_id'][0];
-		} else {
-			// get from settings page
-			$theme_id = (string)get_option('mb_api_book_theme', 1);
-			$theme_id || $theme_id = "0";
-		}
-			
-		// We want to minimize loading this...it can be slow.
-		if (!$mb_api->themes->themes) {
-			$mb_api->load_themes();
-		}
-		$theme = false;
-		
-		if (isset($mb_api->themes->themes[$theme_id])) {
-			$theme = $mb_api->themes->themes[$theme_id];
-		}
-		if (!$theme) {
-			$mb_api->error(__FUNCTION__.": The chosen theme ({$theme}) does not exist!");
-		}
-		
-		// Publisher still comes from either the page or the plugin settings page.
-		if (isset($custom_fields['mb_publisher_id']) && isset($custom_fields['mb_publisher_id'][0]) && $custom_fields['mb_publisher_id'][0]) {
-			$publisher_id = $custom_fields['mb_publisher_id'][0];
-		} else {
-			$publisher_id = (string)get_option('mb_api_book_publisher_id', '?');
-		}
-		
-		 //$description, $short_description, $type
-		 $description = $post->content;
-		 // remove images and links from the content
-		 $description = preg_replace ("/<img.*?\>/","",  $description);
-		 $description = preg_replace ("/<\/?a.*?\>/","",  $description);
-
-		 $short_description = $post->excerpt;
-		 
-		if (isset($custom_fields['mb_publication_type']) && $custom_fields['mb_publication_type']) {
-			$type = $custom_fields['mb_publication_type'][0];
-		} else {
-			$type = 'book';
-		}
-
-		// Use the post thumbnail as the icon. It will be small, so it won't get
-		// cropped by the theme. A large file is cropped to fit the header...not good for us.
-		$t = wp_get_attachment_image_src( get_post_thumbnail_id( $post->id, 'full'));
-		
-		if ($t) {
-			$icon_url = $t[0];
-		} else {
-			$icon_url = '';
-		}
-	
-		
-		/*
-		 * Now we have a custom field for posters!
-		 */
-
-		$poster_url = "";
-		if (isset($custom_fields['mb_poster_attachment_id']) && $custom_fields['mb_poster_attachment_id'][0]) {
-			$args = array(
-				'post_type' => 'attachment',
-				'p'			=> $custom_fields['mb_poster_attachment_id'][0],
-				'posts_per_page' => 1,
-				'post_status' => 'any'
-			); 
-			$poster_attachment = get_posts($args);
-			if ($poster_attachment && $poster_attachment[0]) {
-				$poster_attachment = $poster_attachment[0];
-				$poster_url = $poster_attachment->guid;
-			}
-		}
-		
-		// -----------
-		// Get settings from the book post page
-		
-		// Hide header on the poster in the listing of books on the shelves in the app.
-		if ( isset($custom_fields['mb_no_header_on_poster'][0]) ) {
-			$hideHeaderOnPoster = $custom_fields['mb_no_header_on_poster'][0];
-		} else {
-			$hideHeaderOnPoster = false;
-		}
-		
-		// Get dimensions of the target device, e.g. 1024x768 (iPad)
-		if ( isset($custom_fields['mb_target_device'][0]) ) {
-			$target_device = strtolower($custom_fields['mb_target_device'][0]);
-		} else {
-			$target_device = "ipad";
-		}
-		
-		// Get dimensions of target device for the book.
-		// Default is 1024x768 (iPad)
-		$dimensions = $mb_api->getDimensionsForDevice($target_device);
-		$save2x = $mb_api->getSave2XForDevice($target_device);
-		
-//write_log (__FUNCTION__. ": ".print_r($dimensions, true));
-		
-			
-		/*
-		// Get the poster from the post text itself.
-		$attr = $this->get_embedded_element_attributes($post, $element_type="img");
-		if ($attr) {
-			$firstpic = array_pop($attr);
-			$firstpic_id = $firstpic['id'];
-			$poster = wp_get_attachment_image_src($firstpic_id, 'full');
-			$poster_url = $poster[0];
-		} else {
-			$poster_url = "";
-		}
-		*/
-		
-		
-		/*
-		 * Get modification date for book.
-		 * Get the most recent of the post modifications OR
-		 * the book post modification date.
-		 * This means that updating info on the book page itself also
-		 * sets the modification date.
-		 */
- 
- 
-		// Get most recent post
-		$book_posts = get_posts(array(
-			'category'		=> $category_id,
-			'posts_per_page'	=> 1,
-			'post_type'		=> 'post',
-			'orderby'		=> 'modified',
-			'order'			=> 'DESC',
-			'post_status' 	=> 'any'
-		));
-		
-		if ($book_posts) {
-			$book_posts = $book_posts[0];
-			$modified = $book_posts->post_modified;
-			//$mod = $post->post_modified_gmt;
-		} else {
-			// If no posts (?), then use now? Huh?
-			$modified = date('d M Y H:i:s');
-		}
-		
-		// If the book page itself was modified more recently, use it as the modification date.
-		// This ensures that changing the poster will change the modification date.
-		$book_post_modified = $post->modified;
-		if (strtotime($book_post_modified) > strtotime($modified)) {
-			$modified = $book_post_modified;
-		}
-
-		// We can't simply say the modified date is now, or else any time we
-		// ask about a book, we get a new modified date. Then, the app will
-		// think all books need updating all the time.
-		//date("Y-m-d H:i:s");
-		// Modified time is NOW!
-		// $modified = date('Y-m-d H:i:s',current_time('timestamp',1));
-				
-		$category_id = $post->categories[0]->id;
-		
-		
-
-		//$theme_id = (string)get_option('mb_api_book_theme', 1);
-		
-		
-		$result = array (
-			'id'		=> $book_id, 
-			'title'			=> $title, 
-			'author'		=> $author, 
-			'theme'			=> $theme, 
-			'publisher_id'	=> $publisher_id,  
-			'description'	=> $description, 
-			'short_description'		=> $short_description, 
-			'type'			=> $type, 
-			'datetime'		=> $post->date, 
-			'modified'		=> $modified, 
-			'icon_url'		=> $icon_url, 
-			'poster_url'	=> $poster_url,
-			'category_id'	=> $category_id,
-			'hideHeaderOnPoster' => $hideHeaderOnPoster,
-			'dimensions'	=> $dimensions,
-			'save2x'		=> $save2x
-			);
-		
-		return $result;
+		return $mb_api->get_book_info_from_post( $post_id, $category_id );
 	}
 	
 
@@ -1179,7 +959,7 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 	protected function get_book($id = null, $book_cat_id = null) {
 		global $mb_api;
 		
-		$book_info = $this->get_book_info_from_post($id, $book_cat_id);
+		$book_info = $mb_api->get_book_info_from_post($id, $book_cat_id);
 		$book_cat_id = $book_info['category_id'];
 		
 		
@@ -1270,6 +1050,9 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 		$q = array (
 			'post_type' => 'post',
 			'post_status' => 'publish,private',
+			'posts_per_page' => -1,
+			//'orderby' => 'menu_order',	// ordering is taken care of by the ordering plugin
+            //'order' => 'ASC',
 			'tax_query' => array (	
 								'relation' => 'AND',
 								array (
@@ -1288,8 +1071,8 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 
 							)
 			);
+		
 		// This is the first chapter
-		//$posts = get_posts($q);
 		$posts = $mb_api->introspector->get_posts($q);
 		$book_cat = get_category($category_id);
 
@@ -1303,6 +1086,12 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 			$chapters[] = $chapter;
 		}
 
+/*
+$mb_api->write_log("*** There are ".count($posts)." pages found in category id=$category_id");
+foreach ($posts as $p) {
+	$mb_api->write_log ("   Page: ".$p->title);
+}
+*/
 
 		// Get the book category add begin with it:
 		// best to start list with book entries, typically cover, contents, etc.
@@ -1318,6 +1107,9 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 				//'cat' => $chapter_category->term_id, 
 				'post_type' => 'post',
 				'post_status' => 'publish,private',
+				'posts_per_page' => -1,
+				//'orderby' => 'menu_order',
+				//'order' => 'ASC',
 				'tax_query' => array (	
 									array (
 										'taxonomy' => 'category', 

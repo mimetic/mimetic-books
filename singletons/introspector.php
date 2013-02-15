@@ -2,6 +2,22 @@
 
 class MB_API_Introspector {
 
+	/*
+	public function get_posts_new($query = false, $wp_posts = false) {
+		$posts = get_posts($query);
+		$output = array();
+		foreach ($posts as $post) {
+			if ($wp_posts) {
+				$output[] = $post;
+			} else {
+				$output[] = new MB_API_Post($post);
+			}
+		}
+		return $output;
+	}
+	*/
+	
+	// You must use posts_per_page, not "numberposts", or this won't return more than 10 posts!
 	public function get_posts($query = false, $wp_posts = false) {
 		global $post;
 		$this->set_posts_query($query);

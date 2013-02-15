@@ -12,7 +12,7 @@ class MB_API {
 		$this->introspector = new MB_API_Introspector();
 		$this->response = new MB_API_Response();
 		$this->funx = new MB_API_Funx();
-		$this->commerce = new MB_API_Commerce();
+		$this->commerce = new MB_API_Commerce($dir);
 		$this->themes_dir_name = "themes";
 		$this->themes_dir = $dir .DIRECTORY_SEPARATOR. $this->themes_dir_name;
 		$this->themes = new MB_API_Themes($this->themes_dir);
@@ -248,13 +248,20 @@ class MB_API {
       if (isset($_REQUEST['mb_api_book_info_post_id'])) {
 		$this->save_option('mb_api_book_info_post_id', $_REQUEST['mb_api_book_info_post_id']);
       }
-    }
+      
+      if (isset($_REQUEST['mb_api_show_only_my_posts'])) {
+		$this->save_option('mb_api_show_only_my_posts', true);
+      } else {
+	      $this->save_option('mb_api_show_only_my_posts', false);
+	  }
+      
+   }
 	// ---------- END CONTROLLERS ------------
     
     ?>
 <div class="wrap">
   <div id="icon-options-general" class="icon32"><br /></div>
-  <h2>Blookify/Mimetic Books API Settings</h2>
+  <h2>Mimetic Books API Settings</h2>
   <form action="options-general.php?page=mb-api" method="post">
     <?php wp_nonce_field('update-options'); ?>
 
@@ -330,6 +337,11 @@ class MB_API {
 				</td>
 			</tr>
 		</table>
+		
+		<h3>Misc. Settings</h3>
+		<p>
+			<input type="checkbox" name="mb_api_show_only_my_posts[]" value="<?php if ( get_option('mb_api_show_only_my_posts', '') ) { echo "1"; } ?>" <?php if ( get_option('mb_api_show_only_my_posts', '') ) { echo "checked"; } ?>/> Show Only My Posts. <i>Check this box so that users will only see their posts. They cannot share posts, but the don't have to see everyone else's, either.</i>
+		</p>
 		
 		
 		<h3>Hints</h3>
@@ -765,20 +777,24 @@ class MB_API {
 		// Default theme is 1.
 		if (isset($custom_fields['mb_book_theme_id']) && $custom_fields['mb_book_theme_id']) {
 			// Get from book post
-			$theme_id =  $custom_fields['mb_book_theme_id'][0];
+			$theme_id =  (string)$custom_fields['mb_book_theme_id'][0];
 		} else {
 			// get from settings page
 			$theme_id = (string)get_option('mb_api_book_theme', 1);
-			$theme_id || $theme_id = "0";
 		}
+		// If not set, then the theme is the default theme, "1"
+		$theme_id || $theme_id = "1";
 			
 		// We want to minimize loading this...it can be slow.
 		if (!$mb_api->themes->themes) {
 			$mb_api->load_themes();
 		}
-		$theme = $mb_api->themes->themes[$theme_id];
-		if (!$theme) {
-			$this->error(__FUNCTION__.": The chosen theme ({$theme}) does not exist!");
+
+		if (!isset($mb_api->themes->themes[$theme_id])) {
+			$theme_id = $theme_id || "NONE";
+			$this->error(__FUNCTION__.": The chosen theme ({$theme_id}) does not exist!");
+		} else {
+			$theme = $mb_api->themes->themes[$theme_id];
 		}
 		
 		// Publisher still comes from either the page or the plugin settings page.
@@ -973,7 +989,7 @@ class MB_API {
 	function get_books_by_category() {
 		wp_reset_query();
 		$books = get_posts(array(
-			'numberposts'	=> -1,
+			'posts_per_page'	=> -1,
 			'post_type'		=> 'book',
 			'post_status'	=> 'any'
 		));
@@ -1185,9 +1201,7 @@ class MB_API {
 	}
 	
 	
-	
-	
-	// ====================
+	// ============================================================
 
 	function plugin_admin_init() { 
 	
@@ -1216,6 +1230,11 @@ class MB_API {
 
 
 	public function write_log($text) {
+	
+		if (gettype($text) != "string") {
+			$text = print_r($text,true);
+		}
+	
 		error_log (date('Y-m-d H:i:s') . ": {$text}\n", 3, $this->logfile);
 	}
 

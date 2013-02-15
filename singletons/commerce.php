@@ -14,8 +14,9 @@ class MB_API_Commerce
 	/* 
 	Constructor 
 	*/
- 	function MB_API_Commerce()
+ 	function MB_API_Commerce($dir)
 	{
+		$this->logfile = $dir . DIRECTORY_SEPARATOR . "mb-books-api-commerce.log";
 	}
 	
 	
@@ -23,10 +24,10 @@ class MB_API_Commerce
 	// Requires Easy Digital Download commerce
 	public function commerce_is_installed() {	
 		global $mb_api;
-		
+
 		include_once( ABSPATH . 'wp-admin/includes/plugin.php' );		
 		if (!is_plugin_active("easy-digital-downloads/easy-digital-downloads.php")) {
-			$mb_api->error(__FUNCTION__.": The easy-digital-downloads plugin is not activated. You must install and activate the plugin for shelf functions to work.");
+			//$this->write_log(__FUNCTION__.": easy-digital-downloads is NOT installed.");
 			$this->commerce_is_installed = false;			
 			$this->commerce_plug_name = "";
 		} else {
@@ -53,6 +54,11 @@ class MB_API_Commerce
 	// Requires Easy Digital Download commerce
 	// Show "FREE" instead of $0.00
 	public function modify_free_purchase_template($purchase_form, $args) {
+
+		if (!$this->commerce_is_installed) {
+			return false;
+		}
+
 		$price = edd_get_download_price( $args['download_id'] );
 
 		if ( $price == 0 ) {
@@ -73,6 +79,10 @@ class MB_API_Commerce
 	
 	public function get_users_purchases($user_id) {
 		
+		if (!$this->commerce_is_installed) {
+			return false;
+		}
+
 		$purchases = array();
 	
 		// testing:
@@ -103,6 +113,11 @@ class MB_API_Commerce
 	// Update or create a linked for-sale product for a given post, usually a book post.
 	public function update_linked_item_for($post_id) {
 		global $mb_api;
+		
+		if (!$this->commerce_is_installed) {
+			return false;
+		}
+			
 		
 		$post = get_post($post_id);
 		
@@ -149,11 +164,19 @@ class MB_API_Commerce
 			$x = $res;
 		} else {
 			// create a new item for sale
-			$mb_api->write_log(__FUNCTION__.": Create item for sale for post $post_id");
+			$this->write_log(__FUNCTION__.": Create item for sale for post $post_id");
 		}
 	
 	}
 		
+	private function write_log($text) {
+	
+		if (gettype($text) != "string") {
+			$text = print_r($text,true);
+		}
+	
+		error_log (date('Y-m-d H:i:s') . ": {$text}\n", 3, $this->logfile);
+	}
 		
 }
 

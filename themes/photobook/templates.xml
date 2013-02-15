@@ -1,2 +1,277 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<book xml:space="preserve"><title>Photography Theme</title><author>David Gross</author><uniqueid>photo_theme</uniqueid><documentPath>/Volumes/Macintosh HD/Users/dgross/Documents/eBook Publishing/J210/photobook theme/theme</documentPath><imagePath>/Volumes/Macintosh HD/Users/dgross/Documents/eBook Publishing/J210/photobook theme/theme/images/chapter_1</imagePath><previewPath>~/Documents/eBook%20Publishing/J210/photobook%20theme/theme/template_previews</previewPath><description>A basic photography theme.</description><chapter><title>Photography Theme</title><altTitle>Photography Theme</altTitle><index>1</index><page id="A" ignoreExtraSourceElements="true" order="1" contents="true" skipinslideshow="true"><backgroundfile>*/images/chapter_1/_background_A-Master.jpg</backgroundfile><textblocks><textblock><title isHTML="true" margin="0,0,0,0" style="TOC Title" x="100" y="60" width="824" height="54" absolute="true"></title></textblock></textblocks><tableofcontents style="TOC Item" x="100" y="200" width="824" height="532" absolute="true"></tableofcontents></page><page id="B" ignoreExtraSourceElements="true" order="2"><textblocks><textblock><title isHTML="true" margin="0,0,0,0" style="Credit Title" x="100" y="290" width="825" height="77" absolute="true"></title></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="Credit URL" x="100" y="366" width="825" height="133" absolute="true"></text></textblock></textblocks></page><page id="C" ignoreExtraSourceElements="true" order="3"><backgroundfile>*/images/chapter_1/_background_D-Master.jpg</backgroundfile><textblocks><textblock><text isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="763" height="57" absolute="true"></text></textblock></textblocks></page><page id="D" ignoreExtraSourceElements="true" order="4"><textblocks><textblock><title isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="825" height="42" absolute="true"></title></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="[Basic Paragraph]" x="100" y="200" width="825" height="509" absolute="true"></text></textblock></textblocks></page><page id="E" ignoreExtraSourceElements="true" order="5"><textblocks><textblock><text isHTML="true" margin="0,0,0,0" style="H1" x="100" y="60" width="825" height="649" absolute="true"></text></textblock></textblocks></page><page id="F" ignoreExtraSourceElements="true" order="6"><textblocks><textblock><text isHTML="true" margin="0,0,0,0" style="H1" x="100" y="60" width="523" height="649" absolute="true"></text></textblock></textblocks><pictures><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="674" y="60" width="250" height="167" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="674" y="301" width="250" height="167" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="674" y="541" width="250" height="167" absolute="true"></picture></pictures></page><page id="G" ignoreExtraSourceElements="true" order="7"><pictures><picture noThumbnail="false" filename="" noShadow="true" time="1000" x="0" y="0" width="1025" height="769" absolute="true"></picture></pictures></page><page id="H" ignoreExtraSourceElements="true" order="8"><pictures><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="260" y="150" width="513" height="342" absolute="true"></picture></pictures><textblocks><textblock><title isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="825" height="59" absolute="true"></title></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="[Basic Paragraph]" x="100" y="552" width="825" height="157" absolute="true"></text></textblock></textblocks></page><page id="I" ignoreExtraSourceElements="true" order="9"><backgroundfile>*/images/chapter_1/_background_C-Master.jpg</backgroundfile><pictures><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="260" y="150" width="513" height="342" absolute="true"></picture></pictures><textblocks><textblock><title isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="825" height="59" absolute="true"></title></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="Basic Paragraph on Dark" x="100" y="552" width="825" height="157" absolute="true"></text></textblock></textblocks></page><page id="J" ignoreExtraSourceElements="true" order="10"><pictures><picture noThumbnail="false" filename="" noShadow="true" time="1000" x="0" y="43" width="1024" height="683" absolute="true"></picture></pictures></page><page id="K" ignoreExtraSourceElements="true" order="11"><pictures><picture noThumbnail="false" filename="" noShadow="true" time="1000" x="514" y="0" width="510" height="768" absolute="true"></picture></pictures><textblocks><textblock><title isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="364" height="59" absolute="true"></title></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="[Basic Paragraph]" x="100" y="200" width="364" height="509" absolute="true"></text></textblock></textblocks></page><page id="L" ignoreExtraSourceElements="true" order="12"><pictures><picture noThumbnail="false" filename="" noShadow="true" time="1000" x="0" y="0" width="510" height="768" absolute="true"></picture></pictures><textblocks><textblock><title isHTML="true" margin="0,0,0,0" style="Title" x="561" y="60" width="364" height="59" absolute="true"></title></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="[Basic Paragraph]" x="561" y="200" width="364" height="509" absolute="true"></text></textblock></textblocks></page><page id="M" ignoreExtraSourceElements="true" order="13"><pictures><picture noThumbnail="false" filename="" noShadow="true" time="1000" x="257" y="0" width="510" height="768" absolute="true"></picture></pictures></page><page id="N" ignoreExtraSourceElements="true" order="14"><shapes><shape name="rectangle" color="180,180,180" x="0" y="0" width="1024" height="768" absolute="true"></shape></shapes><pictures><picture noThumbnail="false" filename="" noShadow="true" time="1000" x="257" y="0" width="510" height="768" absolute="true"></picture></pictures></page><page id="O" ignoreExtraSourceElements="true" order="15"><backgroundfile>*/images/chapter_1/_background_C-Master.jpg</backgroundfile><pictures><picture noThumbnail="false" filename="" noShadow="true" time="1000" x="257" y="0" width="510" height="768" absolute="true"></picture></pictures></page><page id="P" ignoreExtraSourceElements="true" order="16"><pictures><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="130" width="503" height="336" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="130" width="503" height="336" absolute="true"></picture></pictures><textblocks><textblock><title isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="825" height="59" absolute="true"></title></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="[Basic Paragraph]" x="100" y="496" width="825" height="213" absolute="true"></text></textblock></textblocks></page><page id="Q" ignoreExtraSourceElements="true" order="17"><pictures><picture noThumbnail="false" filename="" noShadow="true" time="1000" x="71" y="60" width="431" height="648" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" time="1000" x="522" y="60" width="431" height="648" absolute="true"></picture></pictures></page><page id="R" ignoreExtraSourceElements="true" order="18"><pictures><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="0" width="503" height="375" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="394" width="503" height="375" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="0" width="503" height="375" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="394" width="503" height="375" absolute="true"></picture></pictures></page><page id="S" ignoreExtraSourceElements="true" order="19"><pictures><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="39" width="503" height="336" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="394" width="503" height="336" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="39" width="503" height="336" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="394" width="503" height="336" absolute="true"></picture></pictures></page><page id="T" ignoreExtraSourceElements="true" order="20"><backgroundfile>*/images/chapter_1/_background_C-Master.jpg</backgroundfile><pictures><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="39" width="503" height="336" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="394" width="503" height="336" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="39" width="503" height="336" absolute="true"></picture><picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="394" width="503" height="336" absolute="true"></picture></pictures></page></chapter></book>
+<book xml:space="preserve">
+	<title>
+		Photography Theme
+	</title>
+	<author>
+		David Gross
+	</author>
+	<uniqueid>
+		photo_theme
+	</uniqueid>
+	<documentPath>
+		/Volumes/Macintosh HD/Users/dgross/Documents/eBook Publishing/J210/photobook theme/theme
+	</documentPath>
+	<imagePath>
+		/Volumes/Macintosh HD/Users/dgross/Documents/eBook Publishing/J210/photobook theme/theme/images/chapter_1
+	</imagePath>
+	<previewPath>
+		~/Documents/eBook%20Publishing/J210/photobook%20theme/theme/template_previews
+	</previewPath>
+	<description>
+		A basic photography theme.
+	</description>
+	<chapter>
+		<title>
+			Photography Theme
+		</title>
+		<altTitle>
+			Photography Theme
+		</altTitle>
+		<index>
+			1
+		</index>
+		<page id="A" ignoreExtraSourceElements="true" order="1" contents="true" skipinslideshow="true">
+			<backgroundfile>
+				*/images/chapter_1/_background_A-Master.jpg
+			</backgroundfile>
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="TOC Title" x="100" y="60" width="824" height="54" absolute="true">
+					</title>
+				</textblock>
+			</textblocks>
+			<tableofcontents style="TOC Item" x="100" y="200" width="824" height="532" absolute="true">
+			</tableofcontents>
+		</page>
+		<page id="B" ignoreExtraSourceElements="true" order="2">
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="Credit Title" x="100" y="290" width="825" height="77" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="Credit URL" x="100" y="366" width="825" height="133" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+		</page>
+		<page id="C" ignoreExtraSourceElements="true" order="3">
+			<backgroundfile>
+				*/images/chapter_1/_background_D-Master.jpg
+			</backgroundfile>
+			<textblocks>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="763" height="57" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+		</page>
+		<page id="D" ignoreExtraSourceElements="true" order="4">
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="825" height="42" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="[Basic Paragraph]" x="100" y="200" width="825" height="509" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+		</page>
+		<page id="E" ignoreExtraSourceElements="true" order="5">
+			<textblocks>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="H1" x="100" y="60" width="825" height="649" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+		</page>
+		<page id="F" ignoreExtraSourceElements="true" order="6">
+			<textblocks>
+				<textblock>
+					<title></title>
+					<text isHTML="true" margin="0,0,0,0" style="H1" x="100" y="60" width="523" height="649" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="674" y="60" width="250" height="167" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="674" y="301" width="250" height="167" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="674" y="541" width="250" height="167" absolute="true">
+				</picture>
+			</pictures>
+		</page>
+		<page id="G" ignoreExtraSourceElements="true" order="7">
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" time="1000" x="0" y="0" width="1025" height="769" absolute="true">
+				</picture>
+			</pictures>
+		</page>
+		<page id="H" ignoreExtraSourceElements="true" order="8">
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="260" y="150" width="513" height="342" absolute="true">
+				</picture>
+			</pictures>
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="825" height="59" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="[Basic Paragraph]" x="100" y="552" width="825" height="157" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+		</page>
+		<page id="I" ignoreExtraSourceElements="true" order="9">
+			<backgroundfile>
+				*/images/chapter_1/_background_C-Master.jpg
+			</backgroundfile>
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="260" y="150" width="513" height="342" absolute="true">
+				</picture>
+			</pictures>
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="825" height="59" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="Basic Paragraph on Dark" x="100" y="552" width="825" height="157" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+		</page>
+		<page id="J" ignoreExtraSourceElements="true" order="10">
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" time="1000" x="0" y="43" width="1024" height="683" absolute="true">
+				</picture>
+			</pictures>
+		</page>
+		<page id="K" ignoreExtraSourceElements="true" order="11">
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" time="1000" x="514" y="0" width="510" height="768" absolute="true">
+				</picture>
+			</pictures>
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="364" height="59" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="[Basic Paragraph]" x="100" y="200" width="364" height="509" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+		</page>
+		<page id="L" ignoreExtraSourceElements="true" order="12">
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" time="1000" x="0" y="0" width="510" height="768" absolute="true">
+				</picture>
+			</pictures>
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="Title" x="561" y="60" width="364" height="59" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="[Basic Paragraph]" x="561" y="200" width="364" height="509" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+		</page>
+		<page id="M" ignoreExtraSourceElements="true" order="13">
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" time="1000" x="257" y="0" width="510" height="768" absolute="true">
+				</picture>
+			</pictures>
+		</page>
+		<page id="N" ignoreExtraSourceElements="true" order="14">
+			<shapes>
+				<shape name="rectangle" color="180,180,180" x="0" y="0" width="1024" height="768" absolute="true">
+				</shape>
+			</shapes>
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" time="1000" x="257" y="0" width="510" height="768" absolute="true">
+				</picture>
+			</pictures>
+		</page>
+		<page id="O" ignoreExtraSourceElements="true" order="15">
+			<backgroundfile>
+				*/images/chapter_1/_background_C-Master.jpg
+			</backgroundfile>
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" time="1000" x="257" y="0" width="510" height="768" absolute="true">
+				</picture>
+			</pictures>
+		</page>
+		<page id="P" ignoreExtraSourceElements="true" order="16">
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="130" width="503" height="336" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="130" width="503" height="336" absolute="true">
+				</picture>
+			</pictures>
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="Title" x="100" y="60" width="825" height="59" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="[Basic Paragraph]" x="100" y="496" width="825" height="213" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+		</page>
+		<page id="Q" ignoreExtraSourceElements="true" order="17">
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" time="1000" x="71" y="60" width="431" height="648" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" time="1000" x="522" y="60" width="431" height="648" absolute="true">
+				</picture>
+			</pictures>
+		</page>
+		<page id="R" ignoreExtraSourceElements="true" order="18">
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="0" width="503" height="375" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="394" width="503" height="375" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="0" width="503" height="375" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="394" width="503" height="375" absolute="true">
+				</picture>
+			</pictures>
+		</page>
+		<page id="S" ignoreExtraSourceElements="true" order="19">
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="39" width="503" height="336" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="394" width="503" height="336" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="39" width="503" height="336" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="394" width="503" height="336" absolute="true">
+				</picture>
+			</pictures>
+		</page>
+		<page id="T" ignoreExtraSourceElements="true" order="20">
+			<backgroundfile>
+				*/images/chapter_1/_background_C-Master.jpg
+			</backgroundfile>
+			<pictures>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="39" width="503" height="336" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="0" y="394" width="503" height="336" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="39" width="503" height="336" absolute="true">
+				</picture>
+				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="394" width="503" height="336" absolute="true">
+				</picture>
+			</pictures>
+		</page>
+	</chapter>
+</book>

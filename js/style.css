@@ -1,3 +1,5 @@
+/* @override http://localhost/photobook/wordpress/wp-content/plugins/mimetic-books-api/js/style.css?ver=3.5.1 */
+
 /* @override 
 	http://localhost/photobook/wordpress/wp-content/plugins/mimetic-books-api/js/style.css?ver=3.5
 	http://localhost/photobook/wordpress/wp-content/plugins/mimetic-books-api/js/image_upload.js?ver=3.5
@@ -24,6 +26,7 @@
 }
 
 .publish_book_button {
+	
 }
 
 .publishing_progress_message {
@@ -45,4 +48,53 @@ div .theme_page_preview {
 	width: 200px;
 	height: 150px;
 	margin: 23px 24px;
+	background-color: black;
+	border: 2px solid black;
+}
+
+/*
+Selectable: 
+*/
+
+#feedback {
+	font-size: 1.4em;
+}
+
+ol.selectable {
+}
+
+.selectable .ui-selecting {
+	background: #FECA40;
+}
+
+.selectable .ui-selected {
+	background: #F39814;
+	color: white;
+	opacity: 1.0;
+}
+
+.selectable {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	width: 804px;
+}
+
+.selectable li {
+	margin: 3px;
+	padding: 2px;
+	float: left;
+	width: 256px;
+	height: 192px;
+	font-size: 1em;
+	text-align: center;
+	border: 1px solid #000;	
+	opacity: 0.5;
+}
+
+.selectable li img {
+	width: 256px;
+	max-height: 256px;
+	margin-right: auto;
+	margin-left: auto;
 }

@@ -172,7 +172,7 @@ class Mimetic_Book
 	 * Get copies of the promotional artwork, i.e. icon, poster
 	 * The URLs of these files is set by on the settings page or the book info page.
 	 */
-	public function get_book_promo_art($path)
+	public function get_book_promo_art()
 	{
 		$icon_url = $this->icon;
 		$poster_url = $this->poster;
@@ -476,7 +476,7 @@ class Mimetic_Book
 	{
 		$args = array(
 			'post_type' => 'attachment',
-			'numberposts' => -1,
+			'posts_per_page' => -1,
 			'post_status' => null,
 			'post_parent' => $wp_page->id
 		);
@@ -571,12 +571,45 @@ print ("-----------\n");
 	}
 	
 	
+	private function display_xml_error($error, $xml)
+	{
+		$return  = $xml[$error->line - 1] . "\n";
+		$return .= str_repeat('-', $error->column) . "^\n";
+
+		switch ($error->level) {
+			case LIBXML_ERR_WARNING:
+				$return .= "Warning $error->code: ";
+				break;
+			 case LIBXML_ERR_ERROR:
+				$return .= "Error $error->code: ";
+				break;
+			case LIBXML_ERR_FATAL:
+				$return .= "Fatal Error $error->code: ";
+				break;
+		}
+
+		$return .= trim($error->message) .
+				   "\n  Line: $error->line" .
+				   "\n  Column: $error->column";
+				   
+		$substr = substr($xml, $error->column-20, $error->column+20);
+		$return .= "\n Sample: [ $substr ]";
+
+		if ($error->file) {
+			$return .= "\n  File: $error->file";
+		}
+
+		return "$return\n\n--------------------------------------------\n\n";
+	}
+
+
 	/*
 	 * NOTE: this works great with images, but really not with other kinds of
 	 * attachments! Audio for example, uses <a> as its tag, so we would
 	 * have to check the linked file to know what we were dealing with.
 	*/
 	private function get_embedded_elements($wp_page, $element_type="img") {
+		global $mb_api;
 		$text = $wp_page->content;
 		
 		if (!$text) {
@@ -584,8 +617,18 @@ print ("-----------\n");
 		}
 		
 		// Use PHP XML/HTML extract functionality!
+		libxml_use_internal_errors(true);
 		$doc = new DOMDocument();
 		$doc->loadHTML($text);
+		$errors = libxml_get_errors();
+
+		if (!$doc) {
+			$errors = libxml_get_errors();
+			foreach ($errors as $error) {
+				$mb_api->write_log(  $this->display_xml_error($error, $text) );
+			}
+			libxml_clear_errors();
+		}
 		
 		$page_elements = array();
 		

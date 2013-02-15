@@ -371,7 +371,7 @@ function mb_delete_all_attachments($post_id, $filesToKeep = "" )
 	$goodfiles = split(",", $filesToKeep);
 	$args = array(
 		'post_type' => 'attachment',
-		'numberposts' => -1,
+		'posts_per_page' => -1,
 		'post_status' => null,
 		'post_parent' => $post_id,
 		'post_status' => 'any'
@@ -572,7 +572,7 @@ function mb_book_post_theme_meta_box( $post) {
 	$mb_book_theme_id = get_post_meta($post->ID, "mb_book_theme_id", true);
 	
 	wp_nonce_field( basename( __FILE__ ), 'book_post_nonce' ); 
-	
+
 	?>
 	<p>
 		<label for="mb_book_theme_id">
@@ -580,6 +580,7 @@ function mb_book_post_theme_meta_box( $post) {
 			<br/>
 			<?php echo $mb_api->book_theme_popup_menu($post->ID) ?>
 		</label>
+
 
 	</p>
 	<?php 
@@ -888,8 +889,11 @@ function mb_add_custom_metaboxes_to_posts() {
 /* Meta box setup function. */
 function mb_post_meta_boxes_setup() {
 
+	//wp_enqueue_script('thickbox');
+	//wp_enqueue_style('thickbox');
+
 	$jsURL = plugins_url( 'js/posts.js', __FILE__ );
-	wp_register_script('mb-posts', $jsURL, array('jquery'));
+	wp_register_script('mb-posts', $jsURL, array('jquery', 'jquery-ui-core', 'jquery-ui-selectable', 'jquery-ui-dialog'));
 	wp_enqueue_script('mb-posts');
 	
 	$jsCSS = plugins_url( 'js/style.css', __FILE__ );
@@ -908,7 +912,7 @@ function mb_post_add_page_meta_boxes() {
 
 	add_meta_box(
 		'book-post-page-format',					// Unique ID
-		esc_html__( 'Book Page Format' ),			// Title
+		esc_html__( 'Mimetic Book Page Format' ),			// Title
 		'mb_post_mb_page_theme_meta_box',				// Callback function
 		'post',										// Admin page (or post type)
 		'side',										// Context
@@ -955,8 +959,14 @@ function mb_post_meta_save_postdata( $post_id) {
 		}
 		$theme_id = $_POST['mb_theme_id'];
 		$format_ids = $mb_api->themes->themes[$theme_id]->details->format_ids;
-
-		$themePageID = $format_ids[$_POST['mb_book_theme_page_id']];
+		
+		// Drop-down menu technique:
+		// Given the index, e.g. 1, get the format ID, e.g. 'B'
+		//$themePageID = $format_ids[$_POST['mb_book_theme_page_id']];
+		
+		// jQuery selector technique:
+		$themePageID = $_POST['mb_book_theme_page_id'];
+		
 		update_post_meta( $post_id, 'mb_book_theme_page_id', $themePageID );
 	}
 }
@@ -1008,30 +1018,76 @@ function mb_post_mb_page_theme_meta_box( $post) {
 		// Get index of chosen page ID in the list of ID's
 		$i = array_search($themePageID, $themePageIDList) + 1;
 		// Use that index to choose the preview
-		$fn = $previewsFolder .DIRECTORY_SEPARATOR.  "format_" . $i . ".jpg";
+		$previewFileName = $previewsFolder .DIRECTORY_SEPARATOR.  "format_" . $i . ".jpg";
 		$pageFormatPopupMenu = mb_page_format_popup_menu($post->ID, $book_id);
 	
+	
+		// Value list for each selection. That is, given select = 0, get $value[0], etc.
+		// These are the template names, actually, e.g. "A" or "2-Column-page", that kind of thing.
+		// Also, get the preview file names for each item, for the chooser grid, below.
+		$graphics = array();
+		$values = $themePageIDList;
+		asort ($values);
+		while (list($k, $name) = each ($values)) {
+			$valueListArr[$k] = $name;
+			$graphics[$k] = "$previewsFolder/format_" . (1+$k) . ".jpg";
+		}
+		$valueList = join(",",$valueListArr);
+		
+		// ----- drop-down menu technique is commented out, below. -------
 		?>
 		<p>
-			<label for="mb_book_theme_page_id">
-				<?php _e( "Page Format:" ); ?>
-			</label>
+			<input type="hidden" name="mb_book_theme_page_id" id="mb_book_theme_page_id" value="<?php echo($themePageID) ?>">
+			<input type="hidden" id="mb_book_theme_page_id_values" value="<?php echo($valueList) ?>">
 			<input type="hidden" id="mb_book_theme_page_previews" value="<?php echo($previewsFolder) ?>">
 			<input type="hidden" name="mb_theme_id" value="<?php echo($theme_id) ?>">
+
+			<input type="button" style="float:right;" class="wp-core-ui button-secondary" id="show-styles" value="Show Styles" />
+			<br style="clear:all;"/>
+			<br/>
+
+			<!--
 			<?php 
 			echo ($pageFormatPopupMenu );
 			?>
-		
-			<br/>
+			-->
 			<div class="theme_page_preview_box">
 				<label for="format_page_preview">
 				</label>
 				<div class="theme_page_preview">
-					<img id="format_page_preview" src="<?php echo ($fn); ?>"/>
+					<img id="format_page_preview" src="<?php echo ($previewFileName); ?>"/>
 				</div>
 			</div>
 		</p>
+		
+			<label for="mb_book_theme_page_id">
+				<div  style="text-align:center;">
+				Current Page Style : &quot;<span id="mb_book_theme_page_id_display"><?php echo($themePageID) ?></span>&quot;
+				</div>
+			</label>
+		
+		
 		<?php
+		
+		// ============= New Method for choosing page templates: POPUP GRID OF LAYOUTS ===============
+		
+		// Default theme is 1;
+		$checked = $theme_id; //get_post_meta($book_id, "mb_book_theme_id", true);
+		empty($checked) && $checked = 1;
+		$name = "mb_book_theme_page_id";
+		$id = "mb_book_themes_selector";
+		$sort = true;
+
+		$menu = $mb_api->funx->jQuerySelectableFromArray ($id, $graphics, $checked, $sort);
+
+		?>
+			<div id="mb-page-styles-dialog" style="display:none;" title="Page Styles">
+				<div style="margin-left:auto;margin-right:auto;width:830px;"/>
+				<?php echo $menu ?>
+				</div>
+			</div>
+		<?php
+		
 	} else {
 		
 		_e( "Unknown Book &mdash; check your category setting?" );
@@ -1040,7 +1096,7 @@ function mb_post_mb_page_theme_meta_box( $post) {
 }
 
 
-// For one book, used on a book post page
+// For one post, used on a post page.
 function mb_page_format_popup_menu($post_id, $book_id) {
 	global $mb_api;
 
@@ -1103,6 +1159,27 @@ function mb_write_log($text) {
 }
 
 	
+// DOES NOT WORK. DON'T KNOW WHY.
+// ============================================================
+// Modify the posts listing in the wp-admin.
+// Only show the posts for the current author!
+// ============================================================
+
+function xmypo_parse_query_useronly( $wp_query ) {
+	global $mb_api;
+	if (isset($mb_api->settings['show_only_my_posts']) && $mb_api->settings['show_only_my_posts']) {
+		if ( strpos( $_SERVER[ 'REQUEST_URI' ], '/wp-admin/edit.php' ) !== false ) {
+			if ( !current_user_can( 'level_10' ) ) {
+				global $current_user;
+				$wp_query->set( 'author', $current_user->ID );
+			}
+		}
+	}
+}
+add_filter('parse_query', 'xmypo_parse_query_useronly');	
+	
+
+
 // ------------------------------------------------------
 
 // Add initialization and activation hooks
