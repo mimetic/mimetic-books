@@ -1020,7 +1020,14 @@ function mb_post_mb_page_theme_meta_box( $post) {
 		// Use that index to choose the preview
 		$previewFileName = $previewsFolder .DIRECTORY_SEPARATOR.  "format_" . $i . ".jpg";
 		$pageFormatPopupMenu = mb_page_format_popup_menu($post->ID, $book_id);
-	
+		
+		// Vertical theme?
+		$isVerticalTheme = "";
+		if (isset($mb_api->themes->themes[$theme_id]->aspect) && $mb_api->themes->themes[$theme_id]->aspect == "vertical") {
+			$isVerticalTheme = "vertical";
+		}
+			
+			
 	
 		// Value list for each selection. That is, given select = 0, get $value[0], etc.
 		// These are the template names, actually, e.g. "A" or "2-Column-page", that kind of thing.
@@ -1054,7 +1061,7 @@ function mb_post_mb_page_theme_meta_box( $post) {
 			<div class="theme_page_preview_box">
 				<label for="format_page_preview">
 				</label>
-				<div class="theme_page_preview">
+				<div class="theme_page_preview <?php echo ($isVerticalTheme); ?>">
 					<img id="format_page_preview" src="<?php echo ($previewFileName); ?>"/>
 				</div>
 			</div>

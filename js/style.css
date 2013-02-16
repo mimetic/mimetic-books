@@ -44,10 +44,26 @@ div .theme_page_preview {
 	background: url(img/page-preview-bkgd-small.png) no-repeat center center;
 }
 
+div .vertical.theme_page_preview  {
+	width: 200px;
+	height: 250px;
+	background: url(img/page-preview-bkgd-small-vertical.png) no-repeat center center;
+	margin-right: auto;
+	margin-left: auto;
+}
+
 .theme_page_preview img {
 	width: 200px;
 	height: 150px;
 	margin: 23px 24px;
+	background-color: black;
+	border: 2px solid black;
+}
+
+.vertical.theme_page_preview img {
+	width: 150px;
+	height: 200px;
+	margin: 24px 23px;
 	background-color: black;
 	border: 2px solid black;
 }
@@ -93,8 +109,8 @@ ol.selectable {
 }
 
 .selectable li img {
-	width: 256px;
-	max-height: 256px;
+	max-width: 256px;
+	max-height: 192px;
 	margin-right: auto;
 	margin-left: auto;
 }
