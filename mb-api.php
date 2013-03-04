@@ -533,8 +533,9 @@ function mb_book_post_publish_meta_box( $post) {
 	global $mb_api;
 	
 	$mb_book_id = get_post_meta($post->ID, "mb_book_id", true);
-	$mb_book_publisher_id = get_post_meta($post->ID, "mb_publisher_id", get_option('mb_publisher_id', '1'));
-	
+	$mb_book_publisher_id = get_post_meta($post->ID, "mb_publisher_id", true);
+	if (!$mb_book_publisher_id)
+		$mb_book_publisher_id = get_option('mb_publisher_id', '1');
 	$mb_use_local_book_file = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_use_local_book_file", true) );
 
 	?>
@@ -623,7 +624,10 @@ function mb_book_post_settings_meta_box( $post) {
 	$mb_book_theme_id = get_post_meta($post->ID, "mb_book_theme_id", true);
 
 	$mb_book_id = get_post_meta($post->ID, "mb_book_id", true);
-	$mb_book_publisher_id = get_post_meta($post->ID, "mb_publisher_id", get_option('mb_publisher_id', '1'));
+	
+	$mb_book_publisher_id = get_post_meta($post->ID, "mb_publisher_id", true);
+	if (!$mb_book_publisher_id)
+		$mb_book_publisher_id = get_option('mb_publisher_id', '1');
 	
 	$values = $mb_api->get_publisher_ids();
 	$listname = "";
@@ -635,7 +639,8 @@ function mb_book_post_settings_meta_box( $post) {
 	$extrahtml = "";
 	$extraline = array();
 	$pub_id_menu = $mb_api->funx->OptionListFromArray ($values, $listname, $checked, $sort, $size, $extrahtml, $extraline);
-
+	
+	$mb_book_remote_url = get_post_meta( $post->ID, 'mb_book_remote_url', true );
 	
 	$mb_use_local_book_file = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_use_local_book_file", true) );
 
@@ -727,13 +732,21 @@ function mb_book_post_settings_meta_box( $post) {
 
 				</div>
 				
-				<div class="mb-settings-section  mb-settings-section-last">		
+				<div class="mb-settings-section">		
 					<label for="no_header_on_poster">
 						<input type="checkbox" name="mb_use_local_book_file" value="true" <?php echo($mb_use_local_book_file); ?>/> 
 						Use an uploaded book package.<br>
 						<i>To make a package, use the shell command, <code>tar cfo item.tar *</code> from within the directory of book files. Use the resulting item.tar file.</i>
 
 					</label>
+				</div>
+				
+				<div class="mb-settings-section mb-settings-section-last">		
+					<label for="mb_book_remote_url">
+						Remote URL for downloading:<br>
+						<i>The remote URL is useful if you want to download a package from a remote server, such as a cloud file delivery server. The URL must start with http://</i><br>
+					</label>
+					<input type="text" style="width:95%;" id="mb_book_remote_url" name="mb_book_remote_url" value="<?php print $mb_book_remote_url;  ?>" />
 				</div>
 				
 		</div>
@@ -875,8 +888,8 @@ function mb_book_post_meta_save_postdata( $post_id) {
 		// target device
 		update_post_meta( $post_id, 'mb_target_device', $_POST['mb_target_device'] );
 
-		//$is_rev = wp_is_post_revision( $post_id );
-
+		// Remote download URL, e.g. from a cloud file server
+		update_post_meta( $post_id, 'mb_book_remote_url', $_POST['mb_book_remote_url'] );
 		//if ( is_int( wp_is_post_revision( $post_id ) ) )
 		//	return;
 

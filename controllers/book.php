@@ -52,6 +52,9 @@ We use some of the WP fields for our own purposes:
 	public function publish_book_package() {
 		global $mb_api;
 		
+		$u = "";
+		$p = "";
+		
 			if (! $this->confirm_auth() ) {
 				$this->write_log("Authorization not accepted.");
 				return false;
@@ -156,11 +159,15 @@ We use some of the WP fields for our own purposes:
 				$use_local_book_file = true;
 
 			if ($use_local_book_file) {
-
+				
 				$this->write_log("Publish from local book package file ");
 				$this->write_log("book_id = $book_id, username = $u, password = $p");
-
-				if (!file_exists($filename)) {
+				
+				// HOWEVER, if we are using a remote URL for the book file, 
+				// then we don't check whether it exists but assume it does.
+				$remoteURL = trim(get_post_meta($id, "mb_book_remote_url", true));
+				
+				if (!$remoteURL && !file_exists($filename)) {
 					$mb_api->error(__FUNCTION__.": " . basename($filename) . " does not exist.");
 				}
 
@@ -628,7 +635,7 @@ We use some of the WP fields for our own purposes:
 			$is_published = get_post_meta($post->ID, "mb_published", true);
 			// Also check the package's directory is there
 			$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
-			$is_published =  (file_exists($tarfilepath) && $is_published);
+			$is_published =  ( ($info['remoteURL'] || file_exists($tarfilepath)) && $is_published);
 
 			if ($is_published) {
 			
@@ -647,11 +654,13 @@ We use some of the WP fields for our own purposes:
 					'modified'			=> $info['modified'],
 					'path'				=> $book_id,
 					'shelfpath'			=> $mb_api->settings['shelves_dir_name'],
-//					'itemShelfPath'		=>$mb_api->settings['shelves_dir_name'] . DIRECTORY_SEPARATOR . $info['id'],
-					'theme'				=> $info['theme'],				
+					'itemShelfPath'		=>$mb_api->settings['shelves_dir_name'] . DIRECTORY_SEPARATOR . $info['id'],
+//					'theme'				=> $info['theme'],				
 					'hideHeaderOnPoster'	=> $info['hideHeaderOnPoster'],
-					'orientation'		=> $info['orientation'] 
+					'orientation'		=> $info['orientation'],
+					'remoteURL'			=> $info['remoteURL']
 				);
+				
 				$shelves['itemsByID'][$book_id] = $item;
 			}
 		}

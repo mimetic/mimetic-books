@@ -799,9 +799,9 @@ class MB_API {
 		}
 		
 		// Orientation: portrait/landscape, based on the theme
-		$orientation = $theme->orientation;
-		$orientation || $orientation = "landscape";
-//($mb_api->themes->themes[$theme_id]->orientation)			
+		$orientation = "landscape";
+		if (isset($theme->orientation) )
+			$orientation = $theme->orientation;
 
 		// Publisher still comes from either the page or the plugin settings page.
 		if (isset($custom_fields['mb_publisher_id']) && isset($custom_fields['mb_publisher_id'][0]) && $custom_fields['mb_publisher_id'][0]) {
@@ -896,22 +896,27 @@ class MB_API {
 			'post_status' 	=> 'any'
 		));
 		
+		$modified = "";
 		if ($book_posts) {
 			$book_posts = $book_posts[0];
+			// This time is LOCAL time
 			$modified = $book_posts->post_modified;
 			//$mod = $post->post_modified_gmt;
-		} else {
-			// If no posts (?), then use now? Huh?
-			$modified = date('Y-m-d H:i:s');
+			//$this->write_log(__FUNCTION__.":A - $book_id, Modified = $modified\n\n\n");		
 		}
 		
 		// If the book page itself was modified more recently, use it as the modification date.
 		// This ensures that changing the poster will change the modification date.
+		// This time is LOCAL time
 		$book_post_modified = $post->modified;
 		if (strtotime($book_post_modified) > strtotime($modified)) {
 			$modified = $book_post_modified;
-			
+			//$this->write_log(__FUNCTION__.":C - $book_id, Modified = $modified\n\n\n");		
 		}
+		
+		// If we don't have any information, use NOW as the modified.
+		if (!$modified)
+			$modified = date('Y-m-d H:i:s', current_time('timestamp'));
 
 		// We can't simply say the modified date is now, or else any time we
 		// ask about a book, we get a new modified date. Then, the app will
@@ -922,10 +927,14 @@ class MB_API {
 				
 		$category_id = $post->categories[0]->id;
 		
-		
+//$this->write_log(__FUNCTION__.": FINAL: $book_id --> Modified = $modified");		
 
 		//$theme_id = (string)get_option('mb_api_book_theme', 1);
 		
+		
+		// User can set a remote URL for downloading, useful for downloading from 
+		// a cloud file server.
+		$remoteURL = get_post_meta( $post->id, 'mb_book_remote_url', true );
 		
 		$result = array (
 			'id'		=> $book_id, 
@@ -944,7 +953,8 @@ class MB_API {
 			'hideHeaderOnPoster' => $hideHeaderOnPoster,
 			'dimensions'	=> $dimensions,
 			'save2x'		=> $save2x,
-			'orientation'	=> $orientation
+			'orientation'	=> $orientation,
+			'remoteURL'		=> $remoteURL
 			);
 		
 		return $result;
