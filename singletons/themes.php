@@ -65,6 +65,8 @@ class MB_API_Themes
 	entries in the _themes/vocabulary.txt lists, overriding them.
 	*/
 	function LoadTheme ($themepath) {
+		global $mb_api;
+		
 		$infoFileName = "theme.json";
 		if (file_exists("$themepath/$infoFileName")) {
 			$f = file_get_contents ("$themepath/$infoFileName");
@@ -78,7 +80,7 @@ class MB_API_Themes
 			$myTheme = json_decode ($f);
 			if (isset($myTheme->disabled) && $myTheme->disabled == true)
 				return;
-			
+
 			$myTheme->id = str_replace (":","_",$myTheme->id);	// just making sure there are no ":" in the ID!
 			
 			// Get details of the theme:
@@ -157,6 +159,8 @@ class MB_API_Themes
 					}
 				} // if $vlist
 			
+//$mb_api->write_log($myTheme);
+			
 		}
 	
 		// add theme to the list
@@ -174,6 +178,7 @@ class MB_API_Themes
 	 * This lets us choose the formatting page by ID, e.g. for a post
 	*/
 	function LoadFormatDetails ($themepath, $myTheme) {
+		global $mb_api;
 		$infoFileName = "theme.json";
 		$fn = "$themepath/$infoFileName";
 		
@@ -193,7 +198,7 @@ class MB_API_Themes
 		if (file_exists($fn)) {
 			$themeXML = file_get_contents($fn);
 			$theme = new SimpleXMLElement($themeXML);
-			
+
 			foreach ($theme->chapter[0]->page as $page) {
 				$id = (string)$page->attributes()->id;
 				$theme_ids[] = $id;
@@ -202,12 +207,13 @@ class MB_API_Themes
 		} else {
 			$mb_api->error(__FUNCTION__.": The theme at $themepath is missing the $xmlFileName file!");
 		}
-
+		
 		$details = array (
 			'format_ids' => $theme_ids,
 			'format_is_toc' => $toc
 			);
 		$details = (object) $details;
+		
 		return $details;
 	}
 	

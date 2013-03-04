@@ -784,19 +784,25 @@ class MB_API {
 		}
 		// If not set, then the theme is the default theme, "1"
 		$theme_id || $theme_id = "1";
-			
+		
 		// We want to minimize loading this...it can be slow.
 		if (!$mb_api->themes->themes) {
 			$mb_api->load_themes();
 		}
 
 		if (!isset($mb_api->themes->themes[$theme_id])) {
+			$this->write_log(__FUNCTION__.": The chosen theme ({$theme_id}) does not exist!");
 			$theme_id = $theme_id || "NONE";
-			$this->error(__FUNCTION__.": The chosen theme ({$theme_id}) does not exist!");
+			//$this->error(__FUNCTION__.": The chosen theme ({$theme_id}) does not exist!");
 		} else {
 			$theme = $mb_api->themes->themes[$theme_id];
 		}
 		
+		// Orientation: portrait/landscape, based on the theme
+		$orientation = $theme->orientation;
+		$orientation || $orientation = "landscape";
+//($mb_api->themes->themes[$theme_id]->orientation)			
+
 		// Publisher still comes from either the page or the plugin settings page.
 		if (isset($custom_fields['mb_publisher_id']) && isset($custom_fields['mb_publisher_id'][0]) && $custom_fields['mb_publisher_id'][0]) {
 			$publisher_id = $custom_fields['mb_publisher_id'][0];
@@ -896,7 +902,7 @@ class MB_API {
 			//$mod = $post->post_modified_gmt;
 		} else {
 			// If no posts (?), then use now? Huh?
-			$modified = date('d M Y H:i:s');
+			$modified = date('Y-m-d H:i:s');
 		}
 		
 		// If the book page itself was modified more recently, use it as the modification date.
@@ -904,6 +910,7 @@ class MB_API {
 		$book_post_modified = $post->modified;
 		if (strtotime($book_post_modified) > strtotime($modified)) {
 			$modified = $book_post_modified;
+			
 		}
 
 		// We can't simply say the modified date is now, or else any time we
@@ -924,7 +931,7 @@ class MB_API {
 			'id'		=> $book_id, 
 			'title'			=> $title, 
 			'author'		=> $author, 
-			'theme'			=> $theme, 
+//			'theme'			=> $theme, 
 			'publisher_id'	=> $publisher_id,  
 			'description'	=> $description, 
 			'short_description'		=> $short_description, 
@@ -936,7 +943,8 @@ class MB_API {
 			'category_id'	=> $category_id,
 			'hideHeaderOnPoster' => $hideHeaderOnPoster,
 			'dimensions'	=> $dimensions,
-			'save2x'		=> $save2x
+			'save2x'		=> $save2x,
+			'orientation'	=> $orientation
 			);
 		
 		return $result;
@@ -1053,6 +1061,41 @@ class MB_API {
 		$this->themes->LoadAllThemes ($themes_dir);
 	}
 
+
+
+
+	/*
+	 * ============================================================
+	 * Get an array of all publishers.
+	 * This is done by getting all pages which are publisher pages,
+	 * meaning they are pages with a publisher ID set.
+	 * RETURN: array of publisher names and ID's:
+	 *	$publisher_ids = ( id => name, ....)
+	 * ============================================================
+	 */
+
+	function get_publisher_ids() {
+		
+		$publishers = array ();
+		
+		// Get all pages
+		$posts = $this->introspector->get_posts(array(
+				'post_type' => 'page',
+				'posts_per_page'	=> -1,
+				'post_status' => 'any'
+			), false);
+		
+		// For all pages which have a publisher id meta data in them...
+		foreach ($posts as $post) {
+			$publisher_id = get_post_meta($post->id, "mb_publisher_id", true);
+			if ($publisher_id) {
+				$publishers[$publisher_id] = $post->title;
+				//$publishers[$post->title] = $publisher_id;
+			}
+		}
+		
+		return $publishers;
+	}
 
 
 	/*

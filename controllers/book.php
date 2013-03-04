@@ -64,6 +64,11 @@ We use some of the WP fields for our own purposes:
 		$local = false;		
 		$distribution_url = trim(get_option('mb_api_book_publisher_url'));
 		$error = "";
+		
+		extract($mb_api->query->get(array('id', 'book_id')));
+		
+		// Default is we build book from posts
+		$use_local_book_file = false;
 
 		if ($remote) {
 			// REMOTE PUBLISHING
@@ -76,8 +81,8 @@ We use some of the WP fields for our own purposes:
 			$u = "digross";
 			$p = "nookie";
 
-$this->write_log("Publish from remote site...getting file ");
-$this->write_log("book_id = $book_id, username = $u, password = $p");
+			$this->write_log("Publish from remote site...getting file ");
+			$this->write_log("book_id = $book_id, username = $u, password = $p");
 
 			if (!($book_id || $id) || !$u || !$p || !$f) {
 				$mb_api->error(__FUNCTION__.": Missing book id (book_id), username (u), password (p), and/or file data (f) ($book_id, $u, $p).");
@@ -107,9 +112,13 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 			if (!$user) {
 				$user = get_userdata( 1 );
 			}
+			
+			$use_local_book_file = true;
+			
 		} else {
 			// LOCAL PUBLISHING
-
+			
+			
 			$user = wp_get_current_user();
 			
 			// Get book ID
@@ -135,47 +144,80 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 			wp_update_post( array ('ID'=>$id ) );
 
 
-			$this->build_book_package($id);
-					
 			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
 
 			// Overwrite any existing file without asking
 			$filename = $dir . DIRECTORY_SEPARATOR . "item.tar";
-			$src = $mb_api->package_dir . DIRECTORY_SEPARATOR . "$book_id.tar";
+
 			
-			if (!file_exists($src)) {
-				$mb_api->error(__FUNCTION__.": " . basename($src) . " does not exist.");
-			}
-			
-			// Make a dir to hold the book package
-			if(! is_dir($dir))
-				mkdir($dir);
-			
-			// Copy the local file to the shelves directory and delete the package
-			$success = copy($src,$filename);
-			if (!$success) {
-				$mb_api->error(__FUNCTION__.": Failed to copy $src to $filename.");
+			// Don't build from posts, use an uploaded book package?
+			$use_local_book_file = get_post_meta($id, "mb_use_local_book_file", true);
+			if ($use_local_book_file && $use_local_book_file != "")
+				$use_local_book_file = true;
+
+			if ($use_local_book_file) {
+
+				$this->write_log("Publish from local book package file ");
+				$this->write_log("book_id = $book_id, username = $u, password = $p");
+
+				if (!file_exists($filename)) {
+					$mb_api->error(__FUNCTION__.": " . basename($filename) . " does not exist.");
+				}
+
+
 			} else {
-				unlink ($src);
-			}
+				
+				
+				$this->build_book_package($id);
+					
+				$src = $mb_api->package_dir . DIRECTORY_SEPARATOR . "$book_id.tar";
+
+				if (!file_exists($src)) {
+					$mb_api->error(__FUNCTION__.": " . basename($src) . " does not exist.");
+				}
+
+				// Make a dir to hold the book package
+				if(! is_dir($dir))
+					mkdir($dir);
+
+				// Copy the local file to the shelves directory and delete the package
+				$success = copy($src,$filename);
+				if (!$success) {
+					$mb_api->error(__FUNCTION__.": Failed to copy $src to $filename.");
+				} else {
+					unlink ($src);
+				}
 			
+			}
+
 		}
 		
 		// we use $book_id for directories, and WP insists on lowercase
 		$book_id = strtolower($book_id);
 
 		
+		// This works to make a tar file PHP can read, from the directory of files: 
+		//		tar cfo item.tar *
 		// Extract the icon, poster, and item.json
 		// Don't fail if this fails, just throw a warning?
 		try {
 			$this->write_log(__FUNCTION__.": Extract icon, poster, item info from the package.");
 			$phar = new PharData($filename);
+
 			if ($phar->offsetExists('icon.png'))
 				$phar->extractTo($dir, array('icon.png'), true);
+			else
+				$this->write_log(__FUNCTION__.": No icon.");
+
 			if ($phar->offsetExists('poster.jpg'))
 				$phar->extractTo($dir, array('poster.jpg'), true);
+			else
+				$this->write_log(__FUNCTION__.": No poster.");
+
 			if ($phar->offsetExists('item.json'))
 				$phar->extractTo($dir, array('item.json'), true);	
+			else
+				$this->write_log(__FUNCTION__.": No item.json file.");
 		} catch (Exception $e) {
 			// handle errors
 			// This includes missing files, when the poster or icon files are missing.
@@ -257,6 +299,10 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 		// Mark the book as published so it will appear in the shelves
 		update_post_meta($post_id, 'mb_published', true);
 		
+		// Remotely created books use an uploaded file
+		if ($remote) {
+			update_post_meta($post_id, "mb_use_local_book_file", $use_local_book_file);
+		}	
 		
 		// Nope...
 		// The user's login is their publisher ID
@@ -319,8 +365,9 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 	   	if (!($id || $category_id || $category_slug)) {
 	   		extract($mb_api->query->get(array('id', 'category_id', 'category_slug' )));
 	   	}
-    
-		// Build the book object from the posts
+	   	
+
+		// Build the book object from the posts (or from an uploaded package)
 		$mb = $this->build_book($id, $category_id, $category_slug);
 		
 		// We want to minimize loading this...it can be slow.
@@ -507,7 +554,8 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 				'datetime'				=> $book_obj->datetime,
 				'modified'				=> $book_obj->modified,
 				'publisherid'			=> $book_obj->publisher_id,
-				'hideHeaderOnPoster'	=> $book_obj->hideHeaderOnPoster
+				'hideHeaderOnPoster'	=> $book_obj->hideHeaderOnPoster,
+				'orientation'			=> $book_obj->orientation,
 			);
 			
 			$output = json_encode($info);
@@ -601,7 +649,8 @@ $this->write_log("book_id = $book_id, username = $u, password = $p");
 					'shelfpath'			=> $mb_api->settings['shelves_dir_name'],
 //					'itemShelfPath'		=>$mb_api->settings['shelves_dir_name'] . DIRECTORY_SEPARATOR . $info['id'],
 					'theme'				=> $info['theme'],				
-					'hideHeaderOnPoster'	=> $info['hideHeaderOnPoster']
+					'hideHeaderOnPoster'	=> $info['hideHeaderOnPoster'],
+					'orientation'		=> $info['orientation'] 
 				);
 				$shelves['itemsByID'][$book_id] = $item;
 			}

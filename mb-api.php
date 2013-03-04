@@ -356,7 +356,7 @@ add_action( 'contextual_help', 'mb_api_add_help_text', 10, 3 );
 
 
 function mb_rewrite_flush() {
-	make_custom_post_type_init();
+	mb_make_custom_post_type_init();
 	flush_rewrite_rules();
 }
 
@@ -493,6 +493,7 @@ function mb_book_add_post_meta_boxes() {
 		'high'					// Priority
 	);
 	
+	/*
 	add_meta_box(
 		'book-post-theme',			// Unique ID
 		esc_html__( 'Book Design Theme' ),		// Title
@@ -501,16 +502,17 @@ function mb_book_add_post_meta_boxes() {
 		'side',					// Context
 		'high'					// Priority
 	);
+	*/
 	
 	add_meta_box(
 		'book-post-settings',			// Unique ID
-		esc_html__( 'Book Settings' ),		// Title
+		esc_html__( 'Book Design' ),		// Title
 		'mb_book_post_settings_meta_box',		// Callback function
 		'book',					// Admin page (or post type)
 		'side',					// Context
 		'high'					// Priority
 	);
-	
+	/*
 	add_meta_box(
 		'book-post-poster',			// Unique ID
 		esc_html__( 'Book Poster' ),		// Title
@@ -519,7 +521,7 @@ function mb_book_add_post_meta_boxes() {
 		'side',					// Context
 		'high'					// Priority
 	);
-	
+	*/
 	
 }
 
@@ -532,40 +534,42 @@ function mb_book_post_publish_meta_box( $post) {
 	
 	$mb_book_id = get_post_meta($post->ID, "mb_book_id", true);
 	$mb_book_publisher_id = get_post_meta($post->ID, "mb_publisher_id", get_option('mb_publisher_id', '1'));
+	
+	$mb_use_local_book_file = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_use_local_book_file", true) );
+
 	?>
-	<p>
-		<label for="book-post-publish">
-			<?php _e( "Be sure first to update this page if you have made changes." ); ?>
+	<!-- defined on plugin settings page -->
+	<input type="hidden" id="distribution_url" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
+	<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
 
-			<br/>
+	<div id="mb-settings">
+		<div id="mb-misc-settings">
+			<div id="mb-minor-settings">
+				<div class="mb-settings-section no-border">
+					<label for="book-post-publish">
+						<?php _e( "Be sure to update this page if you have made changes." ); ?>
+
+						<br/>
 			
-			<!-- defined on plugin settings page -->
-			<input type="hidden" id="distribution_url" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
-			<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
-		</label>
-		
-		<label for="mb_book_id">
-			Book ID:
-		</label>
-		<input type="text" id="mb_book_id" name="mb_book_id" value="<?php print $mb_book_id;  ?>" />
-
-		<label for="mb_publisher_id">
-			Publisher ID:
-		</label>
-		<input type="text" id="mb_publisher_id" name="mb_publisher_id" value="<?php print $mb_book_publisher_id;  ?>" />
-
-		<div class="submitbox" >
-			<span style="margin-right:20px;" class="publishing_progress_message" id="publishing_progress_message" ></span>
-			<div style="text-align:right;float:right;">
-				<input type="button" id="publish_book_button" class="button-primary" value="Publish eBook" />
+					</label>
+				
+					<div class="submitbox" >
+						<span style="margin-right:20px;" class="publishing_progress_message" id="publishing_progress_message" ></span>
+						<div style="text-align:right;float:right;">
+							<input type="button" id="publish_book_button" class="button-primary" value="Publish eBook" />
+						</div>
+					</div>
+					<div class="clear"></div>
+				</div>
+				
 			</div>
 		</div>
-		<div class="clear"></div>
-	</p>
+	</div>
 	<?php 
 }
 
 /* Display the post theme meta box. */
+/*
 function mb_book_post_theme_meta_box( $post) { 
 	global $mb_api;
 	
@@ -585,6 +589,7 @@ function mb_book_post_theme_meta_box( $post) {
 	</p>
 	<?php 
 }
+*/
 
 /* Display the post settings meta box. */
 function mb_book_post_settings_meta_box( $post) { 
@@ -612,30 +617,134 @@ function mb_book_post_settings_meta_box( $post) {
 	
 	$devicemenu = $mb_api->funx->OptionListFromArray ($values, $listname, $checked, $sort, $size, $extrahtml, $extraline);
 
+	$mb_poster_attachment_url = get_post_meta($post->ID, "mb_poster_attachment_url", true);
+	$mb_poster_attachment_id = get_post_meta($post->ID, "mb_poster_attachment_id", true);
+
+	$mb_book_theme_id = get_post_meta($post->ID, "mb_book_theme_id", true);
+
+	$mb_book_id = get_post_meta($post->ID, "mb_book_id", true);
+	$mb_book_publisher_id = get_post_meta($post->ID, "mb_publisher_id", get_option('mb_publisher_id', '1'));
+	
+	$values = $mb_api->get_publisher_ids();
+	$listname = "";
+	$pid = get_post_meta($post->ID, "mb_publisher_id", true);
+	isset ($mb_book_publisher_id) ? $checked = $mb_book_publisher_id : $checked = 1;
+	$listname = "mb_publisher_id";
+	$sort = true;
+	$size = true;
+	$extrahtml = "";
+	$extraline = array();
+	$pub_id_menu = $mb_api->funx->OptionListFromArray ($values, $listname, $checked, $sort, $size, $extrahtml, $extraline);
+
+	
+	$mb_use_local_book_file = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_use_local_book_file", true) );
 
 	?>
-	<p> 
-	</p>
-
-	<p>
-		<label for="no_header_on_poster">
-			<input type="checkbox" name="no_header_on_poster" value="true" <?php echo($mb_no_header_on_poster); ?>/> 
-			Do not show title & author on store poster.
-		</label>
+	<div id="mb-settings">
+		<div id="mb-misc-settings">
+			<div id="mb-minor-settings">
+				<div class="mb-settings-section no-border">
+					<div class="mb-update-button">
+						<?php
+						$other_attributes = "";
+						$wrap = false;
+						$text = "Update";
+						$other_attributes = "class='mb-update-button'";
+						echo get_submit_button( $text, "secondary", "submit", $wrap, $other_attributes );
+					?>
+					</div>
+				</div>
+				<div class="clear"></div>
+			</div>
+			<div id="mb-minor-settings">
+				<div class="mb-settings-section">
+					<label for="mb_book_theme_id">
+						Choose a design theme for your book:<br/>
+						<br/>
+						<?php echo $mb_api->book_theme_popup_menu($post->ID) ?>
+					</label>
+				</div>
 	
-	</p>
-	<p>
-		<label for="mb_target_device">
-			Target device for this book: 
-			<?php echo($devicemenu); ?>
-		</label>
-	
-	</p>
+				<div class="mb-settings-section">
+					<label for="mb_target_device">
+						Target Device : 
+						<?php echo($devicemenu); ?>
+					</label>
+				</div>
+				
+				<div class="mb-settings-section">
+					<label for="no_header_on_poster">
+						<input type="checkbox" name="no_header_on_poster" value="true" <?php echo($mb_no_header_on_poster); ?>/> 
+						Do not show title & author on store poster.
+					</label>
+				</div>
+				
+				<div class="mb-settings-section mb-settings-section-last">
+					<label for="mb_poster_attachment_url">
+						<div id="wp-content-media-buttons" class="wp-media-buttons" style="float:right;margin-bottom:8px;">
+							<a href="#" class="button insert-media add_media poster_upload"><span class="wp-media-buttons-icon"></span> Add Poster</a>
+						</div>
+						<div class="clear"></div>
+						<img class="poster_image" src="<?php echo $mb_poster_attachment_url;  ?>" />
+						<input class="poster_url" type="hidden" name="mb_poster_attachment_url" value="<?php echo $mb_poster_attachment_url;  ?>">
+						<input class="poster_id" type="hidden" name="mb_poster_attachment_id" value="<?php echo $mb_poster_attachment_id;  ?>">
+					</label>
+				</div>
+			</div>
+		</div>
+		
+				<div class="mb-settings-section-break">
+					<h3>Book Publishing</h3>
+				</div>
+				
+				
+		<div id="mb-major-settings">
+				<div class="mb-settings-section no-border">
+					<label for="book-post-publish">
+						<?php _e( "Be sure to update this page if you have made changes." ); ?>
 
+						<br/>
+			
+						<!-- defined on plugin settings page -->
+						<input type="hidden" id="distribution_url" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
+						<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
+					</label>
+				</div>
+				
+				<div class="mb-settings-section">		
+					<label for="mb_book_id">
+						Book ID:
+					</label>
+					<input type="text" id="mb_book_id" name="mb_book_id" value="<?php print $mb_book_id;  ?>" />
+
+				</div>
+				
+				<div class="mb-settings-section">		
+					<label for="mb_publisher_id">
+						Publisher:
+					</label>
+					<?php print $pub_id_menu;  ?>
+
+				</div>
+				
+				<div class="mb-settings-section  mb-settings-section-last">		
+					<label for="no_header_on_poster">
+						<input type="checkbox" name="mb_use_local_book_file" value="true" <?php echo($mb_use_local_book_file); ?>/> 
+						Use an uploaded book package.<br>
+						<i>To make a package, use the shell command, <code>tar cfo item.tar *</code> from within the directory of book files. Use the resulting item.tar file.</i>
+
+					</label>
+				</div>
+				
+		</div>
+
+	</div>
+		
 	<?php 
 }
 
 /* Display the book post poster meta box. */
+/*
 function mb_book_post_poster_meta_box( $post) { 
 	
 	$mb_poster_attachment_url = get_post_meta($post->ID, "mb_poster_attachment_url", true);
@@ -659,6 +768,7 @@ function mb_book_post_poster_meta_box( $post) {
 	</p>
 	<?php 
 }
+*/
 
 /*
  * Save a book post entry.
@@ -757,6 +867,10 @@ function mb_book_post_meta_save_postdata( $post_id) {
 		// Update mb book settings, e.g. no head on poster setting
 		$nhop = isset($_POST['no_header_on_poster']);
 		update_post_meta( $post_id, 'mb_no_header_on_poster', $nhop );
+
+		// Update mb book settings, checkbox to not build the book but to use an uploaded book package
+		$nhop = isset($_POST['mb_use_local_book_file']);
+		update_post_meta( $post_id, 'mb_use_local_book_file', $nhop );
 
 		// target device
 		update_post_meta( $post_id, 'mb_target_device', $_POST['mb_target_device'] );
@@ -1021,12 +1135,11 @@ function mb_post_mb_page_theme_meta_box( $post) {
 		$previewFileName = $previewsFolder .DIRECTORY_SEPARATOR.  "format_" . $i . ".jpg";
 		$pageFormatPopupMenu = mb_page_format_popup_menu($post->ID, $book_id);
 		
-		// Vertical theme?
-		$isVerticalTheme = "";
-		if (isset($mb_api->themes->themes[$theme_id]->aspect) && $mb_api->themes->themes[$theme_id]->aspect == "vertical") {
-			$isVerticalTheme = "vertical";
+		// portrait theme?
+		$isPortraitTheme = "";
+		if (isset($mb_api->themes->themes[$theme_id]->orientation) && $mb_api->themes->themes[$theme_id]->orientation == "portrait") {
+			$isPortraitTheme = "portrait";
 		}
-			
 			
 	
 		// Value list for each selection. That is, given select = 0, get $value[0], etc.
@@ -1034,7 +1147,7 @@ function mb_post_mb_page_theme_meta_box( $post) {
 		// Also, get the preview file names for each item, for the chooser grid, below.
 		$graphics = array();
 		$values = $themePageIDList;
-		asort ($values);
+		sort ($values);
 		while (list($k, $name) = each ($values)) {
 			$valueListArr[$k] = $name;
 			$graphics[$k] = "$previewsFolder/format_" . (1+$k) . ".jpg";
@@ -1061,7 +1174,7 @@ function mb_post_mb_page_theme_meta_box( $post) {
 			<div class="theme_page_preview_box">
 				<label for="format_page_preview">
 				</label>
-				<div class="theme_page_preview <?php echo ($isVerticalTheme); ?>">
+				<div class="theme_page_preview <?php echo ($isPortraitTheme); ?>">
 					<img id="format_page_preview" src="<?php echo ($previewFileName); ?>"/>
 				</div>
 			</div>

@@ -6,7 +6,74 @@
 	http://localhost/photobook/wordpress/wp-admin/load-styles.php?c=1&dir=ltr&load=admin-bar,wp-admin,buttons&ver=3.5
 */
 
-/* CSS for image uploader */
+/* #poststuff .inside */
+#book-post-settings div.inside {
+	background-color: #f1f1f1;
+	margin: 0;
+	padding: 0 0 8px;
+}
+
+#book-post-publish div.inside {
+	background-color: #f1f1f1;
+	margin: 0;
+	padding: 0 0 8px;
+}
+
+/* #minor-publishing */
+#mb-settings {
+}
+
+#mb-misc-settings {
+	padding: 6px 0 0;
+}
+
+#mb-major-settings {
+	border-top-color: #fff;
+
+}
+
+.mb-settings-section-break {
+	width: 100%;
+	border-width: 1px 0;
+	border-style: solid;
+	border-top-color: #fff;
+	border-bottom-color: #dfdfdf;
+	background-color: #b2f19c;
+	background-color: #e9e3dc;
+}
+
+/* #misc-publishing-actions */
+#mb-minor-settings {
+	padding: 6px 0 0;
+	padding-bottom: 6px;
+}
+
+/* misc-pub-section */
+.mb-settings-section {
+	padding: 6px 10px 8px;
+	border-width: 1px 0;
+	border-style: solid;
+	padding: 6px 10px 8px;
+	border-top-color: #fff;
+	border-bottom-color: #dfdfdf
+}
+
+.mb-settings-section.no-border {
+	border-width: 0px;
+}
+
+
+.mb-settings-section:first-child {
+	border-top-width: 0px;
+}
+
+.mb-settings-section-last {
+	border-bottom-width: 0;
+}
+
+.mb-update-button {
+	float: right;
+}
 
 .poster_image {
 	border: 1px solid black;
@@ -44,10 +111,10 @@ div .theme_page_preview {
 	background: url(img/page-preview-bkgd-small.png) no-repeat center center;
 }
 
-div .vertical.theme_page_preview  {
+div .portrait.theme_page_preview  {
 	width: 200px;
 	height: 250px;
-	background: url(img/page-preview-bkgd-small-vertical.png) no-repeat center center;
+	background: url(img/page-preview-bkgd-small-portrait.png) no-repeat center center;
 	margin-right: auto;
 	margin-left: auto;
 }
@@ -60,7 +127,7 @@ div .vertical.theme_page_preview  {
 	border: 2px solid black;
 }
 
-.vertical.theme_page_preview img {
+.portrait.theme_page_preview img {
 	width: 150px;
 	height: 200px;
 	margin: 24px 23px;
