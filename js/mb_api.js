@@ -84,4 +84,16 @@ jQuery(document).ready(function($){
 	});
 
 
+	jQuery('input[name=mb_book_available]').click( function() {
+		curval = jQuery('input[name='+this.name+']').attr('checked');
+		if (!curval) {
+			res = confirm ("Are you sure? It is a bad idea to hide books that people have already sold or downloaded — the book will disappear from the reader's library!");
+			
+			return res;
+		}
+		return true;
+	});
+
+
+
 });

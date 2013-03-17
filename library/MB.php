@@ -133,6 +133,8 @@ class Mimetic_Book
 		$this->description = $book_info['description'];
 		$this->short_description = $book_info['short_description'];
 		$this->modified = $book_info['modified'];
+		$this->meta_modified = $book_info['meta_modified'];
+		$this->orientation = $book_info['orientation'];
 		
 		$this->date = substr($book_info['datetime'], 0, 10);
 		$this->datetime = $book_info['datetime'];
@@ -362,15 +364,18 @@ class Mimetic_Book
 		
 		// Do NOT include a title or text if it begins with the special 'do not include' marker!
 		// The marker is ... $mb_api->ignore_me_code
-		if (preg_match("/^".$mb_api->ignore_me_code."/", $title)) {
-			$title = "";
-		}
+		$ignore_me = '/^'.$mb_api->ignore_me_code.'/';
+		
 		$title = trim($title);
 
-		if (preg_match("/^".$mb_api->ignore_me_code."/", $text)) {
-			$text = "";
+		if (preg_match($ignore_me, $title)) {
+			$title = "";
 		}
 
+		if (preg_match($ignore_me, $text)) {
+			$text = "";
+		}
+		
 		// delete embedded stuff like img or a
 		$text = str_replace( "\xC2\xA0", " ", $text);
 		$text = $this->delete_embedded_media($text);
@@ -378,19 +383,27 @@ class Mimetic_Book
 		
 		// To make CDATA work with the XML generator we are using, we need to
 		// wrap the text thus. Unless it is blank, of course.
-		if ($text)
-			$text = array('@cdata'=>$text);
-		if ($title)
-			$title = array('@cdata'=>$title);
+		// Note, the order matters!
+		$textblock = array ();
+		if ($title && $title != "")
+			$textblock[] = array( 'title' => array('@cdata'=>$title)) ;
+		if ($text && $text != "")
+			$textblock[] = array( 'text' => array('@cdata'=>$text));
 		
+		/*
 		$textblock = array (
 			array ('title' => $title), 
 			array('text' => $text )
 		);
+		*/
 		
-		$textblocks = array(
-			"textblock" => $textblock
-		);
+		if ($textblock) {
+			$textblocks = array(
+				"textblock" => $textblock
+			);
+		} else {
+			$textblocks = array();
+		}
 		
 		// This uses the built-in WP formats:
 		//$wp_page->format_id ? $mb_template_id = $wp_page->format_id : $mb_template_id = "";
@@ -421,7 +434,7 @@ class Mimetic_Book
 		// when the author wants the entry blank!
 		$page = array (
 			'@attributes'		=> $attr,
-			'title'				=> $wp_page->title,
+			'title'				=> $title,
 			'altTitle'			=> $category->name,
 			//'backgroundfile'	=> '',
 			//'audiofile'		=> '',
@@ -816,6 +829,11 @@ print ("-----------\n");
 				
 				$post = get_post( $attr['id'], ARRAY_A );
 				$src = $post['guid'];	// src file name (not a resized file)
+				
+				if ($src == "") {
+					return false;
+				}
+				
 				$mb_element['filename'] = "*" . DIRECTORY_SEPARATOR . $this->pictureFolder . basename( $src );
 				
 				// This would use the $attr class for the id, but we get it free from $attr already. Somehow.
@@ -882,12 +900,12 @@ print ("-----------\n");
 							$filepath = $dir.$name."@2x{$ext}";
 							$image->save($filepath);
 						} else {
-							return nil;
+							return null;
 						}
 					}
 				
 				} else {
-					return nil;
+					return null;
 				}				
 				break;
 			
@@ -902,7 +920,7 @@ print ("-----------\n");
 				// Copy the audio file to the audio folder
 				$success = $this->copy_audio_file($attr['src']);
 				if (!$success)
-					return nil;
+					return null;
 					
 				break;
 		}

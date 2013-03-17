@@ -212,10 +212,8 @@ function mb_book_page_meta_save_postdata( $post_id) {
 	// OK, we're authenticated: we need to find and save the data
 	$pid = $_POST['mb_publisher_id'];
 	$pid = trim($pid);
-	if ( $pid ) {
-		update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
-		$mb_api->write_publishers_file();
-	}
+	update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
+	$mb_api->write_publishers_file();
 		
 }
 
@@ -229,7 +227,7 @@ function mb_book_page_meta_save_postdata( $post_id) {
  */
  
 
-// Init to create the custom post type
+// Init to create the BOOK custom post type
 function mb_make_custom_post_type_init() {
 	global $dir;
 	
@@ -397,9 +395,12 @@ function mb_delete_book_post($post_id)
 	$post = get_post($post_id);
 	if ($post->post_type == 'book') {
 		mb_delete_all_attachments($post_id);
-		$book_id = str_replace("item_", "", $post->post_name);
-		$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
+		$book_id = get_post_meta($post_id, "mb_book_id", true);
+		$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
 		$funx->rrmdir($dir);
+		$mb_api->write_shelves_file();
+		mb_write_log("Delete book, dir = $dir");
+		
 	}
 }
 
@@ -427,7 +428,7 @@ function mb_book_custom_columns_content($column_name, $post_ID) {
 		wp_register_style( 'mb_api_style', $jsCSS);
 		wp_enqueue_style('mb_api_style');
 
-		mb_show_publish_button($post_ID) ;		  
+		mb_show_publish_button($post_ID) ;	  
 		break;
     }  
 }  
@@ -436,16 +437,21 @@ function mb_show_publish_button($post_ID) {
 	global $mb_api;
 	
 	$mb_book_id = get_post_meta($post_ID, "mb_book_id", true);
-	//$mb_book_publisher_id = get_post_meta($post_ID, "mb_publisher_id", get_option('mb_publisher_id', true));
+	$mb_book_available = get_post_meta($post_ID, "mb_book_available", true);
+	if ($mb_book_available && $mb_book_id) {
+		?>
+		<input type="hidden" id="distribution_url_<?php echo $mb_book_id; ?>" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
+		<input type="hidden" id="base_url_<?php echo $mb_book_id; ?>" value="<?php print get_bloginfo('url');  ?>" />
 
-	?>
-	<input type="hidden" id="distribution_url_<?php echo $mb_book_id; ?>" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
-	<input type="hidden" id="base_url_<?php echo $mb_book_id; ?>" value="<?php print get_bloginfo('url');  ?>" />
-
-	<input type="button" class="wp-core-ui button-primary publish_book_button" id="<?php echo "$mb_book_id"; ?>" value="Publish eBook" />
-	<br>
-	<div style="margin-top:0px;text-align:left;" class="publishing_progress_message" id="publishing_progress_message_<?php echo $mb_book_id; ?>" ></div>
-	<?php 
+		<input type="button" class="wp-core-ui button-primary publish_book_button" id="<?php echo "$mb_book_id"; ?>" value="Publish eBook" />
+		<br>
+		<div style="margin-top:0px;text-align:left;" class="publishing_progress_message" id="publishing_progress_message_<?php echo $mb_book_id; ?>" ></div>
+		<?php 
+	} else {
+		?>
+		This book is hidden. To show it, check the "Show on Shelves" box in the Book Settings pane.
+		<?php
+	}
 }
 
 
@@ -503,15 +509,16 @@ function mb_book_add_post_meta_boxes() {
 		'high'					// Priority
 	);
 	*/
-	
+
 	add_meta_box(
 		'book-post-settings',			// Unique ID
-		esc_html__( 'Book Design' ),		// Title
+		esc_html__( 'Book Settings' ),		// Title
 		'mb_book_post_settings_meta_box',		// Callback function
 		'book',					// Admin page (or post type)
 		'side',					// Context
 		'high'					// Priority
 	);
+
 	/*
 	add_meta_box(
 		'book-post-poster',			// Unique ID
@@ -537,6 +544,7 @@ function mb_book_post_publish_meta_box( $post) {
 	if (!$mb_book_publisher_id)
 		$mb_book_publisher_id = get_option('mb_publisher_id', '1');
 	$mb_use_local_book_file = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_use_local_book_file", true) );
+	$mb_book_available = get_post_meta($post->ID, "mb_book_available", true);
 
 	?>
 	<!-- defined on plugin settings page -->
@@ -547,11 +555,12 @@ function mb_book_post_publish_meta_box( $post) {
 		<div id="mb-misc-settings">
 			<div id="mb-minor-settings">
 				<div class="mb-settings-section no-border">
+				
+			<?php
+		if ($mb_book_available) {
+			?>
 					<label for="book-post-publish">
-						<?php _e( "Be sure to update this page if you have made changes." ); ?>
-
-						<br/>
-			
+						Be sure to update this page if you have made changes.<br/>
 					</label>
 				
 					<div class="submitbox" >
@@ -561,6 +570,15 @@ function mb_book_post_publish_meta_box( $post) {
 						</div>
 					</div>
 					<div class="clear"></div>
+					
+					<?php
+			} else {
+					?>
+					This book is hidden. To show it, check the "Show on Shelves" box in the Book Settings pane. 
+					<?php
+			}
+					?>
+					
 				</div>
 				
 			</div>
@@ -621,17 +639,18 @@ function mb_book_post_settings_meta_box( $post) {
 	$mb_poster_attachment_url = get_post_meta($post->ID, "mb_poster_attachment_url", true);
 	$mb_poster_attachment_id = get_post_meta($post->ID, "mb_poster_attachment_id", true);
 
-	$mb_book_theme_id = get_post_meta($post->ID, "mb_book_theme_id", true);
+	//$mb_book_theme_id = get_post_meta($post->ID, "mb_book_theme_id", true);
 
 	$mb_book_id = get_post_meta($post->ID, "mb_book_id", true);
-	
+
 	$mb_book_publisher_id = get_post_meta($post->ID, "mb_publisher_id", true);
 	if (!$mb_book_publisher_id)
 		$mb_book_publisher_id = get_option('mb_publisher_id', '1');
-	
+
 	$values = $mb_api->get_publisher_ids();
 	$listname = "";
-	$pid = get_post_meta($post->ID, "mb_publisher_id", true);
+
+	//$pid = get_post_meta($post->ID, "mb_publisher_id", true);
 	isset ($mb_book_publisher_id) ? $checked = $mb_book_publisher_id : $checked = 1;
 	$listname = "mb_publisher_id";
 	$sort = true;
@@ -643,6 +662,8 @@ function mb_book_post_settings_meta_box( $post) {
 	$mb_book_remote_url = get_post_meta( $post->ID, 'mb_book_remote_url', true );
 	
 	$mb_use_local_book_file = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_use_local_book_file", true) );
+
+	$mb_book_available = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_book_available", true) );
 
 	?>
 	<div id="mb-settings">
@@ -662,6 +683,14 @@ function mb_book_post_settings_meta_box( $post) {
 				<div class="clear"></div>
 			</div>
 			<div id="mb-minor-settings">
+				<div class="mb-settings-section">
+					<label for="mb_book_available">
+						<input class="mb_verify_hide_book" default_value="1" type="checkbox" name="mb_book_available" value="true" <?php echo($mb_book_available); ?>/> 
+						Show on Shelves<br>
+						<i>Uncheck this box to remove your book from the shelves. You can still work on it. <b>It is a bad idea to hide books that people have already sold or downloaded — the book will disappear from the reader's library!</b></i>
+					</label>
+				</div>
+	
 				<div class="mb-settings-section">
 					<label for="mb_book_theme_id">
 						Choose a design theme for your book:<br/>
@@ -744,7 +773,7 @@ function mb_book_post_settings_meta_box( $post) {
 				<div class="mb-settings-section mb-settings-section-last">		
 					<label for="mb_book_remote_url">
 						Remote URL for downloading:<br>
-						<i>The remote URL is useful if you want to download a package from a remote server, such as a cloud file delivery server. The URL must start with http://</i><br>
+						<i>The remote URL is useful if you want to download a package from a remote server, such as a cloud file delivery server. The URL is not only the server folder, but it must include the file name, too. The URL must start with http://</i><br>
 					</label>
 					<input type="text" style="width:95%;" id="mb_book_remote_url" name="mb_book_remote_url" value="<?php print $mb_book_remote_url;  ?>" />
 				</div>
@@ -878,12 +907,21 @@ function mb_book_post_meta_save_postdata( $post_id) {
 			update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
 
 		// Update mb book settings, e.g. no head on poster setting
-		$nhop = isset($_POST['no_header_on_poster']);
-		update_post_meta( $post_id, 'mb_no_header_on_poster', $nhop );
+		$tmp = isset($_POST['no_header_on_poster']);
+		update_post_meta( $post_id, 'mb_no_header_on_poster', $tmp );
+
+		// Update mb book settings, e.g. no head on poster setting
+		$prev = get_post_meta( $post_id, 'mb_book_available', true );
+		$tmp = isset($_POST['mb_book_available']);
+		if ($prev != $tmp) {
+			update_post_meta( $post_id, 'mb_book_available', $tmp );
+			$mb_api->write_shelves_file();
+		}
+		
 
 		// Update mb book settings, checkbox to not build the book but to use an uploaded book package
-		$nhop = isset($_POST['mb_use_local_book_file']);
-		update_post_meta( $post_id, 'mb_use_local_book_file', $nhop );
+		$tmp = isset($_POST['mb_use_local_book_file']);
+		update_post_meta( $post_id, 'mb_use_local_book_file', $tmp );
 
 		// target device
 		update_post_meta( $post_id, 'mb_target_device', $_POST['mb_target_device'] );

@@ -17,6 +17,7 @@ class MB_API {
 		$this->themes_dir = $dir .DIRECTORY_SEPARATOR. $this->themes_dir_name;
 		$this->themes = new MB_API_Themes($this->themes_dir);
 
+		$this->set_error_messages();
 
 		// Special "Do Not Use Me" marker for title or text blocks.
 		// Anything beginning with this code will be ignored!
@@ -77,7 +78,7 @@ class MB_API {
 
 		// Book Custom Post: 
 		// Delete all attached media from a custom 'book' post if the post is deleted.
-		add_action('update_option_mb_api_base', array(&$this, 'flush_rewrite_rules'));
+		//add_action('update_option_mb_api_base', array(&$this, 'flush_rewrite_rules'));
 		
 		
 		
@@ -252,8 +253,8 @@ class MB_API {
       if (isset($_REQUEST['mb_api_show_only_my_posts'])) {
 		$this->save_option('mb_api_show_only_my_posts', true);
       } else {
-	      $this->save_option('mb_api_show_only_my_posts', false);
-	  }
+	     $this->save_option('mb_api_show_only_my_posts', false);
+	 }
       
    }
 	// ---------- END CONTROLLERS ------------
@@ -269,7 +270,7 @@ class MB_API {
 		<h3>Book</h3>
 		<p>Choose which book you wish to publish. Maybe better if this lives on the book's post page, but I don't know how to do that right now.</p>
 		<table class="form-table">
-		 <tr valign="top">
+		<tr valign="top">
 			<th scope="row">Book:</th>
 				<td>
 					<?php
@@ -691,9 +692,9 @@ class MB_API {
 
  
  	/*
-	 * Get a book post.
-	 * If no $post_id is spec'd, then check the query
-	 */
+	* Get a book post.
+	* If no $post_id is spec'd, then check the query
+	*/
 	
 	private function get_book_post($post_id = null, $category_id = null, $category_slug = null) {
 		global $mb_api;
@@ -758,7 +759,7 @@ class MB_API {
 		
 		
 		// Get custom fields
-		$custom_fields = get_post_custom($post->id);
+		$custom_fields = get_post_custom($post_id);
 		//print_r($custom_fields);
 		
 		if (isset($custom_fields['mb_book_id']) && $custom_fields['mb_book_id']) {
@@ -809,15 +810,15 @@ class MB_API {
 		} else {
 			$publisher_id = (string)get_option('mb_api_book_publisher_id', '?');
 		}
-		
-		 //$description, $short_description, $type
-		 $description = $post->content;
-		 // remove images and links from the content
-		 $description = preg_replace ("/<img.*?\>/","",  $description);
-		 $description = preg_replace ("/<\/?a.*?\>/","",  $description);
 
-		 $short_description = $post->excerpt;
-		 
+		//$description, $short_description, $type
+		$description = $post->content;
+		// remove images and links from the content
+		$description = preg_replace ("/<img.*?\>/","",  $description);
+		$description = preg_replace ("/<\/?a.*?\>/","",  $description);
+
+		$short_description = $post->excerpt;
+		
 		if (isset($custom_fields['mb_publication_type']) && $custom_fields['mb_publication_type']) {
 			$type = $custom_fields['mb_publication_type'][0];
 		} else {
@@ -836,8 +837,8 @@ class MB_API {
 	
 		
 		/*
-		 * Now we have a custom field for posters!
-		 */
+		* Now we have a custom field for posters!
+		*/
 
 		$poster_url = "";
 		if (isset($custom_fields['mb_poster_attachment_id']) && $custom_fields['mb_poster_attachment_id'][0]) {
@@ -878,42 +879,72 @@ class MB_API {
 		
 		
 		/*
-		 * Get modification date for book.
-		 * Get the most recent of the post modifications OR
-		 * the book post modification date.
-		 * This means that updating info on the book page itself also
-		 * sets the modification date.
-		 */
- 
- 
-		// Get most recent post
-		$book_posts = get_posts(array(
-			'category'		=> $category_id,
-			'posts_per_page'	=> 1,
-			'post_type'		=> 'post',
-			'orderby'		=> 'modified',
-			'order'			=> 'DESC',
-			'post_status' 	=> 'any'
-		));
-		
+		* Get modification date for book.
+		* Get the most recent of the post modifications OR
+		* the book post modification date.
+		* This means that updating info on the book page itself also
+		* sets the modification date.
+		*/
+		$use_local_book_file = get_post_meta($post->id, "mb_use_local_book_file", true);
+		$remoteURL = trim(get_post_meta($post->id, "mb_book_remote_url", true));
+
 		$modified = "";
-		if ($book_posts) {
-			$book_posts = $book_posts[0];
-			// This time is LOCAL time
-			$modified = $book_posts->post_modified;
-			//$mod = $post->post_modified_gmt;
-			//$this->write_log(__FUNCTION__.":A - $book_id, Modified = $modified\n\n\n");		
-		}
+
+		if ($remoteURL || $use_local_book_file) {
+			// get modified from a local item.json file
+			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
+			$fn = $dir . DIRECTORY_SEPARATOR . "item.json";
+			if (file_exists($fn)) {
+				$info = json_decode( file_get_contents($fn) );
+				$modified = $info->modified;
+			} else {
+				$modified = "";
+				if ($remoteURL) {
+					return $this->errors->get_error_message('remote_item_file_missing');
+					//$this->error(__FUNCTION__.": A remote book package requires you upload an item.json file to this website.");
+				} else {
+					return $this->errors->get_error_message('item_file_missing');
+					//$this->error(__FUNCTION__.": An uploaded book package must contain an item.json file.");
+				}
+			}
+			
+		} else {
+ 			// get modified from posts for this book, if any
+
+			// Get most recent post
+			$book_posts = get_posts(array(
+				'category'		=> $category_id,
+				'posts_per_page'	=> 1,
+				'post_type'		=> 'post',
+				'orderby'		=> 'modified',
+				'order'			=> 'DESC',
+				'post_status' 	=> 'any'
+			));
+	
+			if ($book_posts) {
+				$book_posts = $book_posts[0];
+				// This time is LOCAL time
+				$modified = $book_posts->post_modified;
+				//$mod = $post->post_modified_gmt;
+				//$this->write_log(__FUNCTION__.":A - $book_id, Modified = $modified\n\n\n");		
+			}
 		
+		}
+ 
+		// META MODIFIED: get the mod datetime for the book post itself, so we can update
+		// poster, text, etc. but not update the actual book.
 		// If the book page itself was modified more recently, use it as the modification date.
 		// This ensures that changing the poster will change the modification date.
 		// This time is LOCAL time
 		$book_post_modified = $post->modified;
+		/*
 		if (strtotime($book_post_modified) > strtotime($modified)) {
 			$modified = $book_post_modified;
 			//$this->write_log(__FUNCTION__.":C - $book_id, Modified = $modified\n\n\n");		
 		}
+		*/
 		
+		// FALLBACK for modified...
 		// If we don't have any information, use NOW as the modified.
 		if (!$modified)
 			$modified = date('Y-m-d H:i:s', current_time('timestamp'));
@@ -940,13 +971,14 @@ class MB_API {
 			'id'		=> $book_id, 
 			'title'			=> $title, 
 			'author'		=> $author, 
-//			'theme'			=> $theme, 
+			'theme'			=> $theme, 
 			'publisher_id'	=> $publisher_id,  
 			'description'	=> $description, 
 			'short_description'		=> $short_description, 
 			'type'			=> $type, 
 			'datetime'		=> $post->date, 
 			'modified'		=> $modified, 
+			'meta_modified'		=> $book_post_modified, 
 			'icon_url'		=> $icon_url, 
 			'poster_url'	=> $poster_url,
 			'category_id'	=> $category_id,
@@ -959,6 +991,113 @@ class MB_API {
 		
 		return $result;
 	}
+	
+
+
+
+	/*
+	 * Write the Shelves file
+	 * This is a json file, "shelves.json", used by the Mimetic Books app to know
+	 * what is available for download.
+	 */
+	public function write_shelves_file() {
+		global $mb_api;
+
+		$mb_api->write_log(__FUNCTION__);
+
+		
+		$shelves = array (
+			'path'		=> "shelves",
+			'title'		=> "mylib",
+			'maxsize'	=> 100,
+			'id'		=> "shelves",
+			'password'	=> "mypassword",
+			'filename'	=> "shelves.json",
+			'itemsByID'	=> array ()
+		);
+		
+		// Get all books
+		$posts = $mb_api->introspector->get_posts(array(
+				'post_type' => 'book',
+				'posts_per_page'	=> -1,
+				'post_status' => 'any'
+			), true);
+	
+		/*
+		 * Book Info:
+			'id'			=> $book_id, 
+			'title'			=> $title, 
+			'author'		=> $author, 
+			'theme'			=> $theme, 
+			'publisher_id'	=> $publisher_id,  
+			'description'	=> $description, 
+			'short_description'		=> $short_description, 
+			'type'			=> $type, 
+			'datetime'		=> $post->date, 
+			'modified'		=> $post->modified, 
+			'icon_url'		=> $icon_url, 
+			'poster_url'	=> $poster_url,
+			'category_id'	=> $category_id
+		 */
+		foreach ($posts as $post) {
+			$info = $this->get_book_info_from_post($post->ID);
+			$book_id = $info['id'];
+			// Only add the item if it is marked published with our custom meta field.
+			$is_published = get_post_meta($post->ID, "mb_published", true);
+			// Also check the package's directory is there
+			$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
+			$is_published =  ( ($info['remoteURL'] || file_exists($tarfilepath)) && $is_published);
+			
+			if ($is_published and $mb_api->book_is_available($post->ID)) {
+				
+				// Get the definitive modified datetime from the item date file.
+				// This modified tells us whether the client should update the
+				// actual book. Even if the descriptive shelf data for a book is
+				// updated, that doesn't mean they need to update the book itself,
+				// which might be a huge download.
+				$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
+				$infofile = $dir . DIRECTORY_SEPARATOR . "item.json";
+				if (file_exists($infofile)) {
+				
+				
+					$book_info_from_file = json_decode( file_get_contents($infofile) );
+
+					// The names used in the info files are slightly different
+					// from the names used by the book post.
+
+					$item = array (
+						'id'				=> $book_id, 
+						'title'				=> $info['title'], 
+						'author'			=> $info['author'], 
+						'publisherid'		=> $info['publisher_id'],  
+						'description'		=> $info['description'], 
+						'shortDescription'	=> $info['short_description'], 
+						'type'				=> $info['type'], 
+						'datetime'			=> $info['datetime'], 
+						'modified'			=> $info['modified'],
+						'metaModified'		=> $info['meta_modified'],
+						'path'				=> $book_id,
+						'shelfpath'			=> $mb_api->settings['shelves_dir_name'],
+						'itemShelfPath'		=>$mb_api->settings['shelves_dir_name'] . DIRECTORY_SEPARATOR . $info['id'],
+	//					'theme'				=> $info['theme'],				
+						'hideHeaderOnPoster'	=> $info['hideHeaderOnPoster'],
+						'orientation'		=> $info['orientation'],
+						'remoteURL'			=> $info['remoteURL']
+					);
+				
+					$shelves['itemsByID'][$book_id] = $item;
+				} // if infofile exists
+			}
+		}
+		   $output = json_encode($shelves);
+		   $fn = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . "shelves.json";
+		   // Delete previous version of the shelves
+		   if (file_exists($fn))
+			   unlink ($fn);
+		   file_put_contents ($fn, $output, LOCK_EX);
+		   return $output;
+	}
+	
 	
 
   
@@ -1074,47 +1213,72 @@ class MB_API {
 
 
 
+	// ============================================================
+	// Mark a book as not available, so it is unlisted in the shelves.
+	function set_book_to_not_available ($post_id)
+	{
+		update_post_meta($post_id, "mb_book_available", false);
+	}
+	
+	// ============================================================
+	// Mark a book as available, so it will be listed in the shelves
+	function set_book_to_available ($post_id)
+	{
+		update_post_meta($post_id, "mb_book_available", true);
+	}
+	
+
+	// ============================================================
+	// Check if a book is available on the shelvses.
+	function book_is_available ($post_id)
+	{
+		$r = get_post_meta($post_id, "mb_book_available", true);
+	//$this->write_log(__FUNCTION__.": (A) Book is available: $post_id : $r");
+		return $r;
+	}
+	
+
+
+
 	/*
-	 * ============================================================
-	 * Get an array of all publishers.
-	 * This is done by getting all pages which are publisher pages,
-	 * meaning they are pages with a publisher ID set.
-	 * RETURN: array of publisher names and ID's:
-	 *	$publisher_ids = ( id => name, ....)
-	 * ============================================================
-	 */
+	* ============================================================
+	* Get an array of all publishers.
+	* This is done by getting all pages which are publisher pages,
+	* meaning they are pages with a publisher ID set.
+	* RETURN: array of publisher names and ID's:
+	*	$publisher_ids = ( id => name, ....)
+	* ============================================================
+	*/
 
 	function get_publisher_ids() {
 		
 		$publishers = array ();
-		
-		// Get all pages
-		$posts = $this->introspector->get_posts(array(
+		$args = array(
 				'post_type' => 'page',
 				'posts_per_page'	=> -1,
 				'post_status' => 'any'
-			), false);
-		
+			);
+		// Get all pages
+		$posts = get_posts($args);
 		// For all pages which have a publisher id meta data in them...
 		foreach ($posts as $post) {
-			$publisher_id = get_post_meta($post->id, "mb_publisher_id", true);
+			$publisher_id = get_post_meta($post->ID, "mb_publisher_id", true);
 			if ($publisher_id) {
-				$publishers[$publisher_id] = $post->title;
+				$publishers[$publisher_id] = $post->post_title;
 				//$publishers[$post->title] = $publisher_id;
 			}
 		}
-		
 		return $publishers;
 	}
 
 
 	/*
-	 * ============================================================
-	 * Write the Publishers file
-	 * This is a json file, "publishers.json", used by the Mimetic Books app to know
-	 * the info about publishers.
-	 * ============================================================
-	 */
+	* ============================================================
+	* Write the Publishers file
+	* This is a json file, "publishers.json", used by the Mimetic Books app to know
+	* the info about publishers.
+	* ============================================================
+	*/
 	function write_publishers_file() {
 		$this->write_log(__FUNCTION__);
 
@@ -1293,6 +1457,15 @@ class MB_API {
 
 
 
-}
+	function set_error_messages() {
+		$this->errors = new WP_Error();
+		$this->errors->add('item_file_missing', __('An uploaded book package must contain an item.json file.'));
+		$this->errors->add('remote_item_file_missing', __('A remote book package requires you upload an item.json file to this website.'));
+		$this->errors->add('no-publish-book', __('Could not publish this book. Check the log.'));
+		
+	}
+
+
+} // END CLASS
 
 ?>

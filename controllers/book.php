@@ -152,28 +152,29 @@ We use some of the WP fields for our own purposes:
 			// Overwrite any existing file without asking
 			$filename = $dir . DIRECTORY_SEPARATOR . "item.tar";
 
-			
+			//----
 			// Don't build from posts, use an uploaded book package?
 			$use_local_book_file = get_post_meta($id, "mb_use_local_book_file", true);
 			if ($use_local_book_file && $use_local_book_file != "")
 				$use_local_book_file = true;
 
 			if ($use_local_book_file) {
-				
+				// Get the book from an uploaded TAR package
 				$this->write_log("Publish from local book package file ");
 				$this->write_log("book_id = $book_id, username = $u, password = $p");
 				
 				// HOWEVER, if we are using a remote URL for the book file, 
 				// then we don't check whether it exists but assume it does.
 				$remoteURL = trim(get_post_meta($id, "mb_book_remote_url", true));
+				if ($remoteURL != "")
+					$this->write_log("Using remote URL : $remoteURL");
 				
 				if (!$remoteURL && !file_exists($filename)) {
-					$mb_api->error(__FUNCTION__.": " . basename($filename) . " does not exist.");
+					$mb_api->error(__FUNCTION__.": The uploaded book package (" . basename($filename) . ") is not inside the book shelf folder ($book_id).");
 				}
 
-
 			} else {
-				
+				// Build the book from the WP site:
 				
 				$this->build_book_package($id);
 					
@@ -202,49 +203,115 @@ We use some of the WP fields for our own purposes:
 		// we use $book_id for directories, and WP insists on lowercase
 		$book_id = strtolower($book_id);
 
-		
-		// This works to make a tar file PHP can read, from the directory of files: 
-		//		tar cfo item.tar *
-		// Extract the icon, poster, and item.json
-		// Don't fail if this fails, just throw a warning?
-		try {
-			$this->write_log(__FUNCTION__.": Extract icon, poster, item info from the package.");
-			$phar = new PharData($filename);
+		if (file_exists($filename)) {
+			// This works to make a tar file PHP can read, from the directory of files: 
+			//		tar cfo item.tar *
+			// Extract the icon, poster, and item.json
+			// Don't fail if this fails, just throw a warning?
+			try {
+				$this->write_log(__FUNCTION__.": Extract icon, poster, item info from the package at $filename");
+				$phar = new PharData($filename);
 
-			if ($phar->offsetExists('icon.png'))
-				$phar->extractTo($dir, array('icon.png'), true);
-			else
-				$this->write_log(__FUNCTION__.": No icon.");
+				if ($phar->offsetExists('icon.png'))
+					$phar->extractTo($dir, array('icon.png'), true);
+				else
+					$this->write_log(__FUNCTION__.": No icon.");
 
-			if ($phar->offsetExists('poster.jpg'))
-				$phar->extractTo($dir, array('poster.jpg'), true);
-			else
-				$this->write_log(__FUNCTION__.": No poster.");
+				if ($phar->offsetExists('poster.jpg'))
+					$phar->extractTo($dir, array('poster.jpg'), true);
+				else
+					$this->write_log(__FUNCTION__.": No poster.");
 
-			if ($phar->offsetExists('item.json'))
-				$phar->extractTo($dir, array('item.json'), true);	
-			else
-				$this->write_log(__FUNCTION__.": No item.json file.");
-		} catch (Exception $e) {
-			// handle errors
-			// This includes missing files, when the poster or icon files are missing.
-			// DON'T quit here, it is probably just be a missing file.
-			$error = "Error extracting icon or poster or item from the book package. Probably missing poster or icon.";
-			$this->write_log(__FUNCTION__.": Error: $error");
-			$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item: " . $e);
+				if ($phar->offsetExists('item.json'))
+					$phar->extractTo($dir, array('item.json'), true);	
+				else
+					$this->write_log(__FUNCTION__.": No item.json file.");
+			} catch (Exception $e) {
+				// handle errors
+				// This includes missing files, when the poster or icon files are missing.
+				// DON'T quit here, it is probably just be a missing file.
+				$error = "Error extracting icon or poster or item from the book package. Probably missing poster or icon.";
+				$this->write_log(__FUNCTION__.": Error: $error");
+				$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item: " . $e);
+			}
 		}
-
+		
+		// Get the book post
+		$book_post = $this->get_book_post_from_book_id($book_id);
+		
 		// ------------------------------------------------------------
 		// Create or Update a post entry in the Wordpress for this book!
 		// First, look for an existing entry with this ID
-		$book_post = $this->get_book_post_from_book_id($book_id);
-
 		$user_id = $user->ID;
-
-		$info = json_decode( file_get_contents($dir . DIRECTORY_SEPARATOR . "item.json") );
-
+		$fn = $dir . DIRECTORY_SEPARATOR . "item.json";
+		if (file_exists($fn)) {
+			$info = json_decode( file_get_contents($fn) );
+		} else {
+			$info = null;
+		}
+		
 		if ($book_post && isset($book_post->ID)) {
 			$post_id = $book_post->ID;
+			
+			// Get the book's info from the WP page
+			$book_info_from_wp = $this->get_book_info_from_post($post_id);
+			
+			if (is_wp_error($book_info_from_wp)) {
+				return $book_info_from_wp->get_error_message();
+			}
+
+			// Get the icon/poster from the WP book page to override
+			// the extracted icon/poster.
+			// $dir is the shelf directory of the final files to download
+			if ($book_info_from_wp['icon_url'] != "")
+				copy($book_info_from_wp['icon_url'], $dir.DIRECTORY_SEPARATOR."icon.png");
+			if ($book_info_from_wp['poster_url'] != "")
+				copy($book_info_from_wp['poster_url'], $dir.DIRECTORY_SEPARATOR."poster.jpg");
+
+
+			// Get the info file. This might be built from WP or it might be extracted
+			// from the package file.
+			// If we built from WP, do nothing more, we have everything.
+			// If we built from an uploaded package, get missing descriptive info
+			// from the packaged item.json and put it into the WP book post.
+			if ($use_local_book_file) {
+
+				// Merge from package info file into WP book post:
+				$post = array();
+				if ($book_post->post_content="")
+					$post['post_content'] = $info->description;
+				if ($book_post->post_excerpt="")
+					$post['post_excerpt'] = $info->shortDescription;
+				if ($book_post->post_title="")
+					$post['post_title'] = $info->title;
+				if ($post) {
+					$post['ID'] = $book_post->ID;
+					$post_id = wp_update_post( $post, true );
+				}
+				
+				// Refresh the book info:
+				$book_info_from_wp = $this->get_book_info_from_post($book_post->ID);
+
+//$this->write_log(print_r($book_info_from_wp,true));
+
+				// Update these fields (title, description, etc.) with the final data:
+				$info->description = $book_info_from_wp['description'];
+				$info->shortDescription = $book_info_from_wp['short_description'];
+				$info->title = $book_info_from_wp['title'];
+				$info->publisherid = $book_info_from_wp['publisher_id'];
+				
+				// Now, merge info from the WP book post back into the info file
+				$book_info_from_wp['build_files_dir'] = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
+
+//$this->write_log(print_r($info,true));
+
+				$this->write_book_info_file($book_info_from_wp);
+				
+				
+			} else {
+			}
+
+			
 		} else {
 			// If post does not exist, create it.
 			// This must be a remote publish, since the book post does not exist,
@@ -397,7 +464,9 @@ We use some of the WP fields for our own purposes:
 		// Copy the book promo art, i.e. icon and poster files, based on the book info.
 		$mb->get_book_promo_art( $build_files_dir);
 		
-		
+//$this->write_log(__FUNCTION__.": build_files_dir=$build_files_dir and {$mb->build_files_dir}");
+
+		$mb->build_files_dir = $build_files_dir;
 		$this->write_book_info_file($mb);
 		
 		// Build the tar file from the files, ready for sending.
@@ -550,35 +619,62 @@ We use some of the WP fields for our own purposes:
 		global $mb_api;
 
 		if ($book_obj) {
-			$info = array (
-				'type'					=> $book_obj->type,
-				'id'					=> $book_obj->id,
-				'title'					=> $book_obj->title,
-				'description'			=> $book_obj->description,
-				'shortDescription'		=> $book_obj->short_description,
-				'author'				=> $book_obj->author,
-				'date'					=> $book_obj->date,
-				'datetime'				=> $book_obj->datetime,
-				'modified'				=> $book_obj->modified,
-				'publisherid'			=> $book_obj->publisher_id,
-				'hideHeaderOnPoster'	=> $book_obj->hideHeaderOnPoster,
-				'orientation'			=> $book_obj->orientation,
-			);
-			
+			if (is_array($book_obj)) {
+				$info = array (
+					'type'					=> $book_obj['type'],
+					'id'					=> $book_obj['id'],
+					'title'					=> $book_obj['title'],
+					'description'			=> $book_obj['description'],
+					'shortDescription'		=> $book_obj['short_description'],
+					'author'				=> $book_obj['author'],
+//					'date'					=> $book_obj['date'],
+					'datetime'				=> $book_obj['datetime'],
+					'modified'				=> $book_obj['modified'],
+					'metaModified'			=> $book_obj['meta_modified'],
+					'publisherid'			=> $book_obj['publisher_id'],
+					'hideHeaderOnPoster'	=> $book_obj['hideHeaderOnPoster'],
+					'orientation'			=> $book_obj['orientation']
+				);
+				$build_files_dir = $book_obj['build_files_dir'];
+			} else {
+				$info = array (
+					'type'					=> $book_obj->type,
+					'id'					=> $book_obj->id,
+					'title'					=> $book_obj->title,
+					'description'			=> $book_obj->description,
+					'shortDescription'		=> $book_obj->short_description,
+					'author'				=> $book_obj->author,
+//					'date'					=> $book_obj->date,
+					'datetime'				=> $book_obj->datetime,
+					'modified'				=> $book_obj->modified,
+					'metaModified'			=> $book_obj->meta_modified,
+					'publisherid'			=> $book_obj->publisher_id,
+					'hideHeaderOnPoster'	=> $book_obj->hideHeaderOnPoster,
+					'orientation'			=> $book_obj->orientation
+				);
+				$build_files_dir = $book_obj->build_files_dir;
+			}
+			$build_files_dir = trim($build_files_dir);
+			$fn = $build_files_dir . DIRECTORY_SEPARATOR . "item.json";			
 			$output = json_encode($info);
 	
-			$fn = $book_obj->build_files_dir . DIRECTORY_SEPARATOR . "item.json";
 			
+			//$this->write_log(__FUNCTION__. "called by:". $this->getCallingFunction() );
+
 			// Delete previous version of the package
-			if (file_exists($fn))
-				unlink ($fn);
-	
-			file_put_contents ($fn, $output, LOCK_EX);
+			if ($build_files_dir != "") {
+				if ( file_exists($fn) )
+					unlink ($fn);
+				file_put_contents ($fn, $output, LOCK_EX);
+			} else {
+				$mb_api->error(__FUNCTION__.": No book directory: $build_files_dir, called by $caller");
+				return false;				
+			}
 		} else {
 			$mb_api->error(__FUNCTION__.": No book object passed.");
+				return false;
 			return false;
 		}
-		
 	}
 	
 	
@@ -591,7 +687,12 @@ We use some of the WP fields for our own purposes:
 	 */
 	public function write_shelves_file() {
 		global $mb_api;
-
+		
+		return $mb_api->write_shelves_file();
+		
+		// MOVED TO api.php
+		
+		/*
 		$this->write_log(__FUNCTION__);
 
 		
@@ -612,22 +713,6 @@ We use some of the WP fields for our own purposes:
 				'post_status' => 'any'
 			), true);
 	
-		/*
-		 * Book Info:
-			'id'			=> $book_id, 
-			'title'			=> $title, 
-			'author'		=> $author, 
-			'theme'			=> $theme, 
-			'publisher_id'	=> $publisher_id,  
-			'description'	=> $description, 
-			'short_description'		=> $short_description, 
-			'type'			=> $type, 
-			'datetime'		=> $post->date, 
-			'modified'		=> $post->modified, 
-			'icon_url'		=> $icon_url, 
-			'poster_url'	=> $poster_url,
-			'category_id'	=> $category_id
-		 */
 		foreach ($posts as $post) {
 			$info = $mb_api->get_book_info_from_post($post->ID);
 			$book_id = $info['id'];
@@ -636,9 +721,17 @@ We use some of the WP fields for our own purposes:
 			// Also check the package's directory is there
 			$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
 			$is_published =  ( ($info['remoteURL'] || file_exists($tarfilepath)) && $is_published);
+				
+			if ($is_published and $mb_api->book_is_available($post->ID)) {
+				
+				// Get the definitive modified datetime from the item date file.
+				// This modified tells us whether the client should update the
+				// actual book. Even if the descriptive shelf data for a book is
+				// updated, that doesn't mean they need to update the book itself,
+				// which might be a huge download.
+				$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
+				$book_info_from_file = json_decode( file_get_contents($dir . DIRECTORY_SEPARATOR . "item.json") );
 
-			if ($is_published) {
-			
 				// almost all names are same, but not completely....
 				// I've included some extras...maybe they'll be useful later.
 
@@ -652,6 +745,7 @@ We use some of the WP fields for our own purposes:
 					'type'				=> $info['type'], 
 					'datetime'			=> $info['datetime'], 
 					'modified'			=> $info['modified'],
+					'metaModified'		=> $info['meta_modified'],
 					'path'				=> $book_id,
 					'shelfpath'			=> $mb_api->settings['shelves_dir_name'],
 					'itemShelfPath'		=>$mb_api->settings['shelves_dir_name'] . DIRECTORY_SEPARATOR . $info['id'],
@@ -671,6 +765,8 @@ We use some of the WP fields for our own purposes:
 			   unlink ($fn);
 		   file_put_contents ($fn, $output, LOCK_EX);
 		   return $output;
+		   
+		*/
 	}
 	
 	
@@ -1822,6 +1918,14 @@ foreach ($posts as $p) {
 	public function error($message = 'Unknown error', $status = 'error') {
 		global $mb_api;
 		$mb_api->error($message, $status);
+	}
+
+
+	// Return name of calling function.
+	// Use this to find out which function invoked the current function
+	function getCallingFunction() {
+		$backtrace = debug_backtrace();
+		return $backtrace[2]['function'];
 	}
 
 	
