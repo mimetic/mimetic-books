@@ -385,17 +385,32 @@ class Mimetic_Book
 		// wrap the text thus. Unless it is blank, of course.
 		// Note, the order matters!
 		$textblock = array ();
-		if ($title && $title != "")
-			$textblock[] = array( 'title' => array('@cdata'=>$title)) ;
-		if ($text && $text != "")
-			$textblock[] = array( 'text' => array('@cdata'=>$text));
 		
+		// The first method only adds text/title when they have data.
+		// That means a template page has to perfectly match, i.e. the template
+		// cannot have a title if the page does, or text goes in the wrong places.
+		
+		// The second method always has text + title, meaning all template
+		// pages must have both. The author can always 'blank out' one or the
+		// other using the '###' mark at the beginning of the block.
+		
+		// Method #1
 		/*
-		$textblock = array (
-			array ('title' => $title), 
-			array('text' => $text )
-		);
+			if ($title && $title != "")
+				$textblock[] = array( 'title' => array('@cdata'=>$title) ) ;
+			if ($text && $text != "")
+			$textblock[] = array( 'text' => array('@cdata'=>$text) );
+		
 		*/
+		
+		// Method #2
+		$textblock = array (
+				array ('title' => array('@cdata'=>$title) ), 
+				array( 'text' => array('@cdata'=>$text) )
+			);
+			
+			
+			
 		
 		if ($textblock) {
 			$textblocks = array(
