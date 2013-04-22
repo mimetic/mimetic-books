@@ -54,7 +54,7 @@ jQuery(document).ready(function($){
             }
         }
     });
-    $("#show-styles").click(function(event) {
+    $("*[name='show-styles']").click(function(event) {
         event.preventDefault();
         $info.dialog('open');
     });

@@ -995,26 +995,6 @@ function mb_publisher_page_delete($post_id) {
  * Book Post functions
  * ----------------------------------------------------------------------
  */
-
-function mb_get_book_post_from_book_id( $id ) {
-	global $mb_api;
-	//wp_reset_query();
-	$posts = $mb_api->introspector->get_posts(array(
-		'meta_key' => 'mb_book_id',
-		'meta_value' => $id,
-		'post_type' => 'book',
-		'post_status' => 'any',
-		'posts_per_page'	=> 1
-	), true);
-
-	if ($posts) {
-		$book_post = $posts[0];
-	} else {
-		$book_post = array();
-	}
-	
-	return $book_post;
-}
 	
 
 
@@ -1087,7 +1067,7 @@ function mb_post_add_page_meta_boxes() {
 
 	add_meta_box(
 		'book-post-page-format',					// Unique ID
-		esc_html__( 'Mimetic Book Page Format' ),			// Title
+		esc_html__( 'Mimetic Book Settings' ),			// Title
 		'mb_post_mb_page_theme_meta_box',				// Callback function
 		'post',										// Admin page (or post type)
 		'side',										// Context
@@ -1153,10 +1133,8 @@ function mb_post_mb_page_theme_meta_box( $post) {
 	
 	wp_nonce_field( basename( __FILE__ ), 'mb_post_nonce' ); 
 
-	// which book does this post belong to?
-	// 
-	// 
-	// which theme is that book using?
+	// which book post does this post belong to?
+	// Get the ID of the book post (not the published book's ID!!!)
 	$book_id = $mb_api->get_post_book_id($post->ID);
 	
 	if ($book_id) {
@@ -1214,6 +1192,14 @@ function mb_post_mb_page_theme_meta_box( $post) {
 			$graphics[$k] = "$previewsFolder/format_" . (1+$k) . ".jpg";
 		}
 		$valueList = join(",",$valueListArr);
+	
+		// Link to edit the book linked to this post
+		$bookpost = get_post($book_id);
+		$link = "<i>{$bookpost->post_title}</i>";
+		$before = "Go to book: ";
+		$after = "";
+		$editlink = edit_post_link( $link, $before, $after, $book_id )
+		
 		
 		// ----- drop-down menu technique is commented out, below. -------
 		?>
@@ -1222,8 +1208,12 @@ function mb_post_mb_page_theme_meta_box( $post) {
 			<input type="hidden" id="mb_book_theme_page_id_values" value="<?php echo($valueList) ?>">
 			<input type="hidden" id="mb_book_theme_page_previews" value="<?php echo($previewsFolder) ?>">
 			<input type="hidden" name="mb_theme_id" value="<?php echo($theme_id) ?>">
+			
+			<?php echo $editlink; ?><hr/>
+			
+			
 
-			<input type="button" style="float:right;" class="wp-core-ui button-secondary" id="show-styles" value="Show Styles" />
+			<input type="button" style="float:right;" class="wp-core-ui button-secondary" id="show-styles" name="show-styles" value="Show Styles" />
 			<br style="clear:all;"/>
 			<br/>
 
@@ -1232,7 +1222,7 @@ function mb_post_mb_page_theme_meta_box( $post) {
 			echo ($pageFormatPopupMenu );
 			?>
 			-->
-			<div class="theme_page_preview_box">
+			<div class="theme_page_preview_box" name="show-styles">
 				<label for="format_page_preview">
 				</label>
 				<div class="theme_page_preview <?php echo ($isPortraitTheme); ?>">

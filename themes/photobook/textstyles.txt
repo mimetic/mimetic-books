@@ -1,4 +1,4 @@
-﻿[No Paragraph Style]=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+﻿[No Paragraph Style]=Avenir-Book,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 [Basic Paragraph]=Avenir-Book,16,26,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 Basic Paragraph on Dark=Avenir-Book,16,26,220,220,220,,100%,NORMAL,left,0,0,0,0,0
 H1=,18,26,0,0,0,,100%,NORMAL,left,0,0,0,0,0
@@ -16,7 +16,7 @@ Credit Title=Avenir-Light,50,70,180,180,180,,100%,ALL_CAPS,center,0,0,0,0,0
 Section Title=Avenir-Light,34,44,180,180,180,,100%,NORMAL,left,0,0,0,0,0
 TOC Title=Avenir-Light,24,26,180,180,180,,100%,ALL_CAPS,left,0,0,0,0,0
 TOC Item=Avenir-Book,18,35,0,0,0,,100%,NORMAL,left,0,0,0,0,0
-Format Code=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+Format Code=Avenir-Book,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 Small Title=Avenir-Light,16,19.2,180,180,180,,100%,ALL_CAPS,left,0,0,0,0,0
 Small Body=Avenir-Book,16,22,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 Small Body Light=Avenir-Book,16,22,220,220,220,,100%,NORMAL,left,0,0,0,0,0

@@ -681,6 +681,28 @@ class MB_API {
 		}
 		return $book_post;
 	}
+	
+	// query_posts('meta_key=sky&meta_value=GS_5-00252');
+	function get_book_post_from_book_id( $id ) {
+		global $mb_api;
+		//wp_reset_query();
+		$posts = $mb_api->introspector->get_posts(array(
+			'meta_key' => 'mb_book_id',
+			'meta_value' => $id,
+			'post_type' => 'book',
+			'post_status' => 'any',
+			'posts_per_page'	=> 1
+		), true);
+
+		if ($posts) {
+			$book_post = $posts[0];
+		} else {
+			$book_post = array();
+		}
+
+		return $book_post;
+	}
+
 
 	private function get_book_post_from_category_slug( $slug ) {
 		global $mb_api;

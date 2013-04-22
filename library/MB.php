@@ -708,7 +708,11 @@ print ("-----------\n");
 			foreach ($node->attributes as $attr) {
 				$attributes[$attr->name] = $attr->nodeValue;
 			}
-			$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
+			if (isset($attributes['class']))
+				$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
+			else
+				$id = "";
+			
 			$attributes['id'] = $id;
 			
 			
@@ -735,10 +739,8 @@ print ("-----------\n");
 					// Default element file extension is blank
 					$ext = "";
 			}
-$mb_api->write_log(__FUNCTION__.": element:".print_r($node->attributes,true));
-$mb_api->write_log(__FUNCTION__."----\n\n");
-
-			
+//$mb_api->write_log(__FUNCTION__.": element['name']: {$element['name']}");
+//$mb_api->write_log(__FUNCTION__."----\n\n");
 			
 			
 			// Strip text from the id
@@ -777,8 +779,7 @@ $mb_api->write_log(__FUNCTION__."----\n\n");
 			// Handle MB's need to encapsulate, e.g. if we have an 'img', 
 			// then we need to create a <pictures> element to hold
 			// the <picture> which is the 'img'.
-
-			list($mb_name, $mb_encaps_name) = $this->name_for_element($element['name'], $ext);
+			list($mb_name, $mb_encaps_name)  = $this->name_for_element($element['name'], $ext);
 			
 			// If this isn't an element type we're searching for (e.g. audio, video) then
 			// we should ignore it. It is common to have links to full-sized images surrounding
@@ -1193,7 +1194,7 @@ $mb_api->write_log(__FUNCTION__.": SRC = $src");
 
 	 */
 	private function name_for_element($e, $extension = "") {
-		$mb_name = "";
+		$mb_name = array ("","");
 		switch ($e) {
 			case 'img' : $mb_name = array ("picture", "pictures");
 				break;
@@ -1243,10 +1244,6 @@ $mb_api->write_log(__FUNCTION__.": SRC = $src");
 				break;
 			case 'video/3gp' : $mb_name = array ("videofile", null);
 				break;
-			default : 
-				$mb_name = "";
-
-			
 		}
 		return $mb_name;
 	}
