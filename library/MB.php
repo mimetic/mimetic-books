@@ -276,8 +276,8 @@ class Mimetic_Book
 		
 		$attr = array(
 				'id'					=> $category->term_id,
-				'hasCaptions'			=> 'false',
-				'hasOverlays'			=> 'false',
+				'hasCaptions'			=> 'false',	// this is reset by convert_pages()
+				'hasOverlays'			=> 'true',
 				'navbarType'			=> 'slider',
 				'pickerLabelGroupBy'	=> 'text',
 				'notInContents'			=> 'false',
@@ -302,7 +302,10 @@ class Mimetic_Book
 	}
 
 	
-	
+	/*
+	Convert posts to book pages.
+	Returns an array of pages and chapter attributes
+	*/
 	private function convert_pages ($wp_posts, $category)
 	{
 		$pages = array();
@@ -321,7 +324,7 @@ class Mimetic_Book
 	
 	/*
 	DTD Page Definition:
-	<!ELEMENT page ( aperture | audiofile | backgroundfile | buttons | cameraMake | cameraModel | caption | city | country | creator | date | dateTimeOriginal | exposureBias | exposureProgram | flash | focalLength | focalLength35mm | gps | gpsLatitudeDecimal | gpsLongitudeDecimal | grid | headline | imagefile | isoSpeedRating | label | order | overlay | pagedate | panoramas | pictures | publicfile | shutterSpeed | state | subjectDistance | sublocation | textblock | textblocks | texttitle | shapes | links )* >
+	<!ELEMENT page ( aperture | audiofile | videofile | backgroundfile | buttons | cameraMake | cameraModel | caption | city | country | creator | date | dateTimeOriginal | exposureBias | exposureProgram | flash | focalLength | focalLength35mm | gps | gpsLatitudeDecimal | gpsLongitudeDecimal | grid | headline | imagefile | isoSpeedRating | label | order | overlay | pagedate | panoramas | pictures | publicfile | shutterSpeed | state | subjectDistance | sublocation | textblock | textblocks | texttitle | shapes | links )* >
 	<!ATTLIST page backgroundcolor CDATA #IMPLIED >
 	<!ATTLIST page contents ( false | true ) #IMPLIED >
 	<!ATTLIST page contentstitle CDATA #IMPLIED >
@@ -466,12 +469,22 @@ class Mimetic_Book
 		}
 
 		// Get ATTACHED MEDIA: sounds, video
-		
-		//if ($wp_page->attachments) {
-		//$attached = $this->get_attachments($wp_page, false);
-		//$page = array_merge($page, $attached);
-		//}
-		
+		// Important: just because sound is embedded in the HTML of a page
+		// does NOT mean it is "attached". So, this will not get a sound or video
+		// that was created for another page, then inserted into a second page!
+		// THEREFORE, we are not using this for now!
+		/*
+		if ($wp_page->attachments) {
+			$attached = $this->get_attachments($wp_page, false);
+			$page = array_merge($page, $attached);
+			
+			// If there's no caption, we have to set one so the audio/video players
+			// in the caption box are available.
+			//if (trim($page['caption']) == "") {
+			//	$page['caption'] = "";
+			//}
+		}
+		*/
 		
 		// GET EMBEDDED PICTURES (NOT ATTACHED)
 		// Attached items are not necessarily embedded.
@@ -483,7 +496,16 @@ class Mimetic_Book
 		// Convert the embedded elements, e.g. img tags, to MB format arrays
 		$embedded = $this->get_embedded_pictures($wp_page);
 		$embedded && $page = array_merge($page, $embedded);
-		
+
+		$embedded = $this->get_embedded_audio($wp_page);
+		$embedded && $page = array_merge($page, $embedded);
+
+		$embedded = $this->get_embedded_video($wp_page);
+		$embedded && $page = array_merge($page, $embedded);
+
+//$mb_api->write_log(__FUNCTION__.": element:".print_r($element,true));
+
+
 		return $page;
 	}
 
@@ -502,6 +524,8 @@ class Mimetic_Book
 	*/
 	private function get_attachments ($wp_page, $include_images = false)
 	{
+		global $mb_api;
+	
 		$args = array(
 			'post_type' => 'attachment',
 			'posts_per_page' => -1,
@@ -522,13 +546,14 @@ class Mimetic_Book
 		
 		// *** PROBLEM IS, not all embedded items are attachments belonging to the current page! ****
 		// That only happens when the image was originally uploaded to the page.
-		
+
+/*		
 print ("-----------\n");
 print_r($image_attrs);
 print ("Attachments\n");
 print_r($attachments);
 print ("-----------\n");
-
+*/
 		$page_elements = array();
 		if ( $attachments ) {
 			foreach ( $attachments as $attachment ) {
@@ -572,7 +597,6 @@ print ("-----------\n");
 				// the <picture> which is the 'img'.
 				list($mb_name, $mb_encaps_name) = $this->name_for_element($element['type']);
 
-
 				if ($mb_encaps_name) {
 					if (!isset($page_elements[$mb_encaps_name])) {
 						$page_elements[$mb_encaps_name] = array ();
@@ -592,9 +616,18 @@ print ("-----------\n");
 	}
 	
 	
-	
 	private function get_embedded_pictures($wp_page) {
-		$elements = $this->get_embedded_elements($wp_page, "img");
+		$elements = $this->get_embedded_elements($wp_page, "img", "picture");
+		return $elements;
+	}
+	
+	private function get_embedded_audio($wp_page) {
+		$elements = $this->get_embedded_elements($wp_page, "a", "audiofile");
+		return $elements;
+	}
+	
+	private function get_embedded_video($wp_page) {
+		$elements = $this->get_embedded_elements($wp_page, "a", "videofile");
 		return $elements;
 	}
 	
@@ -635,8 +668,12 @@ print ("-----------\n");
 	 * NOTE: this works great with images, but really not with other kinds of
 	 * attachments! Audio for example, uses <a> as its tag, so we would
 	 * have to check the linked file to know what we were dealing with.
+	 *
+	 * Worse, both audio and video could have the same extension. There's no way to
+	 * tell whether myfile.mp4 is audio or video without checking the file itself!
+	 *
 	*/
-	private function get_embedded_elements($wp_page, $element_type="img") {
+	private function get_embedded_elements($wp_page, $element_type="", $subtype = "") {
 		global $mb_api;
 		$text = $wp_page->content;
 		
@@ -674,6 +711,36 @@ print ("-----------\n");
 			$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
 			$attributes['id'] = $id;
 			
+			
+			// SUBTYPE? AUDIO/VIDEO, etc.
+			// Check if this is a tag which links to audio, video, etc., which
+			// means a subtype. Such tags are <a href="myfile.mp3"...> so we need to check
+			// the content of the file it links to.
+			switch ($subtype) {
+				case "audiofile" :
+					$pp = pathinfo($attributes["href"]);
+					$ext = $pp['extension'];
+					$basename = $pp['basename'];
+					$element['name'] = "audiofile";
+					$element['value'] = $basename;
+					break;
+				case "videofile" :
+					$pp = pathinfo($attributes["href"]);
+					$ext = $pp['extension'];
+					$basename = $pp['basename'];
+					$element['name'] = "videofile";
+					$element['value'] = $basename;
+					break;
+				default :
+					// Default element file extension is blank
+					$ext = "";
+			}
+$mb_api->write_log(__FUNCTION__.": element:".print_r($node->attributes,true));
+$mb_api->write_log(__FUNCTION__."----\n\n");
+
+			
+			
+			
 			// Strip text from the id
 			// TO DO
 			
@@ -710,15 +777,22 @@ print ("-----------\n");
 			// Handle MB's need to encapsulate, e.g. if we have an 'img', 
 			// then we need to create a <pictures> element to hold
 			// the <picture> which is the 'img'.
-			list($mb_name, $mb_encaps_name) = $this->name_for_element($element['name']);
-			$e = $this->element_to_mb($element);
-			if ($e && $mb_encaps_name) {
-				if (!isset($page_elements[$mb_encaps_name])) {
-					$page_elements[$mb_encaps_name] = array ();
+
+			list($mb_name, $mb_encaps_name) = $this->name_for_element($element['name'], $ext);
+			
+			// If this isn't an element type we're searching for (e.g. audio, video) then
+			// we should ignore it. It is common to have links to full-sized images surrounding
+			// images, and we don't want those.
+			if ($mb_name == $element['name']) {
+				$e = $this->element_to_mb($element);
+				if ($e && $mb_encaps_name) {
+					if (!isset($page_elements[$mb_encaps_name])) {
+						$page_elements[$mb_encaps_name] = array ();
+					}
+					$page_elements[$mb_encaps_name][$mb_name][] = $e;
+				} else if ($element) {
+					$page_elements[$mb_name] = $this->element_to_mb($element);
 				}
-				$page_elements[$mb_encaps_name][$mb_name][] = $e;
-			} else {
-				$page_elements[$mb_name] = $this->element_to_mb($element);
 			}
 		}
 	
@@ -816,6 +890,9 @@ print ("-----------\n");
 		// Name could be an html name (img, audio) or it could be a MIME type (image/jpeg).
 		// Modify the name to capture the right type for multiple formats, e.g. all images
 		$name = preg_replace('|/.*$|', '', $element['name']);
+
+
+//$mb_api->write_log(__FUNCTION__.": element name = $name");
 		
 		switch ($name) {
 			case "image":
@@ -844,7 +921,19 @@ print ("-----------\n");
 				
 				$post = get_post( $attr['id'], ARRAY_A );
 				$src = $post['guid'];	// src file name (not a resized file)
-				
+
+/*		
+$image=wp_get_attachment_image($attr['id'], 'large', false);
+$imagepieces = explode('"', $image);
+$imagepath = $imagepieces[1];
+$mb_api->write_log(__FUNCTION__.": image path is $imagepath");
+
+				$post = get_post( $imagepath, ARRAY_A );
+				$src = $post['guid'];	// src file name (not a resized file)
+$mb_api->write_log(__FUNCTION__.": SRC = $src");
+*/
+
+
 				if ($src == "") {
 					return false;
 				}
@@ -930,10 +1019,19 @@ print ("-----------\n");
 			case "link" :
 				break;
 			
-			case "audio" :
-				$mb_element['value'] = "*" . DIRECTORY_SEPARATOR . $this->audioFolder . basename($attr['src']);
+			case "audiofile" :
+				$mb_element['value'] = "*" . DIRECTORY_SEPARATOR . $this->audioFolder . basename($attr['href']);
 				// Copy the audio file to the audio folder
-				$success = $this->copy_audio_file($attr['src']);
+				$success = $this->copy_audio_file($attr['href']);
+				if (!$success)
+					return null;
+					
+				break;
+
+			case "videofile" :
+				$mb_element['value'] = "*" . DIRECTORY_SEPARATOR . $this->videoFolder . basename($attr['href']);
+				// Copy the audio file to the audio folder
+				$success = $this->copy_video_file($attr['href']);
 				if (!$success)
 					return null;
 					
@@ -944,8 +1042,7 @@ print ("-----------\n");
 
 	
 	/*
-	 * Convert an image to something we can use in the app.
-	 * This basically just resizing and copying.
+	 * Copy an audio file to the proper folder
 	 */
 	private function copy_audio_file($src)
 	{
@@ -962,6 +1059,31 @@ print ("-----------\n");
 		$success = copy($src, $filepath);
 		if (!$success) {
 			$this->isError("Could not copy the audio file to {$mb_element['filename']}");
+		}
+		
+		return $success;
+
+	}
+
+	
+	/*
+	 * Copy a video file to the proper folder
+	 */
+	private function copy_video_file($src)
+	{
+
+		$dir = $this->build_files_dir . $this->videoFolder;
+		if(! is_dir($dir)) {
+			mkdir($dir);
+		}
+
+		$filename = basename($src);	
+		$filepath = $dir.$filename;
+		$name = basename ($src);
+		
+		$success = copy($src, $filepath);
+		if (!$success) {
+			$this->isError("Could not copy the video file to {$mb_element['filename']}");
 		}
 		
 		return $success;
@@ -1056,15 +1178,22 @@ print ("-----------\n");
 	 * Get the MB name for an HTML element. For example, an 'img' element
 	 * is called 'picture' in MB.
 	 * Also, if the element requires encapsulation, then return true.
+	 *
+	 * Some elements are part of <a> tags, and we have to pass the file extension to figure out
+	 * what the file is.
 	 * 
 	 * Not encapsulated MB items:
 	 * imagefile, audiofile, backgroundfile, video, overlay, textblock
 	 * 
 	 * Encapsulated MB items:
 	 * picture, panorama, button, link
+	 * Supported video formats are platform- and version-dependent. 
+	 * The iPhone video player supports playback of movie files with the .mov, .mp4, .m4v, and .3gp filename extensions.
+	 * 
 
 	 */
-	private function name_for_element($e) {
+	private function name_for_element($e, $extension = "") {
+		$mb_name = "";
 		switch ($e) {
 			case 'img' : $mb_name = array ("picture", "pictures");
 				break;
@@ -1072,7 +1201,29 @@ print ("-----------\n");
 				break;
 			case 'panorama' : $mb_name = array ("panorama", "buttons");
 				break;
-			case 'a' : $mb_name = array ("link", "links");
+			case 'audiofile' : 
+				// AUDIO?
+				if (in_array($extension, array("mp3","aac", "m4a", "wav"))) {
+					$mb_name = array ("audiofile", null);
+				}
+				break;
+			case 'videofile' : 
+				// VIDEO?
+				if (in_array($extension, array("mp4","mov", "m4v", "3gp"))) {
+					$mb_name = array ("videofile", null);
+				}
+				break;
+			case 'a' : 
+				// AUDIO?
+				if (in_array($extension, array("mp3","aac", "m4a", "wav"))) {
+					$mb_name = array ("audiofile", null);
+				// VIDEO?
+				} else if (in_array($extension, array("mp4","mov", "m4v", "3gp"))) {
+					$mb_name = array ("videofile", null);
+				// LINKS
+				} else {
+					$mb_name = array ("link", "links");
+				}
 				break;
 			case 'button' : $mb_name = array ("button", "buttons");
 				break;
@@ -1084,6 +1235,17 @@ print ("-----------\n");
 			case 'audio/mpeg' : $mb_name = array ("audiofile", null);
 				break;
 			
+			case 'video/mp4' : $mb_name = array ("videofile", null);
+				break;
+			case 'video/mov' : $mb_name = array ("videofile", null);
+				break;
+			case 'video/m4v' : $mb_name = array ("videofile", null);
+				break;
+			case 'video/3gp' : $mb_name = array ("videofile", null);
+				break;
+			default : 
+				$mb_name = "";
+
 			
 		}
 		return $mb_name;

@@ -1,10 +1,9 @@
 <?php
 /*
-Controller name: Book
-Controller description: Mimetic Book methods
+	Book publishing functions, moved from the controller.
 */
 
-class MB_API_Book_Controller {
+class MB_API_Book {
 	
 /*
 build:
@@ -54,7 +53,7 @@ We use some of the WP fields for our own purposes:
 	 
 	 * example : publish_book_package( array ( 'id'=>123, )
 	 */
-	public function publish_book_package($params = array() ) {
+	public function publish_book_package($params) {
 		global $mb_api;
 		
 		$u = "";
@@ -998,12 +997,16 @@ We use some of the WP fields for our own purposes:
 		global $mb_api;
 		
 		if ($post_id) {
-			$response = $mb_api->introspector->get_posts(array(
+			$arr = array(
 				'p' => $post_id,
 				'post_type' => 'book',
 				'post_status' => 'any'
-			));
+			);
+			$response = $mb_api->introspector->get_posts($arr);
 			$post = $response[0];
+			// WP functions
+			//$post = get_post($arr);
+			//$post = new MB_API_Post($post);
 		} elseif ($category_id) {
 			$post = get_book_post_from_category_id( $category_id );
 		} elseif ($category_slug) {

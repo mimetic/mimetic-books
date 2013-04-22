@@ -13,6 +13,7 @@ class MB_API {
 		$this->response = new MB_API_Response();
 		$this->funx = new MB_API_Funx();
 		$this->commerce = new MB_API_Commerce($dir);
+		$this->book = new MB_API_Book();
 		$this->themes_dir_name = "themes";
 		$this->themes_dir = $dir .DIRECTORY_SEPARATOR. $this->themes_dir_name;
 		$this->themes = new MB_API_Themes($this->themes_dir);
@@ -700,12 +701,16 @@ class MB_API {
 		global $mb_api;
 		
 		if ($post_id) {
+			/*
 			$response = $mb_api->introspector->get_posts(array(
 				'p' => $post_id,
 				'post_type' => 'book',
 				'post_status' => 'any'
 			));
 			$post = $response[0];
+			*/
+			$post = $mb_api->introspector->get_post($post_id);
+			
 		} elseif ($category_id) {
 			$post = get_book_post_from_category_id( $category_id );
 		} elseif ($category_slug) {
@@ -720,6 +725,11 @@ class MB_API {
 					'post_type' => 'book'
 				));
 				$post = $response[0];
+				$post = get_posts( array(
+					'p' => $post_id,
+					'post_type' => 'book',
+					'posts_per_page' => 1
+				));
 			} else {
 				if ($post_type != "page") {
 					$response = $this->get_post();
@@ -878,10 +888,19 @@ class MB_API {
 		$save2x = $mb_api->getSave2XForDevice($target_device);
 		
 		
+		// META MODIFIED: get the mod datetime for the book post itself, so we can update
+		// poster, text, etc. but not update the actual book.
+		// If the book page itself was modified more recently, use it as the modification date.
+		// This ensures that changing the poster will change the modification date.
+		// This time is LOCAL time
+		$book_post_modified = $post->modified;
+
+
 		/*
 		* Get modification date for book.
 		* Get the most recent of the post modifications OR
 		* the book post modification date.
+		* Publishing the page updates the book page mod date, too.
 		* This means that updating info on the book page itself also
 		* sets the modification date.
 		*/
@@ -891,7 +910,7 @@ class MB_API {
 		$modified = "";
 
 		if ($remoteURL || $use_local_book_file) {
-			// get modified from a local item.json file
+			// USING A PRE-MADE BOOK PACKAGE: get modified from a local item.json file
 			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
 			$fn = $dir . DIRECTORY_SEPARATOR . "item.json";
 			if (file_exists($fn)) {
@@ -909,7 +928,7 @@ class MB_API {
 			}
 			
 		} else {
- 			// get modified from posts for this book, if any
+ 			// BUILD BOOK FROM POSTS: get modified from posts for this book, if any
 
 			// Get most recent post
 			$book_posts = get_posts(array(
@@ -928,22 +947,21 @@ class MB_API {
 				//$mod = $post->post_modified_gmt;
 				//$this->write_log(__FUNCTION__.":A - $book_id, Modified = $modified\n\n\n");		
 			}
-		
+
+			// If the book post was modified more recently, use that datetime.
+			// So, even if nothing changed with the posts — the book itself — we will
+			// still mark the book as updated. Why? Because publishing the book updates
+			// the modified to now, and *reordering* pages constitutes a book change
+			// we cannot track any other way.
+			if (strtotime($book_post_modified) > strtotime($modified)) {
+				$modified = $book_post_modified;
+//$this->write_log(__FUNCTION__.":C - $book_id, Modified = $modified\n\n\n");		
+			}
 		}
  
-		// META MODIFIED: get the mod datetime for the book post itself, so we can update
-		// poster, text, etc. but not update the actual book.
-		// If the book page itself was modified more recently, use it as the modification date.
-		// This ensures that changing the poster will change the modification date.
-		// This time is LOCAL time
-		$book_post_modified = $post->modified;
 		/*
-		if (strtotime($book_post_modified) > strtotime($modified)) {
-			$modified = $book_post_modified;
-			//$this->write_log(__FUNCTION__.":C - $book_id, Modified = $modified\n\n\n");		
-		}
 		*/
-		
+//$this->write_log("$title : book_post_modified: $book_post_modified,\n    modified=$modified");
 		// FALLBACK for modified...
 		// If we don't have any information, use NOW as the modified.
 		if (!$modified)
@@ -959,6 +977,7 @@ class MB_API {
 		$category_id = $post->categories[0]->id;
 		
 //$this->write_log(__FUNCTION__.": FINAL: $book_id --> Modified = $modified");		
+//$this->write_log(__FUNCTION__.": FINAL: $book_id --> meta_modified = $book_post_modified\n");		
 
 		//$theme_id = (string)get_option('mb_api_book_theme', 1);
 		
@@ -1003,7 +1022,7 @@ class MB_API {
 	public function write_shelves_file() {
 		global $mb_api;
 
-		$mb_api->write_log(__FUNCTION__);
+		$mb_api->write_log(__FUNCTION__.": begin");
 
 		
 		$shelves = array (
@@ -1089,13 +1108,16 @@ class MB_API {
 				} // if infofile exists
 			}
 		}
-		   $output = json_encode($shelves);
-		   $fn = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . "shelves.json";
-		   // Delete previous version of the shelves
-		   if (file_exists($fn))
-			   unlink ($fn);
-		   file_put_contents ($fn, $output, LOCK_EX);
-		   return $output;
+	   $output = json_encode($shelves);
+	   $fn = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . "shelves.json";
+	   // Delete previous version of the shelves
+	   if (file_exists($fn))
+		   unlink ($fn);
+	   file_put_contents ($fn, $output, LOCK_EX);
+
+		$mb_api->write_log(__FUNCTION__.": end");
+
+	   return $output;
 	}
 	
 	
@@ -1238,6 +1260,42 @@ class MB_API {
 	}
 	
 
+
+
+	// ============================================================
+	// Create a SELECT popup list of books
+	function book_select_list ($user_id) {
+
+		$args = array (
+			'post_type' => 'book',
+			'posts_per_page' => -1,
+			'post_author' => $user_id
+		);
+
+		$my_query = null;
+		$my_query = new WP_Query($args);
+
+		//$selected = get_option('mb_api_book_info_post_id');
+		$selected = "";
+		
+		$res = "";
+
+		$res = '<select id="mb_book_id" name="mb_book_id">';
+		if( $my_query->have_posts() ) {
+			while ( $my_query->have_posts() ) : $my_query->the_post();
+				$id = get_the_ID();
+				$title = get_the_title();
+				if ($id == $selected) {
+					$res .= '<option selected="selected" value="'. $id .'">'. $title . '</option>';
+				} else {
+					$res .= '<option value="'. $id.'">'. $title. '</option>';
+				}
+			endwhile;
+		}
+		$res .= '</select>';
+		wp_reset_query();  // Restore global post data stomped by the_post().
+		return $res;
+	}
 
 
 	/*
@@ -1464,7 +1522,6 @@ class MB_API {
 		$this->errors->add('no-publish-book', __('Could not publish this book. Check the log.'));
 		
 	}
-
 
 } // END CLASS
 

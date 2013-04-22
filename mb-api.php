@@ -15,6 +15,7 @@ $dir = mb_api_dir();
 @include_once "$dir/singletons/query.php";
 @include_once "$dir/singletons/introspector.php";
 @include_once "$dir/singletons/response.php";
+@include_once "$dir/singletons/book.php";
 @include_once "$dir/models/post.php";
 @include_once "$dir/models/comment.php";
 @include_once "$dir/models/category.php";
@@ -396,11 +397,14 @@ function mb_delete_book_post($post_id)
 	if ($post->post_type == 'book') {
 		mb_delete_all_attachments($post_id);
 		$book_id = get_post_meta($post_id, "mb_book_id", true);
-		$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
-		$funx->rrmdir($dir);
-		$mb_api->write_shelves_file();
-		mb_write_log("Delete book, dir = $dir");
-		
+		if ($book_id) {
+			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
+			$funx->rrmdir($dir);
+			$mb_api->write_shelves_file();
+			mb_write_log("Deleted book in shelves: $dir");
+		} else {
+			mb_write_log("Tried to delete a shelf item, but the book ID is missing or empty for post id=$post_id");
+		}
 	}
 }
 
@@ -459,7 +463,7 @@ function mb_show_publish_button($post_ID) {
 
 
 
-/* META BOXES FOR BOOK PAGE */
+/* META BOXES FOR BOOK POST */
 
 /* Meta box setup function. */
 function mb_book_post_meta_boxes_setup() {
@@ -532,7 +536,7 @@ function mb_book_add_post_meta_boxes() {
 	
 }
 
-/* ============== BOOK PAGE STUFF ============ */
+/* ============== BOOK POST STUFF ============ */
 
 
 /* Display the post publish meta box. */
@@ -642,6 +646,12 @@ function mb_book_post_settings_meta_box( $post) {
 	//$mb_book_theme_id = get_post_meta($post->ID, "mb_book_theme_id", true);
 
 	$mb_book_id = get_post_meta($post->ID, "mb_book_id", true);
+	if (!$mb_book_id) {
+		$current_user = wp_get_current_user();
+		$mb_book_id = $current_user->last_name . "_" . $current_user->first_name . "_" . date("ymd_His");
+		$mb_book_id = preg_replace('/\W/',"_",$mb_book_id);
+		$mb_book_id = preg_replace('/__*/',"_",$mb_book_id);
+	}
 
 	$mb_book_publisher_id = get_post_meta($post->ID, "mb_publisher_id", true);
 	if (!$mb_book_publisher_id)
@@ -848,7 +858,7 @@ function mb_book_post_meta_save_postdata( $post_id) {
 		// OK, we're authenticated: we need to find and save the data
 		$book_id = null;
 		if (isset($_POST['mb_book_id']))
-			$book_id = preg_replace("/[_\s]+/", "-", $_POST['mb_book_id']);
+			$book_id = strtolower(preg_replace("/[_\s]+/", "-", $_POST['mb_book_id']));
 
 
 		// If there is no category for this book, make one.
@@ -1261,8 +1271,13 @@ function mb_post_mb_page_theme_meta_box( $post) {
 		
 	} else {
 		
-		_e( "Unknown Book &mdash; check your category setting?" );
+		_e( "To add this post to a book, choose a book's category from the Categories box." );
 		
+		//$current_user = wp_get_current_user();
+		//$booklist = $mb_api->book_select_list($current_user);
+		//print ($booklist);
+		
+
 	}
 }
 
@@ -1334,11 +1349,15 @@ function mb_write_log($text) {
 // ============================================================
 // Modify the posts listing in the wp-admin.
 // Only show the posts for the current author!
+// However it blocks all query access to other items, which
+// screws up publishing the shelves since that requires
+// access to other users.
 // ============================================================
 
 function xmypo_parse_query_useronly( $wp_query ) {
 	global $mb_api;
-	if (isset($mb_api->settings['show_only_my_posts']) && $mb_api->settings['show_only_my_posts']) {
+	$mb_api_show_only_my_posts = get_option('mb_api_show_only_my_posts', '');
+	if ($mb_api_show_only_my_posts) {
 		if ( strpos( $_SERVER[ 'REQUEST_URI' ], '/wp-admin/edit.php' ) !== false ) {
 			if ( !current_user_can( 'level_10' ) ) {
 				global $current_user;
