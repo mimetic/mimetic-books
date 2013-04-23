@@ -617,7 +617,7 @@ print ("-----------\n");
 	
 	
 	private function get_embedded_pictures($wp_page) {
-		$elements = $this->get_embedded_elements($wp_page, "img", "picture");
+		$elements = $this->get_embedded_elements($wp_page, "img");
 		return $elements;
 	}
 	
@@ -715,7 +715,6 @@ print ("-----------\n");
 			
 			$attributes['id'] = $id;
 			
-			
 			// SUBTYPE? AUDIO/VIDEO, etc.
 			// Check if this is a tag which links to audio, video, etc., which
 			// means a subtype. Such tags are <a href="myfile.mp3"...> so we need to check
@@ -779,12 +778,16 @@ print ("-----------\n");
 			// Handle MB's need to encapsulate, e.g. if we have an 'img', 
 			// then we need to create a <pictures> element to hold
 			// the <picture> which is the 'img'.
+			// Or, we might figure out what the thing is based on the file extension,
+			// if it is an <a href="myfile.mp4", for example.
 			list($mb_name, $mb_encaps_name)  = $this->name_for_element($element['name'], $ext);
-			
+
 			// If this isn't an element type we're searching for (e.g. audio, video) then
 			// we should ignore it. It is common to have links to full-sized images surrounding
 			// images, and we don't want those.
-			if ($mb_name == $element['name']) {
+			if ( !$subtype || ($subtype == $mb_name) )  {			
+
+
 				$e = $this->element_to_mb($element);
 				if ($e && $mb_encaps_name) {
 					if (!isset($page_elements[$mb_encaps_name])) {
