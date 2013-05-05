@@ -301,9 +301,13 @@ class MB_API_Introspector {
 			$query['posts_per_page'] = $mb_api->query->count;
 		}
 		
+		/*
+		// WOW, this can cause trouble. Not sure what we need it for!
 		if ($mb_api->query->post_type) {
 			$query['post_type'] = $mb_api->query->post_type;
 		} 
+		*/
+		
 		if (!empty($query)) {
 			query_posts($query);
 		}

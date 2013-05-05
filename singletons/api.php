@@ -673,11 +673,17 @@ class MB_API {
  
  
 
-	private function get_book_post_from_category_id( $id ) {
+	function get_book_post_from_category_id( $id ) {
 		global $mb_api;
-		$posts = $mb_api->introspector->get_posts(array( 'cat' => $id, 'post-type' => 'book', 'post_status' => 'any' ));	
+		$posts = get_posts(array( 
+					'category' => $id, 
+					'post_type' => 'book', 
+					'post_status' => 'any' 
+		));
 		if ($posts) {
-			$book_post = $posts[0];
+			$book_post = new MB_API_Post($posts[0]);
+		} else {
+			$book_post = array();
 		}
 		return $book_post;
 	}
@@ -1146,14 +1152,209 @@ class MB_API {
 
   
  /*
- * END: FUNCTIONS MOVED FROM THE CONTROLLER, BOOK.PHP
+ * END: FUNCTIONS MOVED FROM THE CONTROLLER, BOOK.PHP or from MB_API.PHP
  */
  
-  
-  
+ 
+	/* 
+		AJAX: returns the page design choose for a given theme, e.g. "photobook" theme 
+	
+	*/
+	function page_design_chooser_ajax () {
+		global $mb_api, $wpdb;
+
+		// TO DO...security: see http://codex.wordpress.org/Function_Reference/check_ajax_referer
+		//check_ajax_referer( "inlineeditnonce", "mb_post_nonce" );
+
+		// Get book value
+		isset($_POST['book_id']) ? $book_id = intval( $_POST['book_id'] ) : $book_id = null;
+		// Get post ID
+		isset($_POST['post_id']) ? $post_id = intval( $_POST['post_id'] ) : $post_id = null;
+		// Get name of the HTML DOM element that we will replace
+		isset($_POST['chooser_element_id']) ? $chooser_element_id = intval( $_POST['chooser_element_id'] ) : $chooser_element_id = null;
+	
+		if (!$book_id) {
+			echo ("Chose a book.");
+			die();
+		}
+		if (!$post_id) {
+			echo ("NO POST ID FOUND ON PAGE! post_id=$post_id");
+			die();
+		}
+	
+		echo $this->page_design_chooser ($book_id, $post_id);
+	
+		die(); // this is required to return a proper result
+}
+	
+
+	/*
+		Build the HTML for a book page design chooser.
+		Returns HTML with:
+			- a preview of the page design template
+			- list for JS to convert from the chosen page template and its name
+			- previews for template pages
+		This function can be called with AJAX, too, (above) to that
+		we can show a different chooser depending on a popup menu of
+		books. Choose a book, see the right themes for the post you are on.
+	*/
+
+	function page_design_chooser ($book_id, $post_id) {
+		global $mb_api, $wpdb;
+	
+		$chooser = "";
+	
+		// We want to minimize loading this...it can be slow.
+		if (!$mb_api->themes->themes) {
+			$mb_api->load_themes();
+		}
+
+		$theme_id = get_post_meta($book_id, "mb_book_theme_id", true);
+	
+		// If the theme_id is not valid, reset to default theme.
+		if (!isset($mb_api->themes->themes[$theme_id])) {
+			$theme_id = 1;
+		}
+
+		// Get list of theme page id's for this theme
+		$themePageIDList = $mb_api->themes->themes[$theme_id]->details->format_ids;
+		$themePageID = get_post_meta($post_id, "mb_book_theme_page_id", true);
+
+		// If there is no assigned theme page id, we use the first in the list
+		$themePageID || $themePageID = $themePageIDList[0];
+
+		// If the themes have changed behind our back, the $theme_id could be invalid,
+		// Choose '1', the default theme that must always be there.
+		if (!$mb_api->themes->themes[$theme_id]) {
+			$theme_id = 1;
+			// Update the book to use theme 1!!!
+			update_post_meta($book_id, 'mb_book_id', 1);
+		}
+
+		$f = $mb_api->themes->themes[$theme_id]->folder;
+		$previewsFolder = $mb_api->url .DIRECTORY_SEPARATOR. $mb_api->themes_dir_name .DIRECTORY_SEPARATOR. $f .DIRECTORY_SEPARATOR."template_previews";
+		// Get index of chosen page ID in the list of ID's
+		$i = array_search($themePageID, $themePageIDList) + 1;
+		// Use that index to choose the preview
+		$previewFileName = $previewsFolder .DIRECTORY_SEPARATOR.  "format_" . $i . ".jpg";
+		//$pageFormatPopupMenu = mb_page_format_popup_menu($post_id, $book_id);
+	
+		// portrait theme?
+		$isPortraitTheme = "";
+		if (isset($mb_api->themes->themes[$theme_id]->orientation) && $mb_api->themes->themes[$theme_id]->orientation == "portrait") {
+			$isPortraitTheme = "portrait";
+		}
+		
+
+		// VALUES + PREVIEWS
+		// Value list for each selection. That is, given select = 0, get $value[0], etc.
+		// These are the template names, actually, e.g. "A" or "2-Column-page", that kind of thing.
+		// Also, get the preview file names for each item, for the chooser grid, below.
+		$previews = array();
+		$values = $themePageIDList;
+		sort ($values);
+		while (list($k, $name) = each ($values)) {
+			$valueListArr[$k] = $name;
+			$previews[$k] = "$previewsFolder/format_" . (1+$k) . ".jpg";
+		}
+		$valueList = join(",",$valueListArr);
+
+		$chooser .= '<input type="hidden" id="mb_book_theme_page_id_values" value="' . $valueList . '">' ;
+		$chooser .= '<input type="hidden" id="mb_book_theme_page_previews" value="' . $previewsFolder . '">';
+	
+	
+		// PAGE THEME PREVIEW:
+	
+		// Capture the following into a variable:
+		ob_start();
+
+		?>
+		<div class="mb-settings-section no-border">
+			<input type="button" style="float:right;" class="wp-core-ui button-secondary" id="show-styles" name="show-styles" value="Show Styles" />
+			<br style="clear:all;"/>
+			<br/>
+
+			<div class="theme_page_preview_box" name="show-styles">
+				<label for="format_page_preview">
+				</label>
+				<div class="theme_page_preview <?php echo ($isPortraitTheme); ?>">
+					<img id="format_page_preview" src="<?php echo ($previewFileName); ?>"/>
+				</div>
+			</div>
+			<label for="mb_book_theme_page_id">
+				<div  style="text-align:center;">
+				Current Page Style : &quot;<span id="mb_book_theme_page_id_display"><?php echo($themePageID) ?></span>&quot;
+				</div>
+			</label>
+		</div>
+	
+		<?php
+		$chooser .= ob_get_contents();
+		ob_end_clean();
+
+	
+		// BUILD DIALOG CHOOSER
+		// Default theme is 1;
+		!$theme_id && $theme_id = 1;
+		$name = "mb_book_theme_page_id";
+		$id = "mb_book_themes_selector";
+		$sort = true;
+
+		$dialog = '<div id="mb-page-styles-dialog" style="display:none;" title="Page Styles"><div id="mb-page-styles-dialog-menu" style="margin-left:auto;margin-right:auto;width:830px;"/>';
+
+		$dialog .= $mb_api->funx->jQuerySelectableFromArray ($id, $previews, $theme_id, $sort);
+
+		$dialog .= "</div></div>";
+
+		$chooser .= $dialog;
+
+		return $chooser;
+}
+
+
+
+ 
+   // A popup menu of books by book post ID
+	function book_id_popup_menu ( $fieldname = "", $field_id = "", $selected = null ) {
+		
+		$menu = "";
+		
+		$books = get_posts(array(
+			'posts_per_page'	=> -1,
+			'post_type'		=> 'book',
+			'post_status'	=> 'any',
+			'order'=> 'ASC', 
+			'orderby' => 'title'
+		));
+		
+		
+		if( $books ) {
+
+			$menu .= "<select id=\"$fieldname\" name=\"$fieldname\">";
+			if (!$selected) {
+				$menu .= '<option selected="selected" value="">This post is not in a book.</option>';
+			} else {
+				$menu .= '<option value="">Not in a book.</option>';
+			}
+
+			foreach ($books as $book) {
+				$id = $book->ID;
+				$title = $book->post_title;
+				if ($id == $selected) {
+					$menu .=  '<option selected="selected" value="'. $id .'">'. $title . '</option>';
+				} else {
+					$menu .=  '<option value="'. $id.'">'. $title. '</option>';
+				}
+			}
+		}
+		$menu .=  '</select>';
+		return $menu;
+  	}
+  	
+  	
   
   // For one book, used on a book post page
-	function book_theme_popup_menu($book_id) {
+	function book_theme_chooser($book_id) {
 
 		if ($book_id) {
 			$book_post = get_post( array ('p' => $book_id) );
@@ -1174,6 +1375,8 @@ class MB_API {
 
 		$menu = $this->funx->OptionListFromArray ($values, $listname, $checked, $sort, $size, $extrahtml, $extraline);
 
+		
+		
 		return $menu;
 
 	}

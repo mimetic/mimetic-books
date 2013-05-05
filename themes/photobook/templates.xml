@@ -36,7 +36,7 @@
 		</index>
 		<page id="AA" ignoreExtraSourceElements="true" order="1">
 			<pictures>
-				<picture filename="" noShadow="true" time="1000" x="0" y="0" width="1025" height="769" absolute="true">
+				<picture filename="" noShadow="true" time="1000" x="0" y="0" width="1024" height="768" absolute="true">
 				</picture>
 			</pictures>
 			<buttons x="0" y="0" absolute="true" >
@@ -173,11 +173,11 @@
 			</pictures>
 			<textblocks>
 				<textblock>
-					<title isHTML="true" margin="0,0,0,0" style="Small Title" x="100" y="637" width="825" height="26" absolute="true">
+					<title isHTML="true" margin="0,0,0,0" style="Small Title" x="100" y="604" width="825" height="26" absolute="true">
 					</title>
 				</textblock>
 				<textblock>
-					<text isHTML="true" margin="0,0,0,0" style="Small Body" x="100" y="663" width="825" height="79" absolute="true">
+					<text isHTML="true" margin="0,0,0,0" style="Small Body" x="100" y="636" width="825" height="96" absolute="true">
 					</text>
 				</textblock>
 			</textblocks>
@@ -197,11 +197,11 @@
 			</pictures>
 			<textblocks>
 				<textblock>
-					<title isHTML="true" margin="0,0,0,0" style="Small Title Dark" x="100" y="637" width="825" height="26" absolute="true">
+					<title isHTML="true" margin="0,0,0,0" style="Small Title Dark" x="100" y="604" width="825" height="26" absolute="true">
 					</title>
 				</textblock>
 				<textblock>
-					<text isHTML="true" margin="0,0,0,0" style="Small Body" x="100" y="663" width="825" height="79" absolute="true">
+					<text isHTML="true" margin="0,0,0,0" style="Small Body" x="100" y="636" width="825" height="96" absolute="true">
 					</text>
 				</textblock>
 			</textblocks>
@@ -221,11 +221,11 @@
 			</pictures>
 			<textblocks>
 				<textblock>
-					<title isHTML="true" margin="0,0,0,0" style="Small Title Light" x="100" y="637" width="825" height="26" absolute="true">
+					<title isHTML="true" margin="0,0,0,0" style="Small Title Light" x="100" y="618" width="825" height="26" absolute="true">
 					</title>
 				</textblock>
 				<textblock>
-					<text isHTML="true" margin="0,0,0,0" style="Small Body Light" x="100" y="663" width="825" height="79" absolute="true">
+					<text isHTML="true" margin="0,0,0,0" style="Small Body Light" x="100" y="636" width="825" height="96" absolute="true">
 					</text>
 				</textblock>
 			</textblocks>

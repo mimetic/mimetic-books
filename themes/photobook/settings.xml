@@ -18,4 +18,21 @@
 
 	</class>
 
+	<class value="slideview">
+		<pageBackgroundMarkColorR value="120" />
+		<pageBackgroundMarkColorG value="120" />
+		<pageBackgroundMarkColorB value="120" />
+	</class>
+
+
+	<class value="navbar">
+		<pickerLabelColorR value="40" />
+		<pickerLabelColorG value="40" />
+		<pickerLabelColorB value="40" />
+		<pickerLabelAlpha value="100%" />
+		<pickerLabelFont value="AvenirNextCondensed-Regular" />
+	</class>
+
+
+
 </settings>

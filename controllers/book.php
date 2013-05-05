@@ -1005,7 +1005,7 @@ We use some of the WP fields for our own purposes:
 			));
 			$post = $response[0];
 		} elseif ($category_id) {
-			$post = get_book_post_from_category_id( $category_id );
+			$post = $mb_api->get_book_post_from_category_id( $category_id );
 		} elseif ($category_slug) {
 			$post = get_book_post_from_category_slug( $category_slug );
 		} else {
@@ -1059,6 +1059,7 @@ We use some of the WP fields for our own purposes:
 		return $book_post;
 	}
 	
+	/*
 	private function get_book_post_from_category_id( $id ) {
 		global $mb_api;
 		$posts = $mb_api->introspector->get_posts(array( 'cat' => $id, 'post-type' => 'book', 'post_status' => 'any' ));	
@@ -1067,6 +1068,7 @@ We use some of the WP fields for our own purposes:
 		}
 		return $book_post;
 	}
+	*/
 
 	private function get_book_post_from_category_slug( $slug ) {
 		global $mb_api;
@@ -1274,6 +1276,7 @@ foreach ($posts as $p) {
 				'post_type' => 'post',
 				'post_status' => 'publish,private',
 				'posts_per_page' => -1,
+				// These are required by Advanced Post Types plugin if it is set to manual, but not with auto setting
 				//'orderby' => 'menu_order',
 				//'order' => 'ASC',
 				'tax_query' => array (	
@@ -1285,6 +1288,7 @@ foreach ($posts as $p) {
 									)
 								)
 				);
+			
 			//$posts = get_posts($q);
 			$posts = $mb_api->introspector->get_posts($q);
 

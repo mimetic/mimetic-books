@@ -286,16 +286,18 @@ function mb_wpt_book_icons() {
 	global $dir;
 	$icon_url = plugins_url('images/mb-book-icon.png', __FILE__);
 	$icon_32_url = plugins_url('images/book-32x32.png', __FILE__);
+	$bg1 = "url($icon_url)";
+	$bg2 = "url($icon_32_url)";
     ?>
     <style type="text/css" media="screen">
 	#menu-posts-book .wp-menu-image {
-            background: url(<?php echo ($icon_url); ?>) no-repeat 6px 6px !important;
+            background: <?php echo ($bg1); ?> no-repeat 6px 6px !important;
         }
 	#menu-posts-book:hover .wp-menu-image, #menu-posts-book.wp-has-current-submenu .wp-menu-image {
             background-position: 6px -18px !important;
         }
 	#icon-edit.icon32-posts-book {
-		background: url(<?php echo ($icon_32_url); ?>) no-repeat;
+		background: <?php echo ($bg2); ?> no-repeat;
 		}
     </style>
 <?php 
@@ -496,7 +498,7 @@ function mb_book_add_post_meta_boxes() {
 
 	add_meta_box(
 		'book-post-publish',			// Unique ID
-		esc_html__( 'Publish Book' ),		// Title
+		esc_html__( 'Book Creation' ),		// Title
 		'mb_book_post_publish_meta_box',		// Callback function
 		'book',					// Admin page (or post type)
 		'side',					// Context
@@ -549,70 +551,60 @@ function mb_book_post_publish_meta_box( $post) {
 		$mb_book_publisher_id = get_option('mb_publisher_id', '1');
 	$mb_use_local_book_file = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_use_local_book_file", true) );
 	$mb_book_available = get_post_meta($post->ID, "mb_book_available", true);
+	
+	// Posts link
+	$cats = get_the_category( $post->ID );
+	if ($cats) {
+		$book_cat_id = $cats[0]->term_id;
+	} else {
+		$book_cat_id = "";
+	}
+	$postlink = "edit.php?s&post_status=all&post_type=post&action=-1&m=0&cat={$book_cat_id}&paged=1&mode=list&action2=-1";
+				
 
 	?>
-	<!-- defined on plugin settings page -->
-	<input type="hidden" id="distribution_url" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
-	<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
+			<!-- defined on plugin settings page -->
+			<input type="hidden" id="distribution_url" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
+			<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
 
-	<div id="mb-settings">
-		<div id="mb-misc-settings">
-			<div id="mb-minor-settings">
-				<div class="mb-settings-section no-border">
+			<div id="mb-settings">
+				<div id="mb-misc-settings">
+					<div class="mb-settings-section">
 				
-			<?php
-		if ($mb_book_available) {
-			?>
-					<label for="book-post-publish">
-						Be sure to update this page if you have made changes.<br/>
-					</label>
+					<?php
+					if ($mb_book_available) {
+					?>
+							<label for="book-post-publish">
+								Be sure to update this page if you have made changes.<br/>
+							</label>
 				
-					<div class="submitbox" >
-						<span style="margin-right:20px;" class="publishing_progress_message" id="publishing_progress_message" ></span>
-						<div style="text-align:right;float:right;">
-							<input type="button" id="publish_book_button" class="button-primary" value="Publish eBook" />
-						</div>
+							<div class="submitbox" >
+								<span style="margin-right:20px;" class="publishing_progress_message" id="publishing_progress_message" ></span>
+								<div style="text-align:right;float:right;">
+									<input type="button" id="publish_book_button" class="button-primary" value="Publish eBook" />
+								</div>
+							</div>
+							<div class="clear"></div>
+					
+							<?php
+					} else {
+							?>
+							This book is hidden. To show it, check the "Show on Shelves" box in the Book Settings pane. 
+							<?php
+					}
+							?>
+					
 					</div>
-					<div class="clear"></div>
-					
-					<?php
-			} else {
-					?>
-					This book is hidden. To show it, check the "Show on Shelves" box in the Book Settings pane. 
-					<?php
-			}
-					?>
-					
 				</div>
-				
+				<div class="mb-settings-section no-border">
+					<a href="<?php echo $postlink; ?>">Show posts</a> in this book.		
+				</div>
 			</div>
-		</div>
-	</div>
 	<?php 
 }
 
-/* Display the post theme meta box. */
-/*
-function mb_book_post_theme_meta_box( $post) { 
-	global $mb_api;
-	
-	$mb_book_theme_id = get_post_meta($post->ID, "mb_book_theme_id", true);
-	
-	wp_nonce_field( basename( __FILE__ ), 'book_post_nonce' ); 
-
-	?>
-	<p>
-		<label for="mb_book_theme_id">
-			Choose a design theme for your book:<br/>
-			<br/>
-			<?php echo $mb_api->book_theme_popup_menu($post->ID) ?>
-		</label>
 
 
-	</p>
-	<?php 
-}
-*/
 
 /* Display the post settings meta box. */
 function mb_book_post_settings_meta_box( $post) { 
@@ -705,7 +697,7 @@ function mb_book_post_settings_meta_box( $post) {
 					<label for="mb_book_theme_id">
 						Choose a design theme for your book:<br/>
 						<br/>
-						<?php echo $mb_api->book_theme_popup_menu($post->ID) ?>
+						<?php echo $mb_api->book_theme_chooser($post->ID) ?>
 					</label>
 				</div>
 	
@@ -864,6 +856,11 @@ function mb_book_post_meta_save_postdata( $post_id) {
 		// If there is no category for this book, make one.
 		// The slug is the book id
 		// The name is the title of the book
+		
+// *** if user chooses a new book id (from the menu), then 
+// remove the book from the previous book category (while leaving
+// other category settings along!)
+
 		if ($book_id) {
 
 			$old_id = wp_is_post_revision( $post_id );
@@ -1059,6 +1056,10 @@ function mb_post_meta_boxes_setup() {
 	add_action( 'add_meta_boxes', 'mb_post_add_page_meta_boxes' );
 	add_action( 'save_post', 'mb_post_meta_save_postdata');
 	
+	// AJAX to display the page design chooser
+	add_action('wp_ajax_page_design_chooser', 'mb_post_page_design_chooser_ajax');
+
+	
 }
 
 
@@ -1084,14 +1085,6 @@ function mb_post_meta_save_postdata( $post_id) {
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) 
 		return;
 
-	// verify this came from the our screen and with proper authorization,
-	// because save_post can be triggered at other times
-	if (!isset($_POST['mb_post_nonce']))
-		return;
-	
-	if ( !wp_verify_nonce( $_POST['mb_post_nonce'], basename( __FILE__ ) ) )
-		return;
-
 	// Check permissions
 	if ( 'page' == $_POST['post_type'] ) 
 	{
@@ -1104,26 +1097,152 @@ function mb_post_meta_save_postdata( $post_id) {
 			return;
 	}
 
-	// OK, we're authenticated: we need to find and save the data
+	// Different kinds of saving: inline, bulk, normal
 	
-	if (isset($_POST['mb_theme_id']) && isset($_POST['mb_book_theme_page_id'])) {
+	if ($_POST['action'] != "inline-save") {
+		
+		// Verify this came from the our screen and with proper authorization,
+		// because save_post can be triggered at other times
+		if (!isset($_POST['mb_post_nonce']) || !wp_verify_nonce( $_POST['mb_post_nonce'], basename( __FILE__ ) ) )
+				return;
+
+		if (isset($_POST['mb_theme_id']) && isset($_POST['mb_book_theme_page_id'])) {
+			// -----------------------
+			// NORMAL SAVE
+
+
+
 	
-		// We want to minimize loading this...it can be slow.
-		if (!$mb_api->themes->themes) {
-			$mb_api->load_themes();
+			// We want to minimize loading this...it can be slow.
+			if (!$mb_api->themes->themes) {
+				$mb_api->load_themes();
+			}
+			$theme_id = $_POST['mb_theme_id'];
+			//$format_ids = $mb_api->themes->themes[$theme_id]->details->format_ids;
+		
+			// Drop-down menu technique:
+			// Given the index, e.g. 1, get the format ID, e.g. 'B'
+			//$themePageID = $format_ids[$_POST['mb_book_theme_page_id']];
+		
+			// If the user chose a book from our drop-down menu, set the corresponding category.
+			// If the "uncategorized" category is checked, i.e. id=1, remove that.
+			// If they have changed categories, we need to remove the old category.
+			// However, we only want to remove the previous category...or we might end up
+			// removing valid categories!
+		
+		
+			$old_id = wp_is_post_revision( $post_id );
+		
+			if ($old_id) {
+				$old_book_id = (Int)$mb_api->get_post_book_id($old_id);
+				$cat = get_the_category( $old_id );
+				if ($cat) {
+					$old_category_id = $cat[0]->term_id;
+				}
+			
+				//$mb_api->write_log(__FUNCTION__.": Category :".print_r($cat,true) );
+			} else {
+			
+				$mb_book_id = $_POST['mb_book_id'];
+			
+				if ($mb_book_id) {
+					$new_cat = get_the_category( $mb_book_id );
+					$new_cat = (String)$new_cat[0]->cat_ID;
+				} else {
+					$new_cat = false;
+				}
+
+				$prev_cat = $_POST['mb_current_book_category'];
+
+			
+				// Is the prev category a book category? If not, ignore it.
+				// If you want a post in TWO books, you'd better do that by hand, and 
+				// you'll have trouble assigning a page design to it if the two books 
+				// have different designs!
+				// If the user sets the category to NO book, remove the previous book category.
+				if ($prev_cat) {
+					$is_book_cat = $mb_api->get_book_post_from_category_id( $prev_cat );
+				} else {
+					$is_book_cat = false;
+				}
+			
+				// Currently selected categories
+				$all_cats = $_POST['post_category'];		
+
+				// Remove the previous category if it is a book category
+				if ($is_book_cat && $new_cat != $prev_cat) {
+					// We depend on the mb_current_book_category being set 
+					// Uncheck the prev category, and check the new one
+					if(($key = array_search($prev_cat, $all_cats)) !== false) {
+						unset($all_cats[$key]);
+					}
+				}
+			
+				$uncat_is_set = array_search("1", $all_cats);
+				
+				// Add new book category to the categories
+				if ($new_cat != $prev_cat) {
+					$all_cats[] = $new_cat;
+					// Remove the "Uncategorized" category if there is a category
+					if(($key = array_search("1", $all_cats)) !== false) {
+							unset($all_cats[$key]);
+					}
+					$all_cats = array_map('intval', $all_cats);
+					$all_cats = array_unique( $all_cats );
+					wp_set_post_terms( $post_id, $all_cats, 'category' );
+				} elseif ( $new_cat ) {
+					// If the book has a category, and the Uncategorized is set, 
+					// the unset the Uncategorized category
+					if(($key = array_search("1", $all_cats)) !== false) {
+							unset($all_cats[$key]);
+					}
+					wp_set_post_terms( $post_id, $all_cats, 'category' );
+				}
+
+
+				// jQuery selector technique:
+				$themePageID = $_POST['mb_book_theme_page_id'];
+
+				update_post_meta( $post_id, 'mb_book_theme_page_id', $themePageID );
+		
+				//$cat = get_the_category( $post_id );
+		
+				//$mb_api->write_log(__FUNCTION__.": POST :".print_r($cat,true) );
+		
+				//$mb_api->write_log(__FUNCTION__.": POST :".print_r($_POST['post_category'],true)."\n--------\n" );
+			}
+	
+		} 
+	} 
+	elseif (!wp_is_post_revision( $post_id )) 
+	{
+			
+		$mb_book_id = $mb_api->get_post_book_id($post_id);
+
+		// Categories:
+		$cats = get_the_category( $mb_book_id );
+		if ($cats) {
+			$book_cat_id = $cats[0]->term_id;
+		} else {
+			$book_cat_id = null;
 		}
-		$theme_id = $_POST['mb_theme_id'];
-		$format_ids = $mb_api->themes->themes[$theme_id]->details->format_ids;
-		
-		// Drop-down menu technique:
-		// Given the index, e.g. 1, get the format ID, e.g. 'B'
-		//$themePageID = $format_ids[$_POST['mb_book_theme_page_id']];
-		
-		// jQuery selector technique:
-		$themePageID = $_POST['mb_book_theme_page_id'];
-		
-		update_post_meta( $post_id, 'mb_book_theme_page_id', $themePageID );
+
+		if ($book_cat_id) {
+			// Currently selected categories
+			$all_cats = $_POST['post_category'];		
+			if(($key = array_search("1", $all_cats)) !== false) {
+				unset($all_cats[$key]);
+				wp_set_post_terms( $post_id, $all_cats, 'category' );
+			}
+		}
 	}
+}
+
+
+/* Call the design chooser. Making this local function makes an "add_action" easier. */
+function mb_post_page_design_chooser_ajax () {
+	global $mb_api;
+	return $mb_api->page_design_chooser_ajax ();
 }
 
 
@@ -1137,137 +1256,96 @@ function mb_post_mb_page_theme_meta_box( $post) {
 	// Get the ID of the book post (not the published book's ID!!!)
 	$book_id = $mb_api->get_post_book_id($post->ID);
 	
-	if ($book_id) {
+	if (true || $book_id) {
 
 		// We want to minimize loading this...it can be slow.
 		if (!$mb_api->themes->themes) {
 			$mb_api->load_themes();
 		}
-	
-		$theme_id = get_post_meta($book_id, "mb_book_theme_id", true);
+		
+		$book_id 
+			? $theme_id = get_post_meta($book_id, "mb_book_theme_id", true)
+			: $theme_id = null;
 		
 		// If the theme_id is not valid, reset to default theme.
 		if (!isset($mb_api->themes->themes[$theme_id])) {
 			$theme_id = 1;
 		}
-	
-		// Get list of theme page id's for this theme
-		$themePageIDList = $mb_api->themes->themes[$theme_id]->details->format_ids;
-		$themePageID = get_post_meta($post->ID, "mb_book_theme_page_id", true);
-	
-		// If there is no assigned theme page id, we use the first in the list
-		$themePageID || $themePageID = $themePageIDList[0];
-	
-		// If the themes have changed behind our back, the $theme_id could be invalid,
-		// Choose '1', the default theme that must always be there.
-		if (!$mb_api->themes->themes[$theme_id]) {
-			$theme_id = 1;
-			// Update the book to use theme 1!!!
-			update_post_meta($book_id, 'mb_book_id', 1);
-		}
-	
-		$f = $mb_api->themes->themes[$theme_id]->folder;
-		$previewsFolder = $mb_api->url .DIRECTORY_SEPARATOR. $mb_api->themes_dir_name .DIRECTORY_SEPARATOR. $f .DIRECTORY_SEPARATOR."template_previews";
-		// Get index of chosen page ID in the list of ID's
-		$i = array_search($themePageID, $themePageIDList) + 1;
-		// Use that index to choose the preview
-		$previewFileName = $previewsFolder .DIRECTORY_SEPARATOR.  "format_" . $i . ".jpg";
-		$pageFormatPopupMenu = mb_page_format_popup_menu($post->ID, $book_id);
 		
-		// portrait theme?
-		$isPortraitTheme = "";
-		if (isset($mb_api->themes->themes[$theme_id]->orientation) && $mb_api->themes->themes[$theme_id]->orientation == "portrait") {
-			$isPortraitTheme = "portrait";
-		}
-			
-	
-		// Value list for each selection. That is, given select = 0, get $value[0], etc.
-		// These are the template names, actually, e.g. "A" or "2-Column-page", that kind of thing.
-		// Also, get the preview file names for each item, for the chooser grid, below.
-		$graphics = array();
-		$values = $themePageIDList;
-		sort ($values);
-		while (list($k, $name) = each ($values)) {
-			$valueListArr[$k] = $name;
-			$graphics[$k] = "$previewsFolder/format_" . (1+$k) . ".jpg";
-		}
-		$valueList = join(",",$valueListArr);
 	
 		// Link to edit the book linked to this post
-		$bookpost = get_post($book_id);
-		$link = "<i>{$bookpost->post_title}</i>";
-		$before = "Go to book: ";
-		$after = "";
-		$editlink = edit_post_link( $link, $before, $after, $book_id )
+		$bookpost = false;
+		if ($book_id){
+			$bookpost = get_post($book_id);
+			$link = "<i>{$bookpost->post_title}</i>";
+			$before = "Edit the book settings : ";
+			$after = "";
+			$editlink = edit_post_link( $link, $before, $after, $book_id );
+
+			// Categories:
+			$cats = get_the_category( $book_id );
+			if ($cats) {
+				$book_cat_id = $cats[0]->term_id;
+			} else {
+				$book_cat_id = null;
+			}
+
+		} else {
+			$editlink = "";
+			$book_cat_id  = null;
+		}
+		
+		
+		
+		
+		$themePageID = get_post_meta($post->ID, "mb_book_theme_page_id", true);
+		
+		$bookmenu = $mb_api->book_id_popup_menu( "mb_book_id", "mb_book_id", $book_id );
+		
+		if (!$book_id) {
+			echo ("To start a new book, select <i>Add New</i> from the <i>Books</i> menu on the left, or click <a href='post-new.php?post_type=book'>here</a>.");
+		}
 		
 		
 		// ----- drop-down menu technique is commented out, below. -------
 		?>
-		<p>
-			<input type="hidden" name="mb_book_theme_page_id" id="mb_book_theme_page_id" value="<?php echo($themePageID) ?>">
-			<input type="hidden" id="mb_book_theme_page_id_values" value="<?php echo($valueList) ?>">
-			<input type="hidden" id="mb_book_theme_page_previews" value="<?php echo($previewsFolder) ?>">
-			<input type="hidden" name="mb_theme_id" value="<?php echo($theme_id) ?>">
-			
-			<?php echo $editlink; ?><hr/>
-			
-			
-
-			<input type="button" style="float:right;" class="wp-core-ui button-secondary" id="show-styles" name="show-styles" value="Show Styles" />
-			<br style="clear:all;"/>
-			<br/>
-
-			<!--
-			<?php 
-			echo ($pageFormatPopupMenu );
-			?>
-			-->
-			<div class="theme_page_preview_box" name="show-styles">
-				<label for="format_page_preview">
-				</label>
-				<div class="theme_page_preview <?php echo ($isPortraitTheme); ?>">
-					<img id="format_page_preview" src="<?php echo ($previewFileName); ?>"/>
-				</div>
-			</div>
-		</p>
 		
-			<label for="mb_book_theme_page_id">
-				<div  style="text-align:center;">
-				Current Page Style : &quot;<span id="mb_book_theme_page_id_display"><?php echo($themePageID) ?></span>&quot;
+			<input type="hidden" name="mb_book_theme_page_id" id="mb_book_theme_page_id" value="<?php echo($themePageID) ?>">
+			<input type="hidden" name="mb_theme_id" value="<?php echo($theme_id) ?>">
+			<input type="hidden" name="mb_current_book_category" value="<?php echo($book_cat_id) ?>">
+			
+			<div id="mb-minor-settings">
+				<?php if ($editlink) { ?>
+				<div class="mb-settings-section no-border">
+					<?php echo $editlink; ?>
 				</div>
-			</label>
+				<?php } ?>
+				
+				<div class="mb-settings-section">
+					Book : <?php echo $bookmenu; ?>					
+				</div>
+				
+			</div>
 		
 		
 		<?php
 		
 		// ============= New Method for choosing page templates: POPUP GRID OF LAYOUTS ===============
 		
-		// Default theme is 1;
-		$checked = $theme_id; //get_post_meta($book_id, "mb_book_theme_id", true);
-		empty($checked) && $checked = 1;
-		$name = "mb_book_theme_page_id";
-		$id = "mb_book_themes_selector";
-		$sort = true;
-
-		$menu = $mb_api->funx->jQuerySelectableFromArray ($id, $graphics, $checked, $sort);
-
-		?>
-			<div id="mb-page-styles-dialog" style="display:none;" title="Page Styles">
-				<div style="margin-left:auto;margin-right:auto;width:830px;"/>
-				<?php echo $menu ?>
-				</div>
-			</div>
-		<?php
+		if ($book_id) {
+			// Default theme is 1;
+			empty($theme_id) && $theme_id = 1;
+			$name = "mb_book_theme_page_id";
+			$id = "mb_book_themes_selector";
+			$sort = true;
+			$chooser = $mb_api->page_design_chooser ($book_id, $post->ID);
+		} else {
+			$chooser = "";
+		}
 		
-	} else {
+		$chooser = "<div id=\"mb-page-design-chooser\">$chooser</div>";
+		echo $chooser;
 		
-		_e( "To add this post to a book, choose a book's category from the Categories box." );
-		
-		//$current_user = wp_get_current_user();
-		//$booklist = $mb_api->book_select_list($current_user);
-		//print ($booklist);
-		
-
 	}
 }
 
