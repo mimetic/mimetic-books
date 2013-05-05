@@ -22,6 +22,22 @@
 		<pageBackgroundMarkColorR value="120" />
 		<pageBackgroundMarkColorG value="120" />
 		<pageBackgroundMarkColorB value="120" />
+		
+		<!-- must be zero or embedded formatting will screw up the shadow, making it black! -->
+		<captionTextShadowAlpha value="0" />
+		<textblockTextShadowAlpha value="0" />
+		<overlayTextShadowAlpha value="0" />
+		<gridTextObjectTextShadowAlpha value="0" />
+		
+		<captionFormat>{caption}</captionFormat>
+		<captionFooterAlignment value="center" />
+		<captionPagenumFont value="AvenirNext-UltraLight" />
+		<captionFooterText>
+		### set, ,,,,,,,50%
+		— {pageNumberInBook} —
+		</captionFooterText>
+
+
 	</class>
 
 

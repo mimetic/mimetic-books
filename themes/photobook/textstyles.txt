@@ -1,4 +1,5 @@
-﻿[No Paragraph Style]=Avenir-Book,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+﻿# style = font, size, leading, R,G,B, width, opacity, NORMAL|ALL_CAPS, text alignment, spaceBefore, spaceAfter, firstLineIndent, leftIndent, rightIndent
+[No Paragraph Style]=Avenir-Book,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 [Basic Paragraph]=Avenir-Book,16,26,0,0,0,,100%,NORMAL,left,0,16,0,0,0
 Basic Paragraph on Dark=Avenir-Book,16,26,220,220,220,,100%,NORMAL,left,0,0,0,0,0
 H1=Avenir-Heavy,18,26,0,0,0,,100%,NORMAL,left,0,0,0,0,0
@@ -22,3 +23,5 @@ Small Body=Avenir-Book,16,22,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 Small Body Light=Avenir-Book,16,22,220,220,220,,100%,NORMAL,left,0,0,0,0,0
 Small Title Light=Avenir-Heavy,16,19.2,220,220,220,,100%,ALL_CAPS,left,0,0,0,0,0
 Small Title Dark=Avenir-Heavy,16,19.2,0,0,0,,100%,ALL_CAPS,left,0,0,0,0,0
+caption-title=Avenir-Heavy,14,20,0,0,0,,100%,NORMAL,left,0,8,0,0,0
+caption=Avenir-Book,14,20,0,0,0,,100%,NORMAL,left,0,16,0,0,0

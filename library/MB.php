@@ -361,10 +361,49 @@ class Mimetic_Book
 		}
 		*/
 		
+		// --------------------
 		// Build the textblock
 		$text = $wp_page->content;
 		$title = $wp_page->title;
+
+		// --------------------
+		// CAPTION
+		// Do first, so we can strip it from the text itself
 		
+		$caption = "";
+		// Caption starts with the excerpt.
+		if (trim($wp_page->excerpt)) {
+			$caption = '<div class="caption">' . $wp_page->excerpt . '</div>';
+		}
+		
+		// Now add picture captions to the caption
+		// Let's number, them, too...
+		$matches = array();
+		// Look for:
+		//<p class="wp-caption-text">Caption for the icon thang.</p>
+		$has_captions = preg_match_all('/\<p class="wp-caption-text">(.*?)<\/p\>/i', $wp_page->content, $matches);
+		if ($has_captions) {
+			if (count($matches[1])>1)
+				$capnum = 1;
+			else
+				$capnum = false;
+			
+			foreach ($matches[1] as $c) {
+				$capnum ? $capnumvalue = $capnum++ : $capnumvalue = "";
+				if ($c) {
+					$caption .= '<div class="caption">' . $capnumvalue . ".&nbsp;".$c . '</div>';
+				}
+				$x = 1;
+			}
+			$text = preg_replace('/\<p class="wp-caption-text">.*?<\/p\>/i', "", $text);
+			// Strip these, too:
+			//<div id="attachment_705" class="wp-caption alignleft" style="width: 159px"></div>
+			$text = preg_replace('/\<div id=".*? class="wp-caption.*?\/div\>/i', "", $text);
+
+		}
+		$caption = array('@cdata'=>$caption);
+		
+		// --------------------
 		// Do NOT include a title or text if it begins with the special 'do not include' marker!
 		// The marker is ... $mb_api->ignore_me_code
 		$ignore_me = '/^'.$mb_api->ignore_me_code.'/';
@@ -446,6 +485,7 @@ class Mimetic_Book
 			$attr["contents"] = $themePageIsTOCList[$themePageID];
 		}
 		
+		
 		//Assign page values
 		// Do NOT assign blank ones! Blank entries will overwrite template
 		// entries, for backgrounds or whatever. Blank entries should only happen
@@ -459,7 +499,7 @@ class Mimetic_Book
 			//'video'			=> '',
 			'textblocks'		=> $textblocks,
 			'template'			=> $themePageID,
-			'caption'			=> $wp_page->excerpt,
+			'caption'			=> $caption,
 			);
 		
 		
@@ -468,23 +508,6 @@ class Mimetic_Book
 			$page['tableofcontents'] = "";
 		}
 
-		// Get ATTACHED MEDIA: sounds, video
-		// Important: just because sound is embedded in the HTML of a page
-		// does NOT mean it is "attached". So, this will not get a sound or video
-		// that was created for another page, then inserted into a second page!
-		// THEREFORE, we are not using this for now!
-		/*
-		if ($wp_page->attachments) {
-			$attached = $this->get_attachments($wp_page, false);
-			$page = array_merge($page, $attached);
-			
-			// If there's no caption, we have to set one so the audio/video players
-			// in the caption box are available.
-			//if (trim($page['caption']) == "") {
-			//	$page['caption'] = "";
-			//}
-		}
-		*/
 		
 		// GET EMBEDDED PICTURES (NOT ATTACHED)
 		// Attached items are not necessarily embedded.

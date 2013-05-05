@@ -192,14 +192,14 @@ function mb_book_page_meta_save_postdata( $post_id) {
 
 	// verify this came from the our screen and with proper authorization,
 	// because save_post can be triggered at other times
-	if (!isset($_POST['book_page_nonce']))
+	if (!isset($_REQUEST['book_page_nonce']))
 		return;
 	
-	if ( !wp_verify_nonce( $_POST['book_page_nonce'], basename( __FILE__ ) ) )
+	if ( !wp_verify_nonce( $_REQUEST['book_page_nonce'], basename( __FILE__ ) ) )
 		return;
 
 	// Check permissions
-	if ( 'page' == $_POST['post_type'] ) 
+	if ( 'page' == $_REQUEST['post_type'] ) 
 	{
 		if ( !current_user_can( 'edit_page', $post_id ) )
 			return;
@@ -211,9 +211,9 @@ function mb_book_page_meta_save_postdata( $post_id) {
 	}
 
 	// OK, we're authenticated: we need to find and save the data
-	$pid = $_POST['mb_publisher_id'];
+	$pid = $_REQUEST['mb_publisher_id'];
 	$pid = trim($pid);
-	update_post_meta( $post_id, 'mb_publisher_id', $_POST['mb_publisher_id'] );
+	update_post_meta( $post_id, 'mb_publisher_id', $_REQUEST['mb_publisher_id'] );
 	$mb_api->write_publishers_file();
 		
 }
@@ -1084,9 +1084,9 @@ function mb_post_meta_save_postdata( $post_id) {
 	// If it is our form has not been submitted, so we dont want to do anything
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) 
 		return;
-
+	isset($_REQUEST['post_type']) ? $pt = $_REQUEST['post_type'] : $pt = "";
 	// Check permissions
-	if ( 'page' == $_POST['post_type'] ) 
+	if ( 'page' == $pt ) 
 	{
 		if ( !current_user_can( 'edit_page', $post_id ) )
 			return;
@@ -1099,14 +1099,14 @@ function mb_post_meta_save_postdata( $post_id) {
 
 	// Different kinds of saving: inline, bulk, normal
 	
-	if ($_POST['action'] != "inline-save") {
+	if ($_REQUEST['action'] != "inline-save") {
 		
 		// Verify this came from the our screen and with proper authorization,
 		// because save_post can be triggered at other times
-		if (!isset($_POST['mb_post_nonce']) || !wp_verify_nonce( $_POST['mb_post_nonce'], basename( __FILE__ ) ) )
+		if (!isset($_REQUEST['mb_post_nonce']) || !wp_verify_nonce( $_REQUEST['mb_post_nonce'], basename( __FILE__ ) ) )
 				return;
 
-		if (isset($_POST['mb_theme_id']) && isset($_POST['mb_book_theme_page_id'])) {
+		if (isset($_REQUEST['mb_theme_id']) && isset($_REQUEST['mb_book_theme_page_id'])) {
 			// -----------------------
 			// NORMAL SAVE
 
@@ -1117,12 +1117,12 @@ function mb_post_meta_save_postdata( $post_id) {
 			if (!$mb_api->themes->themes) {
 				$mb_api->load_themes();
 			}
-			$theme_id = $_POST['mb_theme_id'];
+			$theme_id = $_REQUEST['mb_theme_id'];
 			//$format_ids = $mb_api->themes->themes[$theme_id]->details->format_ids;
 		
 			// Drop-down menu technique:
 			// Given the index, e.g. 1, get the format ID, e.g. 'B'
-			//$themePageID = $format_ids[$_POST['mb_book_theme_page_id']];
+			//$themePageID = $format_ids[$_REQUEST['mb_book_theme_page_id']];
 		
 			// If the user chose a book from our drop-down menu, set the corresponding category.
 			// If the "uncategorized" category is checked, i.e. id=1, remove that.
@@ -1143,7 +1143,7 @@ function mb_post_meta_save_postdata( $post_id) {
 				//$mb_api->write_log(__FUNCTION__.": Category :".print_r($cat,true) );
 			} else {
 			
-				$mb_book_id = $_POST['mb_book_id'];
+				$mb_book_id = $_REQUEST['mb_book_id'];
 			
 				if ($mb_book_id) {
 					$new_cat = get_the_category( $mb_book_id );
@@ -1152,7 +1152,7 @@ function mb_post_meta_save_postdata( $post_id) {
 					$new_cat = false;
 				}
 
-				$prev_cat = $_POST['mb_current_book_category'];
+				$prev_cat = $_REQUEST['mb_current_book_category'];
 
 			
 				// Is the prev category a book category? If not, ignore it.
@@ -1167,7 +1167,7 @@ function mb_post_meta_save_postdata( $post_id) {
 				}
 			
 				// Currently selected categories
-				$all_cats = $_POST['post_category'];		
+				$all_cats = $_REQUEST['post_category'];		
 
 				// Remove the previous category if it is a book category
 				if ($is_book_cat && $new_cat != $prev_cat) {
@@ -1201,7 +1201,7 @@ function mb_post_meta_save_postdata( $post_id) {
 
 
 				// jQuery selector technique:
-				$themePageID = $_POST['mb_book_theme_page_id'];
+				$themePageID = $_REQUEST['mb_book_theme_page_id'];
 
 				update_post_meta( $post_id, 'mb_book_theme_page_id', $themePageID );
 		
@@ -1209,7 +1209,7 @@ function mb_post_meta_save_postdata( $post_id) {
 		
 				//$mb_api->write_log(__FUNCTION__.": POST :".print_r($cat,true) );
 		
-				//$mb_api->write_log(__FUNCTION__.": POST :".print_r($_POST['post_category'],true)."\n--------\n" );
+				//$mb_api->write_log(__FUNCTION__.": POST :".print_r($_REQUEST['post_category'],true)."\n--------\n" );
 			}
 	
 		} 
@@ -1229,7 +1229,7 @@ function mb_post_meta_save_postdata( $post_id) {
 
 		if ($book_cat_id) {
 			// Currently selected categories
-			$all_cats = $_POST['post_category'];		
+			$all_cats = $_REQUEST['post_category'];		
 			if(($key = array_search("1", $all_cats)) !== false) {
 				unset($all_cats[$key]);
 				wp_set_post_terms( $post_id, $all_cats, 'category' );
