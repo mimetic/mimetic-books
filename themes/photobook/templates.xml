@@ -221,7 +221,7 @@
 			</pictures>
 			<textblocks>
 				<textblock>
-					<title isHTML="true" margin="0,0,0,0" style="Small Title Light" x="100" y="618" width="825" height="26" absolute="true">
+					<title isHTML="true" margin="0,0,0,0" style="Small Title Light" x="100" y="604" width="825" height="26" absolute="true">
 					</title>
 				</textblock>
 				<textblock>
@@ -566,7 +566,7 @@
 		<page id="BD" ignoreExtraSourceElements="true" order="30">
 			<textblocks>
 				<textblock>
-					<title isHTML="true" margin="0,0,0,0" style="Title" x="94" y="727" width="925" height="42" absolute="true">
+					<title isHTML="true" margin="0,0,0,0" style="Title" x="94" y="694" width="925" height="42" absolute="true">
 					</title>
 				</textblock>
 				<textblock>
@@ -586,7 +586,7 @@
 			</backgroundfile>
 			<textblocks>
 				<textblock>
-					<title isHTML="true" margin="0,0,0,0" style="Title" x="94" y="727" width="925" height="42" absolute="true">
+					<title isHTML="true" margin="0,0,0,0" style="Title" x="94" y="694" width="925" height="42" absolute="true">
 					</title>
 				</textblock>
 				<textblock>
@@ -606,7 +606,7 @@
 			</backgroundfile>
 			<textblocks>
 				<textblock>
-					<title isHTML="true" margin="0,0,0,0" style="Title Light" x="94" y="727" width="925" height="42" absolute="true">
+					<title isHTML="true" margin="0,0,0,0" style="Title Light" x="94" y="694" width="925" height="42" absolute="true">
 					</title>
 				</textblock>
 				<textblock>
@@ -626,7 +626,7 @@
 			</backgroundfile>
 			<textblocks>
 				<textblock>
-					<title isHTML="true" margin="0,0,0,0" style="Title" x="94" y="727" width="925" height="42" absolute="true">
+					<title isHTML="true" margin="0,0,0,0" style="Title" x="94" y="694" width="925" height="42" absolute="true">
 					</title>
 				</textblock>
 				<textblock>

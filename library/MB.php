@@ -267,12 +267,14 @@ class Mimetic_Book
 
 
     */
-    function convert_chapter($wp_chapter, $index) 
+    function convert_chapter($wp_chapter, $index, $not_in_contents = false) 
     {
 		// WP category object
         $category = $wp_chapter['category'];
 		
 		$index || $index = "";
+		
+		$not_in_contents ? $not_in_contents = "true" : $not_in_contents = "false";
 		
 		$attr = array(
 				'id'					=> $category->term_id,
@@ -280,7 +282,7 @@ class Mimetic_Book
 				'hasOverlays'			=> 'true',
 				'navbarType'			=> 'slider',
 				'pickerLabelGroupBy'	=> 'text',
-				'notInContents'			=> 'false',
+				'notInContents'			=> $not_in_contents,
 				'stopAudioWhenLeaving'	=> 'true'
 				);
 		$chapter_id = $category->term_id;
@@ -341,9 +343,9 @@ class Mimetic_Book
 	
 	private function convert_page ($wp_page, $category)
 	{
-		global $mb_api;
+		global $mb_api, $more;
 		
-		//print_r($wp_page);
+//$mb_api->write_log(print_r($wp_page, true));
 		
 		// Get page attributes from the post
 		$attr = array ();
@@ -365,11 +367,30 @@ class Mimetic_Book
 		// Build the textblock
 		$text = $wp_page->content;
 		$title = $wp_page->title;
+		
+		// "MORE" shows up at this point with a <span id=more-xxx></span>
+		// So, let's find those, turn them back into <!--more--> so we can break with them.
+//$mb_api->write_log(__FUNCTION__.": \r\r\r****************************");
+		$text = preg_replace('/<span id\=\"more\-\d+"><\/span>/', '<!--more-->\1', $text);
+//$mb_api->write_log(__FUNCTION__.": text: $text");
+  
+
+
+//$mb_api->write_log(__FUNCTION__.": \r\r\r%%%%%%%%%%%%%%%%%%%%%%");
 
 		// --------------------
 		// CAPTION
 		// Do first, so we can strip it from the text itself
 		
+		/* 	**** WHEN WE USE THE WORDPRESS FILTERING OVER IN post.php, set_content_value()
+			then the caption is converted from [caption... to <div class="caption"....
+			5/25/13 : I have turned that off, to get the raw text from the content! 
+			So, now we have to get our caption a little differently.
+		*/
+
+		
+		// With FILTERING ON:
+		/*
 		$caption = "";
 		// Caption starts with the excerpt.
 		if (trim($wp_page->excerpt)) {
@@ -401,7 +422,59 @@ class Mimetic_Book
 			$text = preg_replace('/\<div id=".*? class="wp-caption.*?\/div\>/i', "", $text);
 
 		}
-		$caption = array('@cdata'=>$caption);
+		*/
+
+
+//$mb_api->write_log(__FUNCTION__.": content: ". $wp_page->content_raw."\r\r\r" );
+
+		
+		// WITH FILTERING OFF:
+		$caption = "";
+		// Caption starts with the excerpt.
+		if (trim($wp_page->excerpt)) {
+			$caption = '<div class="caption">' . $wp_page->excerpt . '</div>';
+		}
+		
+		// Now add picture captions to the caption
+		// Let's number, them, too...
+		$matches = array();
+		// Look for:
+		//<p class="wp-caption-text">Caption for the icon thang.</p>
+		$has_captions = preg_match_all('/\[caption.*?\](.*?)\[\/caption\]/i', $wp_page->content_raw, $matches);
+//$mb_api->write_log(__FUNCTION__.": content: ". $wp_page->content."\r\r\r" );
+//$mb_api->write_log(__FUNCTION__.": has captions? ".print_r($matches[1], true) );
+		if ($has_captions) {
+			if (count($matches[1])>1)
+				$capnum = 1;
+			else
+				$capnum = false;
+			
+			foreach ($matches[1] as $c) {
+				$capnum ? $capnumvalue = $capnum++ : $capnumvalue = "";
+				if ($c) {
+					// Strip the img from the caption...
+					$c = preg_replace('/\<img.*?\/\>/i', "", $c);
+					$caption .= '<div class="caption">' . $capnumvalue . ".&nbsp;".$c . '</div>';
+				}
+				$x = 1;
+			}
+			$text = preg_replace('/\[caption.*?\[\/caption\]/i', "", $text);
+			// Strip these, too:
+			//<div id="attachment_705" class="wp-caption alignleft" style="width: 159px"></div>
+			$text = preg_replace('/\<div id=".*? class="wp-caption.*?\/div\>/i', "", $text);
+
+		}
+		
+		// -------
+		
+		
+		if ($caption) {
+			$caption = array('@cdata'=>$caption);
+		} else {
+			$caption = "";
+		}
+		
+//$mb_api->write_log(__FUNCTION__.": CAPTIONS: ".print_r($caption, true) );
 		
 		// --------------------
 		// Do NOT include a title or text if it begins with the special 'do not include' marker!
@@ -432,10 +505,6 @@ class Mimetic_Book
 		// That means a template page has to perfectly match, i.e. the template
 		// cannot have a title if the page does, or text goes in the wrong places.
 		
-		// The second method always has text + title, meaning all template
-		// pages must have both. The author can always 'blank out' one or the
-		// other using the '###' mark at the beginning of the block.
-		
 		// Method #1
 		/*
 			if ($title && $title != "")
@@ -445,15 +514,68 @@ class Mimetic_Book
 		
 		*/
 		
+		
+		// The second method always has text + title, meaning all template
+		// pages must have both. The author can always 'blank out' one or the
+		// other using the '###' mark at the beginning of the block.
+		
+		// We use the WordPress "MORE" break, which creates code <!--more--> to 
+		// indicate that the text after the break goes into the next text block in the template.
+		
+		// The Title must be its own textblock because that's how InDesign templates end up
+		// being created...with the title in its own block. No other reason it has to be this way.
+		
 		// Method #2
+
+		if ($title || $text) {
+		
+			$text_chunks = explode("<!--more-->", $text);
+			$textblocks = array ();
+			$textblocks['textblock'] = array();
+
+			if ($title != "" ) {
+				$textblocks['textblock'][] = array (
+					'title' => array('@cdata'=>$title)
+					);
+			} else {
+				$textblocks['textblock'][] = array (
+					'title' => ""
+					);
+			}
+
+		
+			foreach ($text_chunks as $t) {
+				$t = trim($t);
+				// This adds <p> and good stuff like that!!!! Woohoo!!
+				$t = apply_filters('the_content', $t);
+     // $content = str_replace(']]>', ']]&gt;', $content);
+//$mb_api->write_log(__FUNCTION__.": t = {$t}");
+				//$t = "<p>" . preg_replace('/[\r\n]/', "</p>\n<p>", $t) . "</p>";
+				//$t = preg_replace('/\n?(.+?)(\n\n|\z)/s', "</p>\1<p>", $t);
+
+				//$t = "<p>" . str_replace("\n", "</p><p>", $t) . "</p>";
+				//$t = str_replace("\r", "", $t);
+
+
+//$mb_api->write_log(__FUNCTION__.": t = ###{$t}###");
+			
+				$textblocks['textblock'][] = array (
+					'text' => array('@cdata'=> trim($t))
+					);
+			}
+
+		} else {
+			$textblocks = array();
+		}
+
+//$mb_api->write_log(__FUNCTION__.": textblocks:".print_r($textblocks,true));
+
+		/*
 		$textblock = array (
 				array ('title' => array('@cdata'=>$title) ), 
 				array( 'text' => array('@cdata'=>$text) )
 			);
-			
-			
-			
-		
+
 		if ($textblock) {
 			$textblocks = array(
 				"textblock" => $textblock
@@ -461,6 +583,8 @@ class Mimetic_Book
 		} else {
 			$textblocks = array();
 		}
+		*/	
+		
 		
 		// This uses the built-in WP formats:
 		//$wp_page->format_id ? $mb_template_id = $wp_page->format_id : $mb_template_id = "";
@@ -479,12 +603,44 @@ class Mimetic_Book
 		if (!$themePageID || !array_search($themePageID, $themePageIDList)) {
 			$themePageID = $themePageIDList[0];
 		}
+
+
+		// ----
+		// Add custom field values
+		$fields = array();
+		foreach ($mb_api->themes->themes[$this->theme_id]->details->custom_fields as $fieldname) {
+			$t = get_post_meta($wp_page->id, "mb_custom_".$fieldname, true);
+			$t = trim($t);
+			if ($t == "") {
+				$fields[$fieldname] = "";
+			} else {
+				$fields[$fieldname] = array('@cdata'=>$t);
+			}
+			
+		}
+
 		
 		// IF this is a table of contents page, add that to the attributes
 		if (isset($themePageIsTOCList[$themePageID])) {
 			$attr["contents"] = $themePageIsTOCList[$themePageID];
 		}
 		
+		
+		// Post label for the navigation bar
+		$nav_label = get_post_meta($wp_page->id, "mb_page_nav_label", true);
+		
+		// Use the slug as the ID or simply the post ID
+		$wp_page->slug ? $attr['id'] = $wp_page->slug : $attr['id'] = $wp_page->id;
+		
+		// Book map page? Then set the page id to "map"
+		if (get_post_meta($wp_page->id, "mb_page_is_map", true) ) {
+			$attr['id'] = "map";
+		}
+				
+		// Show page in the table of contents?
+		if ($title && get_post_meta($wp_page->id, "mb_show_page_in_contents", true) ) {
+			$attr['contentstitle'] = $title;
+		}
 		
 		//Assign page values
 		// Do NOT assign blank ones! Blank entries will overwrite template
@@ -498,10 +654,15 @@ class Mimetic_Book
 			//'audiofile'		=> '',
 			//'video'			=> '',
 			'textblocks'		=> $textblocks,
+			'fields'			=> $fields,
 			'template'			=> $themePageID,
 			'caption'			=> $caption,
+			'label'				=> $nav_label
 			);
-		
+			
+
+			
+//$mb_api->write_log(print_r($attr,true));		
 		
 		// Add a table of contents element to the page
 		if (isset($themePageIsTOCList[$themePageID])) {
@@ -699,7 +860,9 @@ print ("-----------\n");
 	private function get_embedded_elements($wp_page, $element_type="", $subtype = "") {
 		global $mb_api;
 		$text = $wp_page->content;
-		
+		// This worked before...
+		$text = apply_filters('the_content', $text);
+				
 		if (!$text) {
 			return null;
 		}
@@ -824,7 +987,7 @@ print ("-----------\n");
 		}
 	
 
-		//print_r($page_elements);
+//$mb_api->write_log (__FUNCTION__ . "Page Elements:" . print_r($page_elements));
 		return $page_elements;
 	}
 	

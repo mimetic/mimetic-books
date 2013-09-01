@@ -163,7 +163,10 @@ class MB_API_Post {
   function set_content_value() {
     global $mb_api;
     if ($mb_api->include_value('content')) {
-      $content = get_the_content($mb_api->query->read_more);
+      $content = get_the_content();
+      // Do NOT filter the content.
+      $this->content_raw = $content;
+	  // Apply filters
       $content = apply_filters('the_content', $content);
       $content = str_replace(']]>', ']]&gt;', $content);
       $this->content = $content;

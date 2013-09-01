@@ -1,7 +1,11 @@
 <?php
 /*
 Controller name: Book
-Controller description: Mimetic Book methods
+Controller description: Mimetic Book methods. If the 'auth' controller is activated, all requests to this controller will require authentication. Otherwise, all requests are wide open and anyone can request information!
+
+Many thanks to Matthew Berg for his JSON api and JSON API Auth on which key parts are based!
+https://github.com/mattberg/wp-json-api-auth
+
 */
 
 class MB_API_Book_Controller {
@@ -12,7 +16,30 @@ Build the book object from the Wordpress site.
 We use categories to divide the book into chapters.
 The Re-Order plugin lets us control page order beyond the standard WP ordering of date, etc.
 
-Example URL:
+---------------------
+Auth security:
+IF the 'auth' controller is NOT activated, then the system is wide open and it will respond to any request.
+
+IF the 'auth' controller is activated, then all transactions require authorization utilizing the Wordpress cookie validation and generation.
+
+This kind of call requires the following: url, username, password, controller, method, params, action, callback.
+
+Sample Lua call, using the mb_api.lua module:
+
+local url = "http://localhost/photobook/wordpress/"
+local username = "admin"
+local password = "mypass"
+local params = {}
+local controller = "auth"
+local method = "generate_auth_cookie"
+local action = mb_api.getCurrentUserInfo
+local callback = onSuccess
+
+mb_api.access(url, username, password, controller, method, params, action, callback)
+
+
+---------------------
+Example URL without security:
 http://myblog.com/mb/book/build/?category_slug_and=book1,chapter-1
 
 arguments:
@@ -604,8 +631,10 @@ We use some of the WP fields for our own purposes:
 			// Chapters are arrays of posts/pages
 			// $index is the number of the chapter
 			$index = 1;
+			$not_in_contents = ($book['chapters'] <= 1);
+				
 			foreach($book['chapters'] as $chapter) {
-				$mb->convert_chapter($chapter, $index);
+				$mb->convert_chapter($chapter, $index, $not_in_contents);
 				$index++;
 			}
 		} else {
@@ -1733,10 +1762,6 @@ foreach ($posts as $p) {
 	public function get_nonce() {
 		global $mb_api;
 
-		if (! $this->confirm_auth() ) {
-			return false;
-		}
-
 		extract($mb_api->query->get(array('controller', 'method')));
 		if ($controller && $method) {
 			$controller = strtolower($controller);
@@ -1872,6 +1897,9 @@ foreach ($posts as $p) {
 	protected function confirm_auth() {
 		global $mb_api;
 		
+		if ( is_user_logged_in() )
+			return true;
+		
 		// Check to see if the Auth controller is active.
 		// If Auth is not activated, then don't authenticate, just return 'true'.
 		$controller = "auth";
@@ -1944,7 +1972,7 @@ foreach ($posts as $p) {
 		return $backtrace[2]['function'];
 	}
 
-	
-}
+
+}	// end of class definition
 
 ?>

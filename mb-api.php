@@ -1075,6 +1075,15 @@ function mb_post_add_page_meta_boxes() {
 		'high'										// Priority
 	);
 	
+	add_meta_box(
+		'book-post-page-custom-fields',					// Unique ID
+		esc_html__( 'Mimetic Book Custom Fields' ),			// Title
+		'mb_post_mb_page_fields_meta_box',				// Callback function
+		'post',										// Admin page (or post type)
+		'side',										// Context
+		'high'										// Priority
+	);
+	
 }
 
 function mb_post_meta_save_postdata( $post_id) {
@@ -1098,141 +1107,166 @@ function mb_post_meta_save_postdata( $post_id) {
 	}
 
 	// Different kinds of saving: inline, bulk, normal
-	
-	if ($_REQUEST['action'] != "inline-save") {
-		
-		// Verify this came from the our screen and with proper authorization,
-		// because save_post can be triggered at other times
-		if (!isset($_REQUEST['mb_post_nonce']) || !wp_verify_nonce( $_REQUEST['mb_post_nonce'], basename( __FILE__ ) ) )
-				return;
+	if (isset($_REQUEST['action']) ) {
+		if ($_REQUEST['action'] != "inline-save") {
 
-		if (isset($_REQUEST['mb_theme_id']) && isset($_REQUEST['mb_book_theme_page_id'])) {
-			// -----------------------
-			// NORMAL SAVE
+			// Verify this came from the our screen and with proper authorization,
+			// because save_post can be triggered at other times
+			if (!isset($_REQUEST['mb_post_nonce']) || !wp_verify_nonce( $_REQUEST['mb_post_nonce'], basename( __FILE__ ) ) )
+					return;
+
+			if (isset($_REQUEST['mb_theme_id']) && isset($_REQUEST['mb_book_theme_page_id'])) {
+				// -----------------------
+				// NORMAL SAVE
 
 
 
-	
-			// We want to minimize loading this...it can be slow.
-			if (!$mb_api->themes->themes) {
-				$mb_api->load_themes();
-			}
-			$theme_id = $_REQUEST['mb_theme_id'];
-			//$format_ids = $mb_api->themes->themes[$theme_id]->details->format_ids;
-		
-			// Drop-down menu technique:
-			// Given the index, e.g. 1, get the format ID, e.g. 'B'
-			//$themePageID = $format_ids[$_REQUEST['mb_book_theme_page_id']];
-		
-			// If the user chose a book from our drop-down menu, set the corresponding category.
-			// If the "uncategorized" category is checked, i.e. id=1, remove that.
-			// If they have changed categories, we need to remove the old category.
-			// However, we only want to remove the previous category...or we might end up
-			// removing valid categories!
-		
-		
-			$old_id = wp_is_post_revision( $post_id );
-		
-			if ($old_id) {
-				$old_book_id = (Int)$mb_api->get_post_book_id($old_id);
-				$cat = get_the_category( $old_id );
-				if ($cat) {
-					$old_category_id = $cat[0]->term_id;
+
+				// We want to minimize loading this...it can be slow.
+				if (!$mb_api->themes->themes) {
+					$mb_api->load_themes();
 				}
-			
-				//$mb_api->write_log(__FUNCTION__.": Category :".print_r($cat,true) );
+				$theme_id = $_REQUEST['mb_theme_id'];
+				//$format_ids = $mb_api->themes->themes[$theme_id]->details->format_ids;
+
+				// Drop-down menu technique:
+				// Given the index, e.g. 1, get the format ID, e.g. 'B'
+				//$themePageID = $format_ids[$_REQUEST['mb_book_theme_page_id']];
+
+				// If the user chose a book from our drop-down menu, set the corresponding category.
+				// If the "uncategorized" category is checked, i.e. id=1, remove that.
+				// If they have changed categories, we need to remove the old category.
+				// However, we only want to remove the previous category...or we might end up
+				// removing valid categories!
+
+
+				$old_id = wp_is_post_revision( $post_id );
+
+				if ($old_id) {
+					$old_book_id = (Int)$mb_api->get_post_book_id($old_id);
+					$cat = get_the_category( $old_id );
+					if ($cat) {
+						$old_category_id = $cat[0]->term_id;
+					}
+
+					//$mb_api->write_log(__FUNCTION__.": Category :".print_r($cat,true) );
+				} else {
+
+					$mb_book_id = $_REQUEST['mb_book_id'];
+
+					if ($mb_book_id) {
+						$new_cat = get_the_category( $mb_book_id );
+						$new_cat = (String)$new_cat[0]->cat_ID;
+					} else {
+						$new_cat = false;
+					}
+
+					$prev_cat = $_REQUEST['mb_current_book_category'];
+
+
+					// Is the prev category a book category? If not, ignore it.
+					// If you want a post in TWO books, you'd better do that by hand, and 
+					// you'll have trouble assigning a page design to it if the two books 
+					// have different designs!
+					// If the user sets the category to NO book, remove the previous book category.
+					if ($prev_cat) {
+						$is_book_cat = $mb_api->get_book_post_from_category_id( $prev_cat );
+					} else {
+						$is_book_cat = false;
+					}
+
+					// Currently selected categories
+					$all_cats = $_REQUEST['post_category'];		
+
+					// Remove the previous category if it is a book category
+					if ($is_book_cat && $new_cat != $prev_cat) {
+						// We depend on the mb_current_book_category being set 
+						// Uncheck the prev category, and check the new one
+						if(($key = array_search($prev_cat, $all_cats)) !== false) {
+							unset($all_cats[$key]);
+						}
+					}
+
+					$uncat_is_set = array_search("1", $all_cats);
+
+					// Add new book category to the categories
+					if ($new_cat != $prev_cat) {
+						$all_cats[] = $new_cat;
+						// Remove the "Uncategorized" category if there is a category
+						if(($key = array_search("1", $all_cats)) !== false) {
+								unset($all_cats[$key]);
+						}
+						$all_cats = array_map('intval', $all_cats);
+						$all_cats = array_unique( $all_cats );
+						wp_set_post_terms( $post_id, $all_cats, 'category' );
+					} elseif ( $new_cat ) {
+						// If the book has a category, and the Uncategorized is set, 
+						// the unset the Uncategorized category
+						if(($key = array_search("1", $all_cats)) !== false) {
+								unset($all_cats[$key]);
+						}
+						wp_set_post_terms( $post_id, $all_cats, 'category' );
+					}
+
+
+					// jQuery selector technique:
+					$themePageID = $_REQUEST['mb_book_theme_page_id'];
+					
+					// Update values
+					update_post_meta( $post_id, 'mb_book_theme_page_id', $themePageID );
+					update_post_meta( $post_id, 'mb_page_nav_label', $_REQUEST['mb_page_nav_label'] );
+					if (isset($_REQUEST['mb_page_is_map']))
+						update_post_meta( $post_id, 'mb_page_is_map', 1 );
+					else
+						update_post_meta( $post_id, 'mb_page_is_map', 0 );
+						
+					if (isset($_REQUEST['mb_show_page_in_contents']))
+						update_post_meta( $post_id, 'mb_show_page_in_contents', 1 );
+					else
+						update_post_meta( $post_id, 'mb_show_page_in_contents', 0 );
+						
+					//$cat = get_the_category( $post_id );
+
+					//$mb_api->write_log(__FUNCTION__.": POST :".print_r($cat,true) );
+
+					//$mb_api->write_log(__FUNCTION__.": POST :".print_r($_REQUEST['post_category'],true)."\n--------\n" );
+					
+					
+					//------
+					// Save custom MB fields
+					foreach (array_keys($_REQUEST) as $fieldname) {
+						$matches = array();
+						if (preg_match("/^(mb_custom_.*)/", $fieldname, $matches) ) {
+							$f = $matches[1];
+							update_post_meta( $post_id, $fieldname, $_REQUEST[$fieldname] );
+//print ($f . "<BR>".$_REQUEST[$f]."<BR>");
+						}
+					} // for
+					
+				}	// else
+
+			} 
+		} 
+	elseif (!wp_is_post_revision( $post_id )) 
+		{
+
+			$mb_book_id = $mb_api->get_post_book_id($post_id);
+
+			// Categories:
+			$cats = get_the_category( $mb_book_id );
+			if ($cats) {
+				$book_cat_id = $cats[0]->term_id;
 			} else {
-			
-				$mb_book_id = $_REQUEST['mb_book_id'];
-			
-				if ($mb_book_id) {
-					$new_cat = get_the_category( $mb_book_id );
-					$new_cat = (String)$new_cat[0]->cat_ID;
-				} else {
-					$new_cat = false;
-				}
+				$book_cat_id = null;
+			}
 
-				$prev_cat = $_REQUEST['mb_current_book_category'];
-
-			
-				// Is the prev category a book category? If not, ignore it.
-				// If you want a post in TWO books, you'd better do that by hand, and 
-				// you'll have trouble assigning a page design to it if the two books 
-				// have different designs!
-				// If the user sets the category to NO book, remove the previous book category.
-				if ($prev_cat) {
-					$is_book_cat = $mb_api->get_book_post_from_category_id( $prev_cat );
-				} else {
-					$is_book_cat = false;
-				}
-			
+			if ($book_cat_id) {
 				// Currently selected categories
 				$all_cats = $_REQUEST['post_category'];		
-
-				// Remove the previous category if it is a book category
-				if ($is_book_cat && $new_cat != $prev_cat) {
-					// We depend on the mb_current_book_category being set 
-					// Uncheck the prev category, and check the new one
-					if(($key = array_search($prev_cat, $all_cats)) !== false) {
-						unset($all_cats[$key]);
-					}
-				}
-			
-				$uncat_is_set = array_search("1", $all_cats);
-				
-				// Add new book category to the categories
-				if ($new_cat != $prev_cat) {
-					$all_cats[] = $new_cat;
-					// Remove the "Uncategorized" category if there is a category
-					if(($key = array_search("1", $all_cats)) !== false) {
-							unset($all_cats[$key]);
-					}
-					$all_cats = array_map('intval', $all_cats);
-					$all_cats = array_unique( $all_cats );
-					wp_set_post_terms( $post_id, $all_cats, 'category' );
-				} elseif ( $new_cat ) {
-					// If the book has a category, and the Uncategorized is set, 
-					// the unset the Uncategorized category
-					if(($key = array_search("1", $all_cats)) !== false) {
-							unset($all_cats[$key]);
-					}
+				if(($key = array_search("1", $all_cats)) !== false) {
+					unset($all_cats[$key]);
 					wp_set_post_terms( $post_id, $all_cats, 'category' );
 				}
-
-
-				// jQuery selector technique:
-				$themePageID = $_REQUEST['mb_book_theme_page_id'];
-
-				update_post_meta( $post_id, 'mb_book_theme_page_id', $themePageID );
-		
-				//$cat = get_the_category( $post_id );
-		
-				//$mb_api->write_log(__FUNCTION__.": POST :".print_r($cat,true) );
-		
-				//$mb_api->write_log(__FUNCTION__.": POST :".print_r($_REQUEST['post_category'],true)."\n--------\n" );
-			}
-	
-		} 
-	} 
-	elseif (!wp_is_post_revision( $post_id )) 
-	{
-			
-		$mb_book_id = $mb_api->get_post_book_id($post_id);
-
-		// Categories:
-		$cats = get_the_category( $mb_book_id );
-		if ($cats) {
-			$book_cat_id = $cats[0]->term_id;
-		} else {
-			$book_cat_id = null;
-		}
-
-		if ($book_cat_id) {
-			// Currently selected categories
-			$all_cats = $_REQUEST['post_category'];		
-			if(($key = array_search("1", $all_cats)) !== false) {
-				unset($all_cats[$key]);
-				wp_set_post_terms( $post_id, $all_cats, 'category' );
 			}
 		}
 	}
@@ -1281,7 +1315,7 @@ function mb_post_mb_page_theme_meta_box( $post) {
 			$before = "Edit the book settings : ";
 			$after = "";
 			$editlink = edit_post_link( $link, $before, $after, $book_id );
-
+			
 			// Categories:
 			$cats = get_the_category( $book_id );
 			if ($cats) {
@@ -1290,8 +1324,13 @@ function mb_post_mb_page_theme_meta_box( $post) {
 				$book_cat_id = null;
 			}
 
+			// Posts link
+			$all_posts_link = "<a href=\"edit.php?s&post_status=all&post_type=post&action=-1&m=0&cat={$book_cat_id}&paged=1&mode=list&action2=-1\">List all posts</a> in this book.";
+
+
 		} else {
 			$editlink = "";
+			$all_posts_link = "";
 			$book_cat_id  = null;
 		}
 		
@@ -1320,6 +1359,10 @@ function mb_post_mb_page_theme_meta_box( $post) {
 					<?php echo $editlink; ?>
 				</div>
 				<?php } ?>
+				<?php if ($all_posts_link) {
+					echo $all_posts_link;
+				}
+				?>
 				
 				<div class="mb-settings-section">
 					Book : <?php echo $bookmenu; ?>					
@@ -1346,8 +1389,105 @@ function mb_post_mb_page_theme_meta_box( $post) {
 		$chooser = "<div id=\"mb-page-design-chooser\">$chooser</div>";
 		echo $chooser;
 		
+		// Page Tag, shown in navigation
+		$mb_page_nav_label = get_post_meta($post->ID, "mb_page_nav_label", true);
+		?>
+		<div class="mb-settings-section">
+			<label for="mb_page_nav_label">
+				Page Navbar Label :
+			</label>
+			<input type="text" style="width:10em;" id="mb_page_nav_label" name="mb_page_nav_label" value="<?php print $mb_page_nav_label;  ?>" />
+		</div>
+		<?
+		
+		// This is the book map page, linked to an icon in navigation bar
+		$mb_page_is_map = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_page_is_map", true) );
+
+		?>
+		<div class="mb-settings-section">
+			<input type="checkbox" name="mb_page_is_map" value="true" <?php echo($mb_page_is_map); ?> />
+			<label for="mb_page_is_map">
+				&nbsp;Page is book's map page?
+			</label>
+		</div>
+
+		<?
+		
+		// Show this page in the table of contents?
+		$mb_show_page_in_contents = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_show_page_in_contents", true) );
+
+		?>
+		<div class="mb-settings-section">
+			<input type="checkbox" name="mb_show_page_in_contents" value="true" <?php echo($mb_show_page_in_contents); ?> />
+			<label for="mb_show_page_in_contents">
+				&nbsp;List page in Table of Contents?
+			</label>
+		</div>
+
+		<?
+		
 	}
 }
+
+
+
+/* Display the post custom fields meta box. */
+function mb_post_mb_page_fields_meta_box( $post) { 
+	global $mb_api;
+	
+	wp_nonce_field( basename( __FILE__ ), 'mb_post_nonce' ); 
+
+	// which book post does this post belong to?
+	// Get the ID of the book post (not the published book's ID!!!)
+	$book_id = $mb_api->get_post_book_id($post->ID);
+	
+	if (true || $book_id) {
+
+		// We want to minimize loading this...it can be slow.
+		if (!$mb_api->themes->themes) {
+			$mb_api->load_themes();
+		}
+		
+		$book_id 
+			? $theme_id = get_post_meta($book_id, "mb_book_theme_id", true)
+			: $theme_id = null;
+		
+		// If the theme_id is not valid, reset to default theme.
+		if (!isset($mb_api->themes->themes[$theme_id])) {
+			$theme_id = 1;
+		}
+		
+		?>
+		<div id="mb-settings">
+			<div id="mb-misc-settings">
+		<?php
+		// --------
+		// Show any custom fields listed in the theme
+		$custom_fields = $mb_api->themes->themes[$theme_id]->details->custom_fields;
+		sort($custom_fields);
+		if ($custom_fields) {
+			foreach ($custom_fields as $fieldname) {
+				$f = "mb_custom_".$fieldname;
+				$curval = get_post_meta($post->ID, $f, true);
+				?>
+					<div class="mb-settings-section no-border">
+						<label for="<?php echo $f; ?>">
+							<?php echo $fieldname; ?> :
+						</label><br>
+						<input type="text" style="width:90%;" id="<?php echo $f; ?>" name="<?php echo $f; ?>" value="<?php print $curval;  ?>" />
+					</div>
+			<?php
+
+			} // for
+		}	// if custom fields
+		?>
+			</div>
+		</div>
+		<?php
+		
+	}	// if $book-id set or TRUE ==> always true
+}
+
 
 
 // For one post, used on a post page.

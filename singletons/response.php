@@ -61,7 +61,7 @@ class MB_API_Response {
     global $mb_api;
     
     $json = $this->get_json($result, $status);
-	error_log (date('Y-m-d H:i:s') . ": " . $this->prettify($json) . "\n", 3, $mb_api->logfile);
+	//$mb_api->write_log ("response->respond: ". date('Y-m-d H:i:s') . ": " . $this->prettify($json) . "\n");
 
 	$status_redirect = "redirect_$status";
     if ($mb_api->query->dev || !empty($_REQUEST['dev'])) {

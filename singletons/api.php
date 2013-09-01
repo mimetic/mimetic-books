@@ -128,54 +128,57 @@ class MB_API {
 	
 	
 	
-  function template_redirect() {
-    // Check to see if there's an appropriate API controller + method    
-    $controller = strtolower($this->query->get_controller());
-    $available_controllers = $this->get_controllers();
-    $enabled_controllers = explode(',', get_option('mb_api_controllers', 'core'));
-    $active_controllers = array_intersect($available_controllers, $enabled_controllers);
-    
-    if ($controller) {
-      
-      if (!in_array($controller, $active_controllers)) {
-        $this->error("Unknown controller '$controller'.");
-      }
-      
-      $controller_path = $this->controller_path($controller);
-      if (file_exists($controller_path)) {
-        require_once $controller_path;
-      }
-      $controller_class = $this->controller_class($controller);
-      
-      if (!class_exists($controller_class)) {
-        $this->error("Unknown controller '$controller_class'.");
-      }
-      
-      $this->controller = new $controller_class();
-      $method = $this->query->get_method($controller);
-      
-      if ($method) {
-        
-        $this->response->setup();
-        
-        // Run action hooks for method
-        do_action("mb_api-{$controller}-$method");
-        
-        // Error out if nothing is found
-        if ($method == '404') {
-          $this->error('Not found');
-        }
-		// Run the method
-        $result = $this->controller->$method();
+	function template_redirect() {
+		// Check to see if there's an appropriate API controller + method	 
+		$controller = strtolower($this->query->get_controller());
+		$available_controllers = $this->get_controllers();
+		$enabled_controllers = explode(',', get_option('mb_api_controllers', 'core'));
+		$active_controllers = array_intersect($available_controllers, $enabled_controllers);
 
-        // Handle the result
-        $this->response->respond($result);
-        
-        // Done!
-        exit;
-      }
-    }
-  }
+		if ($controller) {
+
+			if (!in_array($controller, $active_controllers)) {
+			  $this->error("Unknown controller '$controller'.");
+			}
+			$controller_path = $this->controller_path($controller);
+			if (file_exists($controller_path)) {
+			  require_once $controller_path;
+			}
+			$controller_class = $this->controller_class($controller);
+
+			if (!class_exists($controller_class)) {
+			  $this->error("Unknown controller '$controller_class'.");
+			}
+
+			$this->controller = new $controller_class();
+			$method = $this->query->get_method($controller);
+
+			if (!method_exists($this->controller, $method)) {
+				$this->error("Call to unknown method '$method' in controller '$controller'");
+			}
+			if ($method) {
+
+				$this->response->setup();
+
+				// Run action hooks for method
+				do_action("mb_api-{$controller}-$method");
+
+				// Error out if nothing is found
+				if ($method == '404') {
+				$this->error('Method not found');
+				}
+
+				// Run the method
+				$result = $this->controller->$method();
+
+				// Handle the result
+				$this->response->respond($result);
+
+				// Done!
+				exit;
+			}
+		}
+	}
   
   function admin_menu() {
     add_options_page('Mimetic Books API Settings', 'Mimetic Books API', 'manage_options', 'mb-api', array(&$this, 'admin_options'));
@@ -183,7 +186,7 @@ class MB_API {
   
   function admin_options() {
     if (!current_user_can('manage_options'))  {
-      wp_die( __('You do not have sufficient permissions to access this page.') );
+	wp_die( __('You do not have sufficient permissions to access this page.') );
     }
     
 	wp_enqueue_script('publish');
@@ -193,72 +196,85 @@ class MB_API {
     $active_controllers = explode(',', get_option('mb_api_controllers', 'core'));
     
     if (count($active_controllers) == 1 && empty($active_controllers[0])) {
-      $active_controllers = array();
+	$active_controllers = array();
     }
     
     if (!empty($_REQUEST['_wpnonce']) && wp_verify_nonce($_REQUEST['_wpnonce'], "update-options")) {
-      if ((!empty($_REQUEST['action']) || !empty($_REQUEST['action2'])) &&
-          (!empty($_REQUEST['controller']) || !empty($_REQUEST['controllers']))) {
-        if (!empty($_REQUEST['action'])) {
-          $action = $_REQUEST['action'];
-        } else {
-          $action = $_REQUEST['action2'];
-        }
-        
-        if (!empty($_REQUEST['controllers'])) {
-          $controllers = $_REQUEST['controllers'];
-        } else {
-          $controllers = array($_REQUEST['controller']);
-        }
-        
-        foreach ($controllers as $controller) {
-          if (in_array($controller, $available_controllers)) {
-            if ($action == 'activate' && !in_array($controller, $active_controllers)) {
-              $active_controllers[] = $controller;
-            } else if ($action == 'deactivate') {
-              $index = array_search($controller, $active_controllers);
-              if ($index !== false) {
-                unset($active_controllers[$index]);
-              }
-            }
-          }
-        }
-        $this->save_option('mb_api_controllers', implode(',', $active_controllers));
-      }
-      if (isset($_REQUEST['mb_api_base'])) {
-        $this->save_option('mb_api_base', $_REQUEST['mb_api_base']);
-      }
-      if (isset($_REQUEST['mb_api_book_title'])) {
-        $this->save_option('mb_api_book_title', $_REQUEST['mb_api_book_title']);
-      }
-      if (isset($_REQUEST['mb_api_book_author'])) {
-        $this->save_option('mb_api_book_author', $_REQUEST['mb_api_book_author']);
-      }
-      if (isset($_REQUEST['mb_api_book_id'])) {
-        $this->save_option('mb_api_book_id', $_REQUEST['mb_api_book_id']);
-      }
-      if (isset($_REQUEST['mb_api_book_theme_id'])) {
-        $this->save_option('mb_api_book_theme_id', $_REQUEST['mb_api_book_theme_id']);
-      }
-      if (isset($_REQUEST['mb_api_book_publisher_id'])) {
-        $this->save_option('mb_api_book_publisher_id', $_REQUEST['mb_api_book_publisher_id']);
-      }
-      if (isset($_REQUEST['mb_api_book_publisher_url'])) {
-        $this->save_option('mb_api_book_publisher_url', $_REQUEST['mb_api_book_publisher_url']);
-      }
-      
-      if (isset($_REQUEST['mb_api_book_info_post_id'])) {
+	if ((!empty($_REQUEST['action']) || !empty($_REQUEST['action2'])) &&
+	    (!empty($_REQUEST['controller']) || !empty($_REQUEST['controllers']))) {
+	  if (!empty($_REQUEST['action'])) {
+	    $action = $_REQUEST['action'];
+	  } else {
+	    $action = $_REQUEST['action2'];
+	  }
+	  
+	  if (!empty($_REQUEST['controllers'])) {
+	    $controllers = $_REQUEST['controllers'];
+	  } else {
+	    $controllers = array($_REQUEST['controller']);
+	  }
+	  
+	  foreach ($controllers as $controller) {
+	    if (in_array($controller, $available_controllers)) {
+		if ($action == 'activate' && !in_array($controller, $active_controllers)) {
+		  $active_controllers[] = $controller;
+		} else if ($action == 'deactivate') {
+		  $index = array_search($controller, $active_controllers);
+		  if ($index !== false) {
+		    unset($active_controllers[$index]);
+		  }
+		}
+	    }
+	  }
+	  $this->save_option('mb_api_controllers', implode(',', $active_controllers));
+	}
+
+	if (isset($_REQUEST['mb_api_key'])) {
+	  $this->save_option('mb_api_key', $_REQUEST['mb_api_key']);
+	}
+	
+
+	if (isset($_REQUEST['mb_api_base'])) {
+	  $this->save_option('mb_api_base', $_REQUEST['mb_api_base']);
+	}
+	if (isset($_REQUEST['mb_api_book_title'])) {
+	  $this->save_option('mb_api_book_title', $_REQUEST['mb_api_book_title']);
+	}
+	if (isset($_REQUEST['mb_api_book_author'])) {
+	  $this->save_option('mb_api_book_author', $_REQUEST['mb_api_book_author']);
+	}
+	if (isset($_REQUEST['mb_api_book_id'])) {
+	  $this->save_option('mb_api_book_id', $_REQUEST['mb_api_book_id']);
+	}
+	if (isset($_REQUEST['mb_api_book_theme_id'])) {
+	  $this->save_option('mb_api_book_theme_id', $_REQUEST['mb_api_book_theme_id']);
+	}
+	if (isset($_REQUEST['mb_api_book_publisher_id'])) {
+	  $this->save_option('mb_api_book_publisher_id', $_REQUEST['mb_api_book_publisher_id']);
+	}
+	if (isset($_REQUEST['mb_api_book_publisher_url'])) {
+	  $this->save_option('mb_api_book_publisher_url', $_REQUEST['mb_api_book_publisher_url']);
+	}
+	
+	if (isset($_REQUEST['mb_api_book_info_post_id'])) {
 		$this->save_option('mb_api_book_info_post_id', $_REQUEST['mb_api_book_info_post_id']);
-      }
-      
-      if (isset($_REQUEST['mb_api_show_only_my_posts'])) {
+	}
+	
+	if (isset($_REQUEST['mb_api_show_only_my_posts'])) {
 		$this->save_option('mb_api_show_only_my_posts', true);
-      } else {
+	} else {
 	     $this->save_option('mb_api_show_only_my_posts', false);
 	 }
-      
+	
    }
 	// ---------- END CONTROLLERS ------------
+    
+    // API Key
+    $mb_api_key = trim(get_option('mb_api_key'));
+    if (!$mb_api_key) {
+	$mb_api_key = $this->funx->getNewAPIKey();
+    }
+    
     
     ?>
 <div class="wrap">
@@ -268,6 +284,19 @@ class MB_API {
     <?php wp_nonce_field('update-options'); ?>
 
 	<div style="padding:1em 3em 1em 3em; margin-top:1em; margin-bottom:1em; background-color:#f0f6f6;">
+		<h3>API Key</h3>
+		<p>
+			This is the API key for your website. Any other system that wants to talk to this website must use this API key.</i>
+		</p>
+		<table class="form-table">
+			<tr valign="top">
+				<th scope="row">API Key:</th>
+				<td>
+					<input type="text" size="64" name="mb_api_key" value="<?php echo $mb_api_key;	 ?>" />
+				</td>
+			</tr>
+		</table>
+
 		<h3>Book</h3>
 		<p>Choose which book you wish to publish. Maybe better if this lives on the book's post page, but I don't know how to do that right now.</p>
 		<table class="form-table">
@@ -298,8 +327,8 @@ class MB_API {
 							endwhile;
 						}
 						echo '</select>';
-						wp_reset_query();  // Restore global post data stomped by the_post().
-					?>      
+						wp_reset_query();	 // Restore global post data stomped by the_post().
+					?>	  
 
 					<span style="margin-right:2em;">&nbsp;</span>
 					<input type="button" id="publish_book_button" class="button-primary" value="<?php _e('Publish Book') ?>" />
@@ -407,87 +436,87 @@ class MB_API {
 		</p>
 	</div>
     
-      
-        <h3>Controllers</h3>
+	
+	  <h3>Controllers</h3>
     <?php $this->print_controller_actions(); ?>
     <table id="all-plugins-table" class="widefat">
-      <thead>
-        <tr>
-          <th class="manage-column check-column" scope="col"><input type="checkbox" /></th>
-          <th class="manage-column" scope="col">Controller</th>
-          <th class="manage-column" scope="col">Description</th>
-        </tr>
-      </thead>
-      <tfoot>
-        <tr>
-          <th class="manage-column check-column" scope="col"><input type="checkbox" /></th>
-          <th class="manage-column" scope="col">Controller</th>
-          <th class="manage-column" scope="col">Description</th>
-        </tr>
-      </tfoot>
-      <tbody class="plugins">
-        <?php
-        
-        foreach ($available_controllers as $controller) {
-          
-          $error = false;
-          $active = in_array($controller, $active_controllers);
-          $info = $this->controller_info($controller);
-          
-          if (is_string($info)) {
-            $active = false;
-            $error = true;
-            $info = array(
-              'name' => $controller,
-              'description' => "<p><strong>Error</strong>: $info</p>",
-              'methods' => array(),
-              'url' => null
-            );
-          }
-          
-          ?>
-          <tr class="<?php echo ($active ? 'active' : 'inactive'); ?>">
-            <th class="check-column" scope="row">
-              <input type="checkbox" name="controllers[]" value="<?php echo $controller; ?>" />
-            </th>
-            <td class="plugin-title">
-              <strong><?php echo $info['name']; ?></strong>
-              <div class="row-actions-visible">
-                <?php
-                
-                if ($active) {
-                  echo '<a href="' . wp_nonce_url('options-general.php?page=mb-api&amp;action=deactivate&amp;controller=' . $controller, 'update-options') . '" title="' . __('Deactivate this controller') . '" class="edit">' . __('Deactivate') . '</a>';
-                } else if (!$error) {
-                  echo '<a href="' . wp_nonce_url('options-general.php?page=mb-api&amp;action=activate&amp;controller=' . $controller, 'update-options') . '" title="' . __('Activate this controller') . '" class="edit">' . __('Activate') . '</a>';
-                }
-                  
-                if (isset($info['url']) && $info['url']) {
-                  echo ' | ';
-                  echo '<a href="' . $info['url'] . '" target="_blank">Docs</a></div>';
-                }
-                
-                ?>
-            </td>
-            <td class="desc">
-              <p><?php echo $info['description']; ?></p>
-              <p>
-                <?php
-                
-                foreach($info['methods'] as $method) {
-                  $url = $this->get_method_url($controller, $method, array('dev' => 1));
-                  if ($active) {
-                    echo "<code><a href=\"$url\">$method</a></code> ";
-                  } else {
-                    echo "<code>$method</code> ";
-                  }
-                }
-                
-                ?>
-              </p>
-            </td>
-          </tr>
-        <?php } ?>
-      </tbody>
+	<thead>
+	  <tr>
+	    <th class="manage-column check-column" scope="col"><input type="checkbox" /></th>
+	    <th class="manage-column" scope="col">Controller</th>
+	    <th class="manage-column" scope="col">Description</th>
+	  </tr>
+	</thead>
+	<tfoot>
+	  <tr>
+	    <th class="manage-column check-column" scope="col"><input type="checkbox" /></th>
+	    <th class="manage-column" scope="col">Controller</th>
+	    <th class="manage-column" scope="col">Description</th>
+	  </tr>
+	</tfoot>
+	<tbody class="plugins">
+	  <?php
+	  
+	  foreach ($available_controllers as $controller) {
+	    
+	    $error = false;
+	    $active = in_array($controller, $active_controllers);
+	    $info = $this->controller_info($controller);
+	    
+	    if (is_string($info)) {
+		$active = false;
+		$error = true;
+		$info = array(
+		  'name' => $controller,
+		  'description' => "<p><strong>Error</strong>: $info</p>",
+		  'methods' => array(),
+		  'url' => null
+		);
+	    }
+	    
+	    ?>
+	    <tr class="<?php echo ($active ? 'active' : 'inactive'); ?>">
+		<th class="check-column" scope="row">
+		  <input type="checkbox" name="controllers[]" value="<?php echo $controller; ?>" />
+		</th>
+		<td class="plugin-title">
+		  <strong><?php echo $info['name']; ?></strong>
+		  <div class="row-actions-visible">
+		    <?php
+		    
+		    if ($active) {
+			echo '<a href="' . wp_nonce_url('options-general.php?page=mb-api&amp;action=deactivate&amp;controller=' . $controller, 'update-options') . '" title="' . __('Deactivate this controller') . '" class="edit">' . __('Deactivate') . '</a>';
+		    } else if (!$error) {
+			echo '<a href="' . wp_nonce_url('options-general.php?page=mb-api&amp;action=activate&amp;controller=' . $controller, 'update-options') . '" title="' . __('Activate this controller') . '" class="edit">' . __('Activate') . '</a>';
+		    }
+			
+		    if (isset($info['url']) && $info['url']) {
+			echo ' | ';
+			echo '<a href="' . $info['url'] . '" target="_blank">Docs</a></div>';
+		    }
+		    
+		    ?>
+		</td>
+		<td class="desc">
+		  <p><?php echo $info['description']; ?></p>
+		  <p>
+		    <?php
+		    
+		    foreach($info['methods'] as $method) {
+			$url = $this->get_method_url($controller, $method, array('dev' => 1));
+			if ($active) {
+			  echo "<code><a href=\"$url\">$method</a></code> ";
+			} else {
+			  echo "<code>$method</code> ";
+			}
+		    }
+		    
+		    ?>
+		  </p>
+		</td>
+	    </tr>
+	  <?php } ?>
+	</tbody>
     </table>
     
     <?php $this->print_controller_actions('action2'); ?>
@@ -501,15 +530,15 @@ class MB_API {
   function print_controller_actions($name = 'action') {
     ?>
     <div class="tablenav">
-      <div class="alignleft actions">
-        <select name="<?php echo $name; ?>">
-          <option selected="selected" value="-1">Bulk Actions</option>
-          <option value="activate">Activate</option>
-          <option value="deactivate">Deactivate</option>
-        </select>
-        <input type="submit" class="button-secondary action" id="doaction" name="doaction" value="Apply">
-      </div>
-      <div class="clear"></div>
+	<div class="alignleft actions">
+	  <select name="<?php echo $name; ?>">
+	    <option selected="selected" value="-1">Bulk Actions</option>
+	    <option value="activate">Activate</option>
+	    <option value="deactivate">Deactivate</option>
+	  </select>
+	  <input type="submit" class="button-secondary action" id="doaction" name="doaction" value="Apply">
+	</div>
+	<div class="clear"></div>
     </div>
     <div class="clear"></div>
     <?php
@@ -520,33 +549,33 @@ class MB_API {
     $base = get_option('mb_api_base', 'mb');
     $permalink_structure = get_option('permalink_structure', '');
     if (!empty($options) && is_array($options)) {
-      $args = array();
-      foreach ($options as $key => $value) {
-        $args[] = urlencode($key) . '=' . urlencode($value);
-      }
-      $args = implode('&', $args);
+	$args = array();
+	foreach ($options as $key => $value) {
+	  $args[] = urlencode($key) . '=' . urlencode($value);
+	}
+	$args = implode('&', $args);
     } else {
-      $args = $options;
+	$args = $options;
     }
     if ($controller != 'core') {
-      $method = "$controller/$method";
+	$method = "$controller/$method";
     }
     if (!empty($base) && !empty($permalink_structure)) {
-      if (!empty($args)) {
-        $args = "?$args";
-      }
-      return "$url/$base/$method/$args";
+	if (!empty($args)) {
+	  $args = "?$args";
+	}
+	return "$url/$base/$method/$args";
     } else {
-      return "$url?mb=$method&$args";
+	return "$url?mb=$method&$args";
     }
   }
   
   function save_option($id, $value) {
     $option_exists = (get_option($id, null) !== null);
     if ($option_exists) {
-      update_option($id, $value);
+	update_option($id, $value);
     } else {
-      add_option($id, $value);
+	add_option($id, $value);
     }
   }
   
@@ -555,9 +584,9 @@ class MB_API {
     $dir = mb_api_dir();
     $dh = opendir("$dir/controllers");
     while ($file = readdir($dh)) {
-      if (preg_match('/(.+)\.php$/', $file, $matches)) {
-        $controllers[] = $matches[1];
-      }
+	if (preg_match('/(.+)\.php$/', $file, $matches)) {
+	  $controllers[] = $matches[1];
+	}
     }
     $controllers = apply_filters('mb_api_controllers', $controllers);
     return array_map('strtolower', $controllers);
@@ -565,9 +594,9 @@ class MB_API {
   
   function controller_is_active($controller) {
     if (defined('MB_API_CONTROLLERS')) {
-      $default = MB_API_CONTROLLERS;
+	$default = MB_API_CONTROLLERS;
     } else {
-      $default = 'core';
+	$default = 'core';
     }
     $active_controllers = explode(',', get_option('mb_api_controllers', $default));
     return (in_array($controller, $active_controllers));
@@ -575,9 +604,9 @@ class MB_API {
   
   function update_controllers($controllers) {
     if (is_array($controllers)) {
-      return implode(',', $controllers);
+	return implode(',', $controllers);
     } else {
-      return $controllers;
+	return $controllers;
     }
   }
   
@@ -585,30 +614,30 @@ class MB_API {
     $path = $this->controller_path($controller);
     $class = $this->controller_class($controller);
     $response = array(
-      'name' => $controller,
-      'description' => '(No description available)',
-      'methods' => array()
+	'name' => $controller,
+	'description' => '(No description available)',
+	'methods' => array()
     );
     if (file_exists($path)) {
-      $source = file_get_contents($path);
-      if (preg_match('/^\s*Controller name:(.+)$/im', $source, $matches)) {
-        $response['name'] = trim($matches[1]);
-      }
-      if (preg_match('/^\s*Controller description:(.+)$/im', $source, $matches)) {
-        $response['description'] = trim($matches[1]);
-      }
-      if (preg_match('/^\s*Controller URI:(.+)$/im', $source, $matches)) {
-        $response['docs'] = trim($matches[1]);
-      }
-      if (!class_exists($class)) {
-        require_once($path);
-      }
-      $response['methods'] = get_class_methods($class);
-      return $response;
+	$source = file_get_contents($path);
+	if (preg_match('/^\s*Controller name:(.+)$/im', $source, $matches)) {
+	  $response['name'] = trim($matches[1]);
+	}
+	if (preg_match('/^\s*Controller description:(.+)$/im', $source, $matches)) {
+	  $response['description'] = trim($matches[1]);
+	}
+	if (preg_match('/^\s*Controller URI:(.+)$/im', $source, $matches)) {
+	  $response['docs'] = trim($matches[1]);
+	}
+	if (!class_exists($class)) {
+	  require_once($path);
+	}
+	$response['methods'] = get_class_methods($class);
+	return $response;
     } else if (is_admin()) {
-      return "Cannot find controller class '$class' (filtered path: $path).";
+	return "Cannot find controller class '$class' (filtered path: $path).";
     } else {
-      $this->error("Unknown controller '$controller'.");
+	$this->error("Unknown controller '$controller'.");
     }
     return $response;
   }
@@ -635,9 +664,10 @@ class MB_API {
   }
   
   function error($message = 'Unknown error', $status = 'error') {
-    $this->response->respond(array(
-      'error' => $message
-    ), $status);
+
+	//var_dump(debug_backtrace());
+
+    $this->response->respond(array( 'error' => $message ), $status);
   }
   
   function include_value($key) {
@@ -720,7 +750,7 @@ class MB_API {
 	}
 
  
- 	/*
+	/*
 	* Get a book post.
 	* If no $post_id is spec'd, then check the query
 	*/
@@ -816,7 +846,7 @@ class MB_API {
 		// Default theme is 1.
 		if (isset($custom_fields['mb_book_theme_id']) && $custom_fields['mb_book_theme_id']) {
 			// Get from book post
-			$theme_id =  (string)$custom_fields['mb_book_theme_id'][0];
+			$theme_id =	 (string)$custom_fields['mb_book_theme_id'][0];
 		} else {
 			// get from settings page
 			$theme_id = (string)get_option('mb_api_book_theme', 1);
@@ -852,8 +882,8 @@ class MB_API {
 		//$description, $short_description, $type
 		$description = $post->content;
 		// remove images and links from the content
-		$description = preg_replace ("/<img.*?\>/","",  $description);
-		$description = preg_replace ("/<\/?a.*?\>/","",  $description);
+		$description = preg_replace ("/<img.*?\>/","",	$description);
+		$description = preg_replace ("/<\/?a.*?\>/","",	 $description);
 
 		$short_description = $post->excerpt;
 		
@@ -956,7 +986,7 @@ class MB_API {
 			}
 			
 		} else {
- 			// BUILD BOOK FROM POSTS: get modified from posts for this book, if any
+			// BUILD BOOK FROM POSTS: get modified from posts for this book, if any
 
 			// Get most recent post
 			$book_posts = get_posts(array(
@@ -965,7 +995,7 @@ class MB_API {
 				'post_type'		=> 'post',
 				'orderby'		=> 'modified',
 				'order'			=> 'DESC',
-				'post_status' 	=> 'any'
+				'post_status'	=> 'any'
 			));
 	
 			if ($book_posts) {
@@ -989,7 +1019,7 @@ class MB_API {
  
 		/*
 		*/
-//$this->write_log("$title : book_post_modified: $book_post_modified,\n    modified=$modified");
+//$this->write_log("$title : book_post_modified: $book_post_modified,\n	   modified=$modified");
 		// FALLBACK for modified...
 		// If we don't have any information, use NOW as the modified.
 		if (!$modified)
@@ -1019,7 +1049,7 @@ class MB_API {
 			'title'			=> $title, 
 			'author'		=> $author, 
 			'theme'			=> $theme, 
-			'publisher_id'	=> $publisher_id,  
+			'publisher_id'	=> $publisher_id,	 
 			'description'	=> $description, 
 			'short_description'		=> $short_description, 
 			'type'			=> $type, 
@@ -1051,23 +1081,26 @@ class MB_API {
 		global $mb_api;
 
 		$mb_api->write_log(__FUNCTION__.": begin");
-
+		
+		$blogtitle = get_bloginfo('name');
 		
 		$shelves = array (
 			'path'		=> "shelves",
-			'title'		=> "mylib",
+			'title'		=> $blogtitle,
 			'maxsize'	=> 100,
 			'id'		=> "shelves",
 			'password'	=> "mypassword",
 			'filename'	=> "shelves.json",
-			'itemsByID'	=> array ()
+			'itemsByID' => array ()
 		);
 		
 		// Get all books
+		// Suppress filters makes my modified "own posts media" plugin not suppress other's books.
 		$posts = $mb_api->introspector->get_posts(array(
 				'post_type' => 'book',
 				'posts_per_page'	=> -1,
-				'post_status' => 'any'
+				'post_status' => 'any',
+				'suppress_filters' => true
 			), true);
 	
 		/*
@@ -1076,7 +1109,7 @@ class MB_API {
 			'title'			=> $title, 
 			'author'		=> $author, 
 			'theme'			=> $theme, 
-			'publisher_id'	=> $publisher_id,  
+			'publisher_id'	=> $publisher_id,	 
 			'description'	=> $description, 
 			'short_description'		=> $short_description, 
 			'type'			=> $type, 
@@ -1087,54 +1120,58 @@ class MB_API {
 			'category_id'	=> $category_id
 		 */
 		foreach ($posts as $post) {
-			$info = $this->get_book_info_from_post($post->ID);
-			$book_id = $info['id'];
 			// Only add the item if it is marked published with our custom meta field.
 			$is_published = get_post_meta($post->ID, "mb_published", true);
-			// Also check the package's directory is there
-			$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
-			$is_published =  ( ($info['remoteURL'] || file_exists($tarfilepath)) && $is_published);
 			
-			if ($is_published and $mb_api->book_is_available($post->ID)) {
-				
-				// Get the definitive modified datetime from the item date file.
-				// This modified tells us whether the client should update the
-				// actual book. Even if the descriptive shelf data for a book is
-				// updated, that doesn't mean they need to update the book itself,
-				// which might be a huge download.
-				$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
-				$infofile = $dir . DIRECTORY_SEPARATOR . "item.json";
-				if (file_exists($infofile)) {
-				
-				
-					$book_info_from_file = json_decode( file_get_contents($infofile) );
+			if ($is_published) {
+				$info = $this->get_book_info_from_post($post->ID);
+				$book_id = $info['id'];
 
-					// The names used in the info files are slightly different
-					// from the names used by the book post.
-
-					$item = array (
-						'id'				=> $book_id, 
-						'title'				=> $info['title'], 
-						'author'			=> $info['author'], 
-						'publisherid'		=> $info['publisher_id'],  
-						'description'		=> $info['description'], 
-						'shortDescription'	=> $info['short_description'], 
-						'type'				=> $info['type'], 
-						'datetime'			=> $info['datetime'], 
-						'modified'			=> $info['modified'],
-						'metaModified'		=> $info['meta_modified'],
-						'path'				=> $book_id,
-						'shelfpath'			=> $mb_api->settings['shelves_dir_name'],
-						'itemShelfPath'		=>$mb_api->settings['shelves_dir_name'] . DIRECTORY_SEPARATOR . $info['id'],
-	//					'theme'				=> $info['theme'],				
-						'hideHeaderOnPoster'	=> $info['hideHeaderOnPoster'],
-						'orientation'		=> $info['orientation'],
-						'remoteURL'			=> $info['remoteURL']
-					);
+				// Also check the package's directory is there
+				$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
+				$is_published =  ( ($info['remoteURL'] || file_exists($tarfilepath)) && $is_published);
+			
+				if ($is_published and $mb_api->book_is_available($post->ID)) {
 				
-					$shelves['itemsByID'][$book_id] = $item;
-				} // if infofile exists
-			}
+					// Get the definitive modified datetime from the item date file.
+					// This modified tells us whether the client should update the
+					// actual book. Even if the descriptive shelf data for a book is
+					// updated, that doesn't mean they need to update the book itself,
+					// which might be a huge download.
+					$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
+					$infofile = $dir . DIRECTORY_SEPARATOR . "item.json";
+					if (file_exists($infofile)) {
+				
+				
+						$book_info_from_file = json_decode( file_get_contents($infofile) );
+
+						// The names used in the info files are slightly different
+						// from the names used by the book post.
+
+						$item = array (
+							'id'				=> $book_id, 
+							'title'				=> $info['title'], 
+							'author'			=> $info['author'], 
+							'publisherid'		=> $info['publisher_id'],  
+							'description'		=> $info['description'], 
+							'shortDescription'	=> $info['short_description'], 
+							'type'				=> $info['type'], 
+							'datetime'			=> $info['datetime'], 
+							'modified'			=> $info['modified'],
+							'metaModified'		=> $info['meta_modified'],
+							'path'				=> $book_id,
+							'shelfpath'			=> $mb_api->settings['shelves_dir_name'],
+							'itemShelfPath'		=>$mb_api->settings['shelves_dir_name'] . DIRECTORY_SEPARATOR . $info['id'],
+		//					'theme'				=> $info['theme'],				
+							'hideHeaderOnPoster'	=> $info['hideHeaderOnPoster'],
+							'orientation'		=> $info['orientation'],
+							'remoteURL'			=> $info['remoteURL']
+						);
+				
+						$shelves['itemsByID'][$book_id] = $item;
+					} // if infofile exists
+				}	// is published + book_is_available
+			}	// is published
 		}
 	   $output = json_encode($shelves);
 	   $fn = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . "shelves.json";
@@ -1282,7 +1319,7 @@ class MB_API {
 				</div>
 			</div>
 			<label for="mb_book_theme_page_id">
-				<div  style="text-align:center;">
+				<div	style="text-align:center;">
 				Current Page Style : &quot;<span id="mb_book_theme_page_id_display"><?php echo($themePageID) ?></span>&quot;
 				</div>
 			</label>
@@ -1349,9 +1386,9 @@ class MB_API {
 		}
 		$menu .=  '</select>';
 		return $menu;
-  	}
-  	
-  	
+	}
+	
+	
   
   // For one book, used on a book post page
 	function book_theme_chooser($book_id) {
@@ -1518,7 +1555,7 @@ class MB_API {
 			endwhile;
 		}
 		$res .= '</select>';
-		wp_reset_query();  // Restore global post data stomped by the_post().
+		wp_reset_query();	 // Restore global post data stomped by the_post().
 		return $res;
 	}
 
@@ -1572,7 +1609,7 @@ class MB_API {
 			'id'		=> "publishers",
 			'password'	=> "mypassword",
 			'filename'	=> "publishers.json",
-			'itemsByID'	=> array ()
+			'itemsByID' => array ()
 		);
 		
 		// Get all pages
@@ -1747,6 +1784,69 @@ class MB_API {
 		$this->errors->add('no-publish-book', __('Could not publish this book. Check the log.'));
 		
 	}
+
+
+
+	/*
+	 * Confirms that the transaction is authorized, i.e. remote has signed in properly.
+	 * If the authorization module of this plugin is not activated, just return true,
+	 * allowing all access. This is useful for testing.
+	*/
+	public function confirm_auth() {
+		
+		// Check to see if the Auth controller is active.
+		// If Auth is not activated, then don't authenticate, just return 'true'.
+		$controller = "auth";
+		$active = in_array($controller, $this->get_controllers());
+		$available_controllers = $this->get_controllers();
+		$active_controllers = explode(',', get_option('mb_api_controllers', 'core'));
+		
+		if (count($active_controllers) == 1 && empty($active_controllers[0])) {
+			$active_controllers = array();
+		}
+		$active = in_array($controller, $active_controllers);
+		if (!$active) {
+			return true;
+		}
+		
+		// ----- Auth is activate, so do authenticate!
+		
+		/*
+		if (!$this->query->nonce) {
+			$this->error("You must include a 'nonce' value to create posts. Use the `get_nonce` Core API method.");
+		}
+		*/
+	
+		if (!$this->query->cookie) {
+			$this->error("You must include a 'cookie' authentication cookie. Use the `create_auth_cookie` Auth API method.");
+			return false;
+		}
+		
+		/*
+		$nonce_id = $this->get_nonce_id('posts', 'create_post');
+		if (!wp_verify_nonce($this->query->nonce, $nonce_id)) {
+			$this->error("Your 'nonce' value was incorrect. Use the 'get_nonce' API method.");
+			return false;
+		}
+		*/
+		
+		$user_id = wp_validate_auth_cookie($this->query->cookie, 'logged_in');
+		if (!$user_id) {
+			$this->error("Invalid authentication cookie. Use the `generate_auth_cookie` Auth API method.");
+			return false;
+		}
+		
+		// Use this to limit to users who can edit posts!
+		if (!user_can($user_id, 'edit_posts')) {
+			$this->error("You need to login with a user capable of creating posts.");
+			return false;
+		}
+	
+		nocache_headers();
+		
+		return true;
+	}
+
 
 } // END CLASS
 

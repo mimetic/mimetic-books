@@ -199,6 +199,9 @@ class MB_API_Themes
 			$themeXML = file_get_contents($fn);
 			$theme = new SimpleXMLElement($themeXML);
 
+//$mb_api->write_log(__FUNCTION__.": custom fields? : {$theme->fields} : ".print_r($theme,true) );
+
+
 			foreach ($theme->chapter[0]->page as $page) {
 				$id = (string)$page->attributes()->id;
 				$theme_ids[] = $id;
@@ -208,9 +211,16 @@ class MB_API_Themes
 			$mb_api->error(__FUNCTION__.": The theme at $themepath is missing the $xmlFileName file!");
 		}
 		
+		$custom_fields = array ();
+		if ($theme->fields) {
+			$f = $theme->fields;
+			$custom_fields = explode(",", trim($f));
+//$mb_api->write_log(__FUNCTION__.": custom fields? : {$theme->fields} : ".print_r($custom_fields,true) );	
+		}
 		$details = array (
 			'format_ids' => $theme_ids,
-			'format_is_toc' => $toc
+			'format_is_toc' => $toc,
+			'custom_fields'	=> $custom_fields
 			);
 		$details = (object) $details;
 		
