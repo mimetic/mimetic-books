@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<settings>
+
+	<class value="slideview">
+
+		<orientations value="landscapeLeft,landscapeRight" />
+
+		<captionFormat>{caption}</captionFormat>
+
+		<captionPlaceFormat>{sublocation} {city}{citySeparator}{state}{stateSeparator}{country}</captionPlaceFormat>
+
+		<captionFooterAlignment value="center" />
+
+		<captionFooterText>
+		### set, ,,,,,,,50%
+		( {{pageNumberInBook}} of {{pagecountInBook}} )
+		</captionFooterText>
+
+	</class>
+
+	<class value="slideview">
+		<pageBackgroundMarkColorR value="120" />
+		<pageBackgroundMarkColorG value="120" />
+		<pageBackgroundMarkColorB value="120" />
+		
+		<!-- must be zero or embedded formatting will screw up the shadow, making it black! -->
+		<captionTextShadowAlpha value="0" />
+		<textblockTextShadowAlpha value="0" />
+		<overlayTextShadowAlpha value="0" />
+		<gridTextObjectTextShadowAlpha value="0" />
+		
+		<captionFormat>{{caption}}</captionFormat>
+		<captionFooterAlignment value="center" />
+		<captionPagenumFont value="AvenirNext-UltraLight" />
+		<captionFooterText>
+		### set, ,,,,,,,50%
+		— {{pageNumberInBook}} —
+		</captionFooterText>
+
+		<overlayFilename value="" alt="_ui/overlay-blank.png" />
+
+	</class>
+
+
+	<class value="navbar">
+		<pickerLabelColorR value="40" />
+		<pickerLabelColorG value="40" />
+		<pickerLabelColorB value="40" />
+		<pickerLabelAlpha value="100%" />
+		<pickerLabelFont value="AvenirNextCondensed-Regular" />
+	</class>
+
+
+
+</settings>

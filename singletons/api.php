@@ -1044,6 +1044,8 @@ class MB_API {
 		// a cloud file server.
 		$remoteURL = get_post_meta( $post->id, 'mb_book_remote_url', true );
 		
+		$is_card_list = get_post_meta($post->id, "mb_book_is_card_list", true);
+		
 		$result = array (
 			'id'		=> $book_id, 
 			'title'			=> $title, 
@@ -1063,7 +1065,8 @@ class MB_API {
 			'dimensions'	=> $dimensions,
 			'save2x'		=> $save2x,
 			'orientation'	=> $orientation,
-			'remoteURL'		=> $remoteURL
+			'remoteURL'		=> $remoteURL,
+			'is_card_list'	=> $is_card_list
 			);
 		
 		return $result;

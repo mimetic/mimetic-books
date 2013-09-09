@@ -667,6 +667,8 @@ function mb_book_post_settings_meta_box( $post) {
 
 	$mb_book_available = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_book_available", true) );
 
+	$mb_book_is_card_list = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_book_is_card_list", true) );
+
 	?>
 	<div id="mb-settings">
 		<div id="mb-misc-settings">
@@ -699,6 +701,15 @@ function mb_book_post_settings_meta_box( $post) {
 						<br/>
 						<?php echo $mb_api->book_theme_chooser($post->ID) ?>
 					</label>
+				</div>
+	
+				<div class="mb-settings-section">
+					<input class="mb_verify_hide_book" default_value="1" type="checkbox" name="mb_book_is_card_list" value="true" <?php echo($mb_book_is_card_list); ?>/> 
+					<label for="mb_book_is_card_list">
+						Book can be used as a card list<br>
+						<i>Set the box to be use this book as a list of cards for games and reference.</b></i>
+					</label>
+						
 				</div>
 	
 				<div class="mb-settings-section">
@@ -925,6 +936,10 @@ function mb_book_post_meta_save_postdata( $post_id) {
 			$mb_api->write_shelves_file();
 		}
 		
+		// Update mb book settings, e.g. no head on poster setting
+		$tmp = isset($_POST['mb_book_is_card_list']);
+		update_post_meta( $post_id, 'mb_book_is_card_list', $tmp );
+
 
 		// Update mb book settings, checkbox to not build the book but to use an uploaded book package
 		$tmp = isset($_POST['mb_use_local_book_file']);

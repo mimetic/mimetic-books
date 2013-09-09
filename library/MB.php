@@ -135,6 +135,7 @@ class Mimetic_Book
 		$this->modified = $book_info['modified'];
 		$this->meta_modified = $book_info['meta_modified'];
 		$this->orientation = $book_info['orientation'];
+		$this->is_card_list = $book_info['is_card_list'];
 		
 		$this->date = substr($book_info['datetime'], 0, 10);
 		$this->datetime = $book_info['datetime'];
@@ -1180,7 +1181,23 @@ $mb_api->write_log(__FUNCTION__.": SRC = $src");
 					$image->resize( $targetW, $targetH, false );	// false = no-crop
 					$image->set_quality( 80 );
 					$image->save($filepath);
+										
+					// Make card-sized pictures if this book can be used as a cards list
+					// Save thumbnail 300x300 image
 					
+					if ($this->is_card_list) {
+						$image->resize( 300, 300, false );	// false = no-crop
+						$image->set_quality( 80 );
+
+						$info = pathinfo($src);
+						$ext = '.' . $info['extension'];
+						$name = $info['filename'];
+						$filepath = $dir.$name."-card{$ext}";
+						$image->save($filepath);
+					}
+					
+
+
 					// Save double-sized image
 					if ($this->options['save2x'] && ( ($w > ($targetW*2) || ($h > ($targetH*2)) ) ) ) {
 						$image = wp_get_image_editor( $src);
