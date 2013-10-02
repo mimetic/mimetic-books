@@ -1,2 +1,112 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<book xml:space="preserve"><title>Ecosystem</title><author>David Gross</author><orientation>landscape</orientation><documentPath>/Volumes/Macintosh HD/Users/dgross/Documents/eBook Publishing/MBA/Templates/Ecosystem List (Species)/template</documentPath><imagePath>/Volumes/Macintosh HD/Users/dgross/Documents/eBook Publishing/MBA/Templates/Ecosystem List (Species)/template/images/chapter_1</imagePath><previewPath>/Volumes/Macintosh HD/Users/dgross/Documents/eBook Publishing/MBA/Templates/Ecosystem List (Species)/template/template_previews</previewPath><uniqueid>ecosystem-list</uniqueid><fields>thumbnail,level,clue,card-consumes-title,icon-1-label,icon-2-label,icon-3-label,link-1,link-2,link-3,link-4,link-5,link-6,icon-1,icon-2,icon-3</fields><description>Ecosystem List</description><chapter><title>Ecosystem</title><altTitle>Ecosystem</altTitle><index>1</index><page id="AA" ignoreExtraSourceElements="true" order="1"><backgroundfile>*/images/chapter_1/_background_B-Master.jpg</backgroundfile><overlay>*/images/chapter_1/chapter_1_overlay_1.png</overlay><textblocks><textblock><title isHTML="true" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true"></title></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="card-body" x="60" y="165" width="452" height="503" absolute="true"></text></textblock></textblocks></page><page id="AB" ignoreExtraSourceElements="true" order="2"><backgroundfile>*/images/chapter_1/_background_A-Master.jpg</backgroundfile><overlay>*/images/chapter_1/chapter_1_overlay_2.png</overlay><pictures><picture filename="" noShadow="true" zoomedScale="1" x="569" y="201" width="374" height="141" absolute="true"></picture><picture condition="filename,is not, blank" filename="*/images/chapter_1/{{icon-1}}.png" noShadow="true" time="1000" x="60" y="167" width="120" height="120" absolute="true"></picture><picture condition="filename,is not, blank" filename="*/images/chapter_1/{{icon-2}}.png" noShadow="true" time="1000" x="226" y="167" width="120" height="120" absolute="true"></picture><picture condition="filename,is not, blank" filename="*/images/chapter_1/{{icon-3}}.png" noShadow="true" time="1000" x="392" y="167" width="120" height="120" absolute="true"></picture></pictures><textblocks><textblock><title isHTML="true" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true"></title></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="card-consumes-title" source="card-consumes-title" noReplace="true" x="576" y="404" width="349" height="27" absolute="true"></text></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="card-icon-label" source="icon-1-label" noReplace="true" x="60" y="296" width="121" height="41" absolute="true"></text></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="card-icon-label" source="icon-2-label" noReplace="true" x="226" y="296" width="121" height="41" absolute="true"></text></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="card-icon-label" source="icon-3-label" noReplace="true" x="392" y="296" width="121" height="41" absolute="true"></text></textblock><textblock><text isHTML="true" margin="0,0,0,0" style="card-body" x="60" y="350" width="452" height="318" absolute="true"></text></textblock></textblocks><buttons absolute="true"><button x="569" y="426" height="100" width="100" id="Button 1" condition="params,is not, blank" params="{{link-1}}" action="goPageByID" imagefile="*/images/chapter_1/{{link-1}}.png" over="*/images/chapter_1/button-circle-150-over.png"></button><button x="702" y="426" height="100" width="100" id="Button 3" condition="params,is not, blank" params="{{link-2}}" action="goPageByID" imagefile="*/images/chapter_1/{{link-2}}.png" over="*/images/chapter_1/button-circle-150-over.png"></button><button x="835" y="426" height="100" width="100" id="Button 5" condition="params,is not, blank" params="{{link-3}}" action="goPageByID" imagefile="*/images/chapter_1/{{link-3}}.png" over="*/images/chapter_1/button-circle-150-over.png"></button><button x="569" y="542" height="100" width="100" id="Button 2" condition="params,is not, blank" params="{{link-4}}" action="goPageByID" imagefile="*/images/chapter_1/{{link-4}}.png" over="*/images/chapter_1/button-circle-150-over.png"></button><button x="702" y="542" height="100" width="100" id="Button 4" condition="params,is not, blank" params="{{link-5}}" action="goPageByID" imagefile="*/images/chapter_1/{{link-5}}.png" over="*/images/chapter_1/button-circle-150-over.png"></button><button x="835" y="542" height="100" width="100" id="Button 6" condition="params,is not, blank" params="{{link-6}}" action="goPageByID" imagefile="*/images/chapter_1/{{link-6}}.png" over="*/images/chapter_1/button-circle-150-over.png"></button></buttons></page></chapter></book>
+<book xml:space="preserve">
+	<title>
+		Ecosystem
+	</title>
+	<author>
+		David Gross
+	</author>
+	<documentPath>
+		/Volumes/Macintosh HD/Users/dgross/Documents/eBook Publishing/MBA/Templates/Ecosystem List (Species)/template
+	</documentPath>
+	<orientation>
+		landscape
+	</orientation>
+	<imagePath>
+		/Volumes/Macintosh HD/Users/dgross/Documents/eBook Publishing/MBA/Templates/Ecosystem List (Species)/template/images/chapter_1
+	</imagePath>
+	<previewPath>
+		/Volumes/Macintosh HD/Users/dgross/Documents/eBook Publishing/MBA/Templates/Ecosystem List (Species)/template/template_previews
+	</previewPath>
+	<uniqueid>
+		ecosystem-list
+	</uniqueid>
+	<fields>
+		thumbnail,level,clue,card-consumes-title,icon-1-label,icon-2-label,icon-3-label,link-1,link-2,link-3,link-4,link-5,link-6,icon-1,icon-2,icon-3
+	</fields>
+	<description>
+		Ecosystem List
+	</description>
+	<chapter>
+		<title>
+			Ecosystem
+		</title>
+		<altTitle>
+			Ecosystem
+		</altTitle>
+		<index>
+			1
+		</index>
+		<page id="AA" ignoreExtraSourceElements="true" order="1" contents="true" notInContents="true">
+			<backgroundfile>
+				*/images/card-background-blank.png
+			</backgroundfile>
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+						Contents
+					</title>
+				</textblock>
+			</textblocks>
+			<tableofcontents x="25%" y="25%" title="My Contents" absolute="true" />
+		</page>
+		<page id="AB" ignoreExtraSourceElements="true" order="2">
+			<backgroundfile>
+				*/images/card-background.png
+			</backgroundfile>
+			<overlay>
+				*/images/card_overlay.png
+			</overlay>
+			<pictures>
+				<picture filename="" noShadow="true" zoomedScale="1" x="756" y="272" width="374" height="141" absolute="true" referencePoint="Center">
+				</picture>
+				<picture custom="{{icon-1}}" condition="custom,is not, blank" filename="*/images/{{icon-1}}.png" noShadow="true" x="60" y="167" width="120" height="120" absolute="true">
+				</picture>
+				<picture custom="{{icon-2}}" condition="custom,is not, blank" filename="*/images/{{icon-2}}.png" noShadow="true" x="226" y="167" width="120" height="120" absolute="true">
+				</picture>
+				<picture custom="{{icon-3}}" condition="custom,is not, blank" filename="*/images/{{icon-3}}.png" noShadow="true" x="392" y="167" width="120" height="120" absolute="true">
+				</picture>
+			</pictures>
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="card-consumes-title" source="card-consumes-title" noReplace="true" x="576" y="404" width="349" height="27" absolute="true">
+					</text>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="card-icon-label" source="icon-1-label" noReplace="true" x="60" y="296" width="121" height="41" absolute="true">
+					</text>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="card-icon-label" source="icon-2-label" noReplace="true" x="226" y="296" width="121" height="41" absolute="true">
+					</text>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="card-icon-label" source="icon-3-label" noReplace="true" x="392" y="296" width="121" height="41" absolute="true">
+					</text>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="card-body" x="60" y="350" width="452" height="318" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+			<buttons absolute="true">
+				<button x="619" y="476" width="100" height="100" id="Button 1" custom="{{link-1}}" condition="custom,is not, blank" params="{{link-1}}" action="goPageByID" imagefile="*/pictures/{{link-1}}-card.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+				<button x="752" y="476" height="100" width="100" id="Button 3" custom="{{link-2}}" condition="custom,is not, blank" params="{{link-2}}" action="goPageByID" imagefile="*/pictures/{{link-2}}-card.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+				<button x="885" y="476" height="100" width="100" id="Button 5" custom="{{link-3}}" condition="custom,is not, blank" params="{{link-3}}" action="goPageByID" imagefile="*/pictures/{{link-3}}-card.png" over="_ui/button-circle-150-over.png" align="center" valign="center" sizeToFit="true">
+				</button>
+				<button x="619" y="592" height="100" width="100" id="Button 2" custom="{{link-4}}" condition="custom,is not, blank" params="{{link-4}}" action="goPageByID" imagefile="*/pictures/{{link-4}}-card.png" over="_ui/button-circle-150-over.png" align="center" valign="center" sizeToFit="true">
+				</button>
+				<button x="752" y="592" height="100" width="100" id="Button 4" custom="{{link-5}}" condition="custom,is not, blank" params="{{link-5}}" action="goPageByID" imagefile="*/pictures/{{link-5}}-card.png" over="_ui/button-circle-150-over.png" align="center" valign="center" sizeToFit="true">
+				</button>
+				<button x="885" y="592" height="100" width="100" id="Button 6" custom="{{link-6}}" condition="custom,is not, blank" params="{{link-6}}" action="goPageByID" imagefile="*/pictures/{{link-6}}-card.png" over="_ui/button-circle-150-over.png" align="center" valign="center" sizeToFit="true">
+				</button>
+			</buttons>
+		</page>
+	</chapter>
+</book>

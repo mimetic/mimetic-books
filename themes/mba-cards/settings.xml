@@ -39,15 +39,34 @@
 
 		<overlayFilename value="" alt="_ui/overlay-blank.png" />
 
+
+		<bookBackgroundAlpha value="0" />
+
+		<chapterBackgroundAlpha value="0" />
+
+		<pageBackgroundAlpha value="10%" />
+
+
 	</class>
 
 
 	<class value="navbar">
+		<showOnStart value="true" />
+
+		<showLibraryButton value="true" />
+		<showSlideshowButton value="false" />
+		<showMapButton value="false" />
+		<showTOCButton value="true" />
+		
 		<pickerLabelColorR value="40" />
 		<pickerLabelColorG value="40" />
 		<pickerLabelColorB value="40" />
 		<pickerLabelAlpha value="100%" />
 		<pickerLabelFont value="AvenirNextCondensed-Regular" />
+	</class>
+
+	<class value="toolbar">
+		<showLibraryButton value="false" />
 	</class>
 
 
