@@ -19,6 +19,7 @@
 	</class>
 
 	<class value="slideview">
+		
 		<pageBackgroundMarkColorR value="120" />
 		<pageBackgroundMarkColorG value="120" />
 		<pageBackgroundMarkColorB value="120" />
@@ -37,7 +38,7 @@
 		— {{pageNumberInBook}} —
 		</captionFooterText>
 
-		<overlayFilename value="" alt="_ui/overlay-blank.png" />
+		<overlayFilename value="*/images/card-overlay.png" />
 
 
 		<bookBackgroundAlpha value="0" />
@@ -67,6 +68,7 @@
 
 	<class value="toolbar">
 		<showLibraryButton value="false" />
+		<showFloatingBookButton value="false" />
 	</class>
 
 

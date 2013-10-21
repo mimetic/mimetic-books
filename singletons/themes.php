@@ -213,7 +213,9 @@ class MB_API_Themes
 		
 		$custom_fields = array ();
 		if ($theme->fields) {
-			$f = $theme->fields;
+			$f = trim($theme->fields);
+			$f = preg_replace ("/,\s*/",",",$f);
+			$f = preg_replace ("/\s/","_",$f);
 			$custom_fields = explode(",", trim($f));
 //$mb_api->write_log(__FUNCTION__.": custom fields? : {$theme->fields} : ".print_r($custom_fields,true) );	
 		}

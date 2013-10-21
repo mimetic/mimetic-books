@@ -155,6 +155,8 @@ class Mimetic_Book
 		
 		$this->make_build_dir($options['tempDir']);
 		
+		$this->attached_items_already_on_pages = array();
+		
     }
 	
 	
@@ -289,6 +291,10 @@ class Mimetic_Book
 		$chapter_id = $category->term_id;
 		
 		list($page, $settings) = $this->convert_pages($wp_chapter['pages'], $category);
+		
+		// Copy any attachments we didn't get from the pages
+		// I'm worried this will get ALL attachments, not just this book's attachments.
+		//$this->get_all_attachments ($this->attached_items_already_on_pages, true);
 		
 		$attr = array_merge($attr, $settings);
 		
@@ -682,13 +688,40 @@ class Mimetic_Book
 		$embedded = $this->get_embedded_pictures($wp_page);
 		$embedded && $page = array_merge($page, $embedded);
 
+		// These are pictures actually embedded on pages
+		$embedded_pictures = $embedded;
+
 		$embedded = $this->get_embedded_audio($wp_page);
 		$embedded && $page = array_merge($page, $embedded);
 
 		$embedded = $this->get_embedded_video($wp_page);
 		$embedded && $page = array_merge($page, $embedded);
+		
+		
+	//$mb_api->write_log(__FUNCTION__.": EMBEDDED PICTURES:" . print_r($embedded_pictures['pictures']['picture'], true));
+		
 
-//$mb_api->write_log(__FUNCTION__.": element:".print_r($element,true));
+		// Get the base file names of the pictures we've got for this page
+		if (isset($embedded_pictures['pictures'])) {
+			if (isset( $embedded_pictures['pictures']['picture']) ) {
+				$embedded_pictures = $embedded_pictures['pictures']['picture'];
+			}
+		}
+
+		$pictures_to_exclude = array();
+		for ($i=0; $i<count($embedded_pictures); $i++) {
+			if (isset($embedded_pictures[$i]['filename'])) {
+				$this->attached_items_already_on_pages[] = basename ($embedded_pictures[$i]['filename']) ;
+			}
+		}
+		
+//$mb_api->write_log(__FUNCTION__.": pictures_to_exclude:" . print_r($this->attached_items_already_on_pages, true));
+		
+		
+		// Now, copy all other attachments to this page to the pictures folder
+		// This method ain't great, but it should avoid getting ALL attachments to all pages
+		// and not just the ones for this book.
+		$this->get_attachments ($wp_page, $this->attached_items_already_on_pages, true);
 
 
 		return $page;
@@ -696,9 +729,97 @@ class Mimetic_Book
 
 
 	
+	/*
+	 * This should process all attachments that are not in the exclude list.
+	 * Note: we need to set $include_images to true to get images.
+	 * This is for getting attached files that aren't embedded on pages, so
+	 * we can add files to the "pictures" folder without putting them on a page.
+	 * Instead, we would use the Attachments plugin (or perhaps simply upload them!)
+	*/
+	private function get_all_attachments ($exclude_image_list, $include_images = false)
+	{
+		global $mb_api;
+			
+		$args = array(
+			'post_type' => 'attachment',
+			'posts_per_page' => -1,
+			'post_status' => null
+		);
+		$attachments = get_posts( $args );
+
+		$page_elements = array();
+		if ( $attachments ) {
+			foreach ( $attachments as $attachment ) {
+			
+				$element = array();
+				$element['name'] = preg_replace('|/.*$|', '', $attachment->post_mime_type);
+				$element['type'] = $attachment->post_mime_type;
+				$element['modified'] = $attachment->post_modified;
+				$element['modified_gmt'] = $attachment->post_modified_gmt;
+				
+				if ($include_images && wp_attachment_is_image( $attachment->ID)) {
+					// Images
+					$image_attributes = wp_get_attachment_image_src( $attachment->ID, "full"); // returns an array
+					
+					$attributes['src'] = $image_attributes[0];
+					$attributes['width'] = $image_attributes[1];
+					$attributes['height'] = $image_attributes[2];
+					$attributes['originalWidth'] = $image_attributes[1];
+					$attributes['originalHeight'] = $image_attributes[2];
+					
+					if (isset($image_attrs[$attachment->ID])) {
+						$html_attrs = $image_attrs[$attachment->ID];
+						$html_attrs['width'] && $attributes['width'] = $html_attrs['width']+0;
+						$html_attrs['height'] && $attributes['height'] = $html_attrs['height']+0;
+					} else {
+						print ("MB:get_attachments: WTF? No attributes for attachment id=".$attachment->ID);
+					}
+				} else {
+					// Other kinds of attachements
+					$attributes['src'] = $attachment->guid;
+				}
+
+				$attributes['name'] = $attachment->post_title;
+				$attributes['id'] = $attachment->ID;
+				
+				
+				$element['attributes'] = $attributes;
+				
+
+
+				// Exclude any file in the exclude list, by name.					
+				if ( !in_array(basename($attributes['src']), $exclude_image_list) ) {
+$mb_api->write_log(__FUNCTION__.": Added attached picture not on page:" . basename($attributes['src']));
+					//print_r($attachment);
+					// Handle MB's need to encapsulate, e.g. if we have an 'img', 
+					// then we need to create a <pictures> element to hold
+					// the <picture> which is the 'img'.
+					list($mb_name, $mb_encaps_name) = $this->name_for_element($element['type']);
+
+					if ($mb_encaps_name) {
+						if (!isset($page_elements[$mb_encaps_name])) {
+							$page_elements[$mb_encaps_name] = array ();
+						}
+						$page_elements[$mb_encaps_name][$mb_name][] = $this->element_to_mb($element);
+					} else {
+						$page_elements[$mb_name] = $this->element_to_mb($element);
+					}
+				} else {
+//$mb_api->write_log(__FUNCTION__.": Ignored attached picture:" . basename($attributes['src']));
+				}
+			}
+		}
+
+		// Now, gather them into MB format 
+		// img ---> picture
+		
+		//print_r($page_elements);
+		return $page_elements;
+	}
+	
+	
 	
 	/*
-	 * NOT IN USE!!!!
 	 * Get all the attached media items for this post.
 	 * $include_images : true means include attached images, false means exclude.
 	 * Important: Not all attached images appear on the page! Some were uploaded to the page
@@ -707,10 +828,10 @@ class Mimetic_Book
 	 * which the embedded HTML does. So, we should use this for audio, and probably
 	 * nothing else.
 	*/
-	private function get_attachments ($wp_page, $include_images = false)
+	private function get_attachments ($wp_page, $exclude_image_list, $include_images = false)
 	{
 		global $mb_api;
-	
+			
 		$args = array(
 			'post_type' => 'attachment',
 			'posts_per_page' => -1,
@@ -718,8 +839,7 @@ class Mimetic_Book
 			'post_parent' => $wp_page->id
 		);
 		$attachments = get_posts( $args );
-		
-		
+
 		// Image attachments embedded in the HTML. These may not show up as 
 		// attachments, so we'll deal with them as their own group.
 		
@@ -742,11 +862,19 @@ print ("-----------\n");
 		$page_elements = array();
 		if ( $attachments ) {
 			foreach ( $attachments as $attachment ) {
+			
 				$element = array();
 				$element['name'] = preg_replace('|/.*$|', '', $attachment->post_mime_type);
 				$element['type'] = $attachment->post_mime_type;
 				$element['modified'] = $attachment->post_modified;
 				$element['modified_gmt'] = $attachment->post_modified_gmt;
+
+				
+			
+			
+			
+
+
 				
 				if ($include_images && wp_attachment_is_image( $attachment->ID)) {
 					// Images
@@ -757,7 +885,8 @@ print ("-----------\n");
 					$attributes['height'] = $image_attributes[2];
 					$attributes['originalWidth'] = $image_attributes[1];
 					$attributes['originalHeight'] = $image_attributes[2];
-					if ($image_attrs[$attachment->ID]) {
+					
+					if (isset($image_attrs[$attachment->ID])) {
 						$html_attrs = $image_attrs[$attachment->ID];
 						$html_attrs['width'] && $attributes['width'] = $html_attrs['width']+0;
 						$html_attrs['height'] && $attributes['height'] = $html_attrs['height']+0;
@@ -775,20 +904,27 @@ print ("-----------\n");
 				
 				$element['attributes'] = $attributes;
 				
-				
-				//print_r($attachment);
-				// Handle MB's need to encapsulate, e.g. if we have an 'img', 
-				// then we need to create a <pictures> element to hold
-				// the <picture> which is the 'img'.
-				list($mb_name, $mb_encaps_name) = $this->name_for_element($element['type']);
 
-				if ($mb_encaps_name) {
-					if (!isset($page_elements[$mb_encaps_name])) {
-						$page_elements[$mb_encaps_name] = array ();
+
+				// Exclude any file in the exclude list, by name.					
+				if ( !in_array(basename($attributes['src']), $exclude_image_list) ) {
+$mb_api->write_log(__FUNCTION__.": Added attached picture not on page:" . basename($attributes['src']));
+					//print_r($attachment);
+					// Handle MB's need to encapsulate, e.g. if we have an 'img', 
+					// then we need to create a <pictures> element to hold
+					// the <picture> which is the 'img'.
+					list($mb_name, $mb_encaps_name) = $this->name_for_element($element['type']);
+
+					if ($mb_encaps_name) {
+						if (!isset($page_elements[$mb_encaps_name])) {
+							$page_elements[$mb_encaps_name] = array ();
+						}
+						$page_elements[$mb_encaps_name][$mb_name][] = $this->element_to_mb($element);
+					} else {
+						$page_elements[$mb_name] = $this->element_to_mb($element);
 					}
-					$page_elements[$mb_encaps_name][$mb_name][] = $this->element_to_mb($element);
 				} else {
-					$page_elements[$mb_name] = $this->element_to_mb($element);
+//$mb_api->write_log(__FUNCTION__.": Ignored attached picture:" . basename($attributes['src']));
 				}
 			}
 		}
@@ -1000,6 +1136,9 @@ print ("-----------\n");
 	*/
 	private function get_embedded_element_attributes($wp_page, $element_type="img") {
 		$text = $wp_page->content;
+		if (!$text) {
+			return array();
+		}
 		
 		// Use PHP XML/HTML extract functionality!
 		$doc = new DOMDocument();
@@ -1083,7 +1222,7 @@ print ("-----------\n");
 		$name = preg_replace('|/.*$|', '', $element['name']);
 
 
-//$mb_api->write_log(__FUNCTION__.": element name = $name");
+//$mb_api->write_log(__FUNCTION__.": element name = $name" . print_r($element,true) );
 		
 		switch ($name) {
 			case "image":

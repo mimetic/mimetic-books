@@ -22,7 +22,7 @@
 		ecosystem-list
 	</uniqueid>
 	<fields>
-		thumbnail,level,clue,card-consumes-title,icon-1-label,icon-2-label,icon-3-label,link-1,link-2,link-3,link-4,link-5,link-6,icon-1,icon-2,icon-3
+		longevity,direction_of_picture,speed,size,level,clue,card-consumes-title,icon-1-label,icon-2-label,icon-3-label,link-1,link-2,link-3,link-4,link-5,link-6,icon-1,icon-2,icon-3,thumbnail,consumption_rate,reproduction_rate,in_ecosystem_game,zone
 	</fields>
 	<description>
 		Ecosystem List
@@ -55,7 +55,6 @@
 				*/images/card-background.png
 			</backgroundfile>
 			<overlay>
-				*/images/card_overlay.png
 			</overlay>
 			<pictures>
 				<picture filename="" noShadow="true" zoomedScale="1" x="756" y="272" width="374" height="141" absolute="true" referencePoint="Center">
@@ -98,15 +97,74 @@
 				</button>
 				<button x="752" y="476" height="100" width="100" id="Button 3" custom="{{link-2}}" condition="custom,is not, blank" params="{{link-2}}" action="goPageByID" imagefile="*/pictures/{{link-2}}-card.png" over="" align="center" valign="center" sizeToFit="true">
 				</button>
-				<button x="885" y="476" height="100" width="100" id="Button 5" custom="{{link-3}}" condition="custom,is not, blank" params="{{link-3}}" action="goPageByID" imagefile="*/pictures/{{link-3}}-card.png" over="_ui/button-circle-150-over.png" align="center" valign="center" sizeToFit="true">
+				<button x="885" y="476" height="100" width="100" id="Button 5" custom="{{link-3}}" condition="custom,is not, blank" params="{{link-3}}" action="goPageByID" imagefile="*/pictures/{{link-3}}-card.png" over="" align="center" valign="center" sizeToFit="true">
 				</button>
-				<button x="619" y="592" height="100" width="100" id="Button 2" custom="{{link-4}}" condition="custom,is not, blank" params="{{link-4}}" action="goPageByID" imagefile="*/pictures/{{link-4}}-card.png" over="_ui/button-circle-150-over.png" align="center" valign="center" sizeToFit="true">
+				<button x="619" y="592" height="100" width="100" id="Button 2" custom="{{link-4}}" condition="custom,is not, blank" params="{{link-4}}" action="goPageByID" imagefile="*/pictures/{{link-4}}-card.png" over="" align="center" valign="center" sizeToFit="true">
 				</button>
-				<button x="752" y="592" height="100" width="100" id="Button 4" custom="{{link-5}}" condition="custom,is not, blank" params="{{link-5}}" action="goPageByID" imagefile="*/pictures/{{link-5}}-card.png" over="_ui/button-circle-150-over.png" align="center" valign="center" sizeToFit="true">
+				<button x="752" y="592" height="100" width="100" id="Button 4" custom="{{link-5}}" condition="custom,is not, blank" params="{{link-5}}" action="goPageByID" imagefile="*/pictures/{{link-5}}-card.png" over="" align="center" valign="center" sizeToFit="true">
 				</button>
-				<button x="885" y="592" height="100" width="100" id="Button 6" custom="{{link-6}}" condition="custom,is not, blank" params="{{link-6}}" action="goPageByID" imagefile="*/pictures/{{link-6}}-card.png" over="_ui/button-circle-150-over.png" align="center" valign="center" sizeToFit="true">
+				<button x="885" y="592" height="100" width="100" id="Button 6" custom="{{link-6}}" condition="custom,is not, blank" params="{{link-6}}" action="goPageByID" imagefile="*/pictures/{{link-6}}-card.png" over="" align="center" valign="center" sizeToFit="true">
 				</button>
 			</buttons>
+		</page>
+		<page id="AC" ignoreExtraSourceElements="true" order="3">
+			<backgroundfile>
+				*/images/card-background-no-prey.png
+			</backgroundfile>
+			<overlay>
+			</overlay>
+			<pictures>
+				<picture filename="" noShadow="true" zoomedScale="1" x="569" y="201" width="374" height="141" absolute="true">
+				</picture>
+			</pictures>
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="card-body" x="60" y="165" width="452" height="318" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+		</page>
+		<page id="AD" ignoreExtraSourceElements="true" order="3">
+			<backgroundfile>
+				*/images/card-background-blank.png
+			</backgroundfile>
+			<overlay>
+			</overlay>
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="card-body" x="60" y="165" width="888" height="503" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+		</page>
+		<page id="AE" ignoreExtraSourceElements="true" order="4">
+			<backgroundfile>
+				*/images/card-background-blank.png
+			</backgroundfile>
+			<overlay>
+			</overlay>
+			<textblocks>
+				<textblock>
+					<title isHTML="true" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" margin="0,0,0,0" style="card-body" x="60" y="165" width="513" height="503" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+			<pictures>
+				<picture grungeEdgeMask="true" noThumbnail="false" filename="" noShadow="true" x="680" y="166" width="250" height="500" absolute="true">
+				</picture>
+			</pictures>
 		</page>
 	</chapter>
 </book>
