@@ -22,7 +22,7 @@
 		ecosystem-list
 	</uniqueid>
 	<fields>
-		longevity,direction_of_picture,speed,size,level,clue,card-consumes-title,icon-1-label,icon-2-label,icon-3-label,link-1,link-2,link-3,link-4,link-5,link-6,icon-1,icon-2,icon-3,thumbnail,consumption_rate,reproduction_rate,in_ecosystem_game,zone
+		longevity,direction_of_picture,speed,size,level,clue,card-consumes-title,icon-1-label,icon-2-label,icon-3-label,link-1,link-2,link-3,link-4,link-5,link-6,icon-1,icon-2,icon-3,thumbnail,consumption_rate,reproduction_rate,in_ecosystem_game,zone,swim_on_page
 	</fields>
 	<description>
 		Ecosystem List
@@ -49,6 +49,10 @@
 				</textblock>
 			</textblocks>
 			<tableofcontents x="25%" y="25%" title="My Contents" absolute="true" />
+			<buttons absolute="true">
+				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+			</buttons>
 		</page>
 		<page id="AB" ignoreExtraSourceElements="true" order="2">
 			<backgroundfile>
@@ -105,6 +109,9 @@
 				</button>
 				<button x="885" y="592" height="100" width="100" id="Button 6" custom="{{link-6}}" condition="custom,is not, blank" params="{{link-6}}" action="goPageByID" imagefile="*/pictures/{{link-6}}-card.png" over="" align="center" valign="center" sizeToFit="true">
 				</button>
+				
+				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
 			</buttons>
 		</page>
 		<page id="AC" ignoreExtraSourceElements="true" order="3">
@@ -114,7 +121,7 @@
 			<overlay>
 			</overlay>
 			<pictures>
-				<picture filename="" noShadow="true" zoomedScale="1" x="569" y="201" width="374" height="141" absolute="true">
+				<picture filename="" noShadow="true" zoomedScale="1" x="756" y="272" width="374" height="141" absolute="true" referencePoint="Center">
 				</picture>
 			</pictures>
 			<textblocks>
@@ -127,6 +134,10 @@
 					</text>
 				</textblock>
 			</textblocks>
+			<buttons absolute="true">
+				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+			</buttons>
 		</page>
 		<page id="AD" ignoreExtraSourceElements="true" order="3">
 			<backgroundfile>
@@ -144,6 +155,10 @@
 					</text>
 				</textblock>
 			</textblocks>
+			<buttons absolute="true">
+				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+			</buttons>
 		</page>
 		<page id="AE" ignoreExtraSourceElements="true" order="4">
 			<backgroundfile>
@@ -165,6 +180,10 @@
 				<picture grungeEdgeMask="true" noThumbnail="false" filename="" noShadow="true" x="680" y="166" width="250" height="500" absolute="true">
 				</picture>
 			</pictures>
+			<buttons absolute="true">
+				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+			</buttons>
 		</page>
 	</chapter>
 </book>

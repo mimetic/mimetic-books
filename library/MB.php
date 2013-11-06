@@ -789,7 +789,7 @@ class Mimetic_Book
 
 				// Exclude any file in the exclude list, by name.					
 				if ( !in_array(basename($attributes['src']), $exclude_image_list) ) {
-$mb_api->write_log(__FUNCTION__.": Added attached picture not on page:" . basename($attributes['src']));
+//$mb_api->write_log(__FUNCTION__.": Added attached picture not on page:" . basename($attributes['src']));
 					//print_r($attachment);
 					// Handle MB's need to encapsulate, e.g. if we have an 'img', 
 					// then we need to create a <pictures> element to hold
@@ -908,7 +908,7 @@ print ("-----------\n");
 
 				// Exclude any file in the exclude list, by name.					
 				if ( !in_array(basename($attributes['src']), $exclude_image_list) ) {
-$mb_api->write_log(__FUNCTION__.": Added attached picture not on page:" . basename($attributes['src']));
+//$mb_api->write_log(__FUNCTION__.": Added attached picture not on page:" . basename($attributes['src']));
 					//print_r($attachment);
 					// Handle MB's need to encapsulate, e.g. if we have an 'img', 
 					// then we need to create a <pictures> element to hold
@@ -1170,7 +1170,10 @@ $mb_api->write_log(__FUNCTION__.": Added attached picture not on page:" . basena
 			$attributes['id'] = $id;
 			
 			$post = get_post( $id, ARRAY_A );
-			$page_elements[0+$id] = array_merge($post,$attributes);
+			//is_array($post) || $post = array();
+			if (is_array($post)) {
+				$page_elements[0+$id] = array_merge($post,$attributes);
+			}
 		}
 
 		// Now, gather them into MB format 
@@ -1317,7 +1320,11 @@ $mb_api->write_log(__FUNCTION__.": SRC = $src");
 				// Save normal sized image
 				$image = wp_get_image_editor( $src);
 				if (! is_wp_error($image) ) {
-					$image->resize( $targetW, $targetH, false );	// false = no-crop
+				
+					if ($w <= $targetW && $h <= $targetH) {			
+						$image->resize( $targetW, $targetH, false );	// false = no-crop
+$mb_api->write_log(__FUNCTION__.": Did not resize " . $mb_element['filename'] . " because it is already $w x $h ");
+					}
 					$image->set_quality( 80 );
 					$image->save($filepath);
 										

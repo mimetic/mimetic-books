@@ -2,24 +2,9 @@
 <settings>
 
 	<class value="slideview">
-
+		
 		<orientations value="landscapeLeft,landscapeRight" />
 
-		<captionFormat>{caption}</captionFormat>
-
-		<captionPlaceFormat>{sublocation} {city}{citySeparator}{state}{stateSeparator}{country}</captionPlaceFormat>
-
-		<captionFooterAlignment value="center" />
-
-		<captionFooterText>
-		### set, ,,,,,,,50%
-		( {{pageNumberInBook}} of {{pagecountInBook}} )
-		</captionFooterText>
-
-	</class>
-
-	<class value="slideview">
-		
 		<pageBackgroundMarkColorR value="120" />
 		<pageBackgroundMarkColorG value="120" />
 		<pageBackgroundMarkColorB value="120" />
@@ -37,6 +22,7 @@
 		### set, ,,,,,,,50%
 		— {{pageNumberInBook}} —
 		</captionFooterText>
+		<captionPlaceFormat>{sublocation} {city}{citySeparator}{state}{stateSeparator}{country}</captionPlaceFormat>
 
 		<overlayFilename value="*/images/card-overlay.png" />
 
@@ -52,7 +38,9 @@
 
 
 	<class value="navbar">
-		<showOnStart value="true" />
+		<showOnStart value="false" />
+
+		<pickerShowLabels value="false" />
 
 		<showLibraryButton value="true" />
 		<showSlideshowButton value="false" />
