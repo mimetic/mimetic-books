@@ -1268,7 +1268,8 @@ $mb_api->write_log(__FUNCTION__.": SRC = $src");
 
 
 				if ($src == "") {
-					return false;
+					$mb_api->write_log(__FUNCTION__.": Missing source for image!" . print_r($element, true) );
+					return "";
 				}
 				
 				$mb_element['filename'] = "*" . DIRECTORY_SEPARATOR . $this->pictureFolder . basename( $src );

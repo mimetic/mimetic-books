@@ -6,6 +6,8 @@ jQuery(document).ready(function($){
 		var distURL = jQuery('#distribution_url').val().trim();
 		url = jQuery('#base_url').val().trim() + "/";
 		var thisButton = jQuery(this);
+		var thisButtonOriginalTitle = thisButton.prop("value");
+		
 
 		if (distURL) {
 			url = url + "mb/book/send_book_package/?" + "id=" + id;
@@ -32,7 +34,7 @@ jQuery(document).ready(function($){
 						alert ("The book was published.");
 					}
 					//jQuery('#publishing_progress_message').html("");
-					thisButton.prop("value","Publish eBook");
+					thisButton.prop("value",thisButtonOriginalTitle);
 				});
 		}
 		return false;
