@@ -3,6 +3,8 @@
 
 	<class value="slideview">
 		
+		<showToolbar value="false" />
+
 		<orientations value="landscapeLeft,landscapeRight" />
 
 		<pageBackgroundMarkColorR value="120" />
@@ -33,7 +35,6 @@
 
 		<pageBackgroundAlpha value="10%" />
 
-
 	</class>
 
 
@@ -52,6 +53,10 @@
 		<pickerLabelColorB value="40" />
 		<pickerLabelAlpha value="100%" />
 		<pickerLabelFont value="AvenirNextCondensed-Regular" />
+		
+		<pickerPageReferenceDisplayFontSizeForTitle value="42" />
+
+		
 	</class>
 
 	<class value="toolbar">

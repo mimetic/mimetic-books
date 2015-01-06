@@ -345,24 +345,42 @@ function mb_api_book_updated_messages( $messages ) {
 }
 
 // Display contextual help for Books
+// __() is a function that indicates the text is translatable.
+// See http://codex.wordpress.org/Function_Reference/_2
+// $text = __('This text can be translated.', 'mytextdomain' );
 
 function mb_api_add_help_text( $contextual_help, $screen_id, $screen ) { 
 	//$contextual_help .= __FUNCTION__. ":" . var_dump( $screen ); // use this to help determine $screen->id
 	if ( 'book' == $screen->id ) {
-		$contextual_help =
-			'<p>' . __('Things to remember when adding or editing a book:', 'your_text_domain') . '</p>' .
-			'<ul>' .
-			'<li>' . __('Specify the correct genre such as Mystery, or Historic.', 'your_text_domain') . '</li>' .
-			'<li>' . __('Specify the correct writer of the book.	Remember that the Author module refers to you, the author of this book review.', 'your_text_domain') . '</li>' .
-			'</ul>' .
-			'<p>' . __('If you want to schedule the book review to be published in the future:', 'your_text_domain') . '</p>' .
-			'<ul>' .
-			'<li>' . __('Under the Publish module, click on the Edit link next to Publish.', 'your_text_domain') . '</li>' .
-			'<li>' . __('Change the date to the date to actual publish this article, then click on Ok.', 'your_text_domain') . '</li>' .
-			'</ul>' .
-			'<p><strong>' . __('For more information:', 'your_text_domain') . '</strong></p>' .
-			'<p>' . __('<a href="http://codex.wordpress.org/Posts_Edit_SubPanel" target="_blank">Edit Posts Documentation</a>', 'your_text_domain') . '</p>' .
-			'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>', 'your_text_domain') . '</p>' ;
+			$contextual_help = <<<EOT
+<p>
+	Things to remember when adding or editing a book: 
+</p>
+<ul>
+	<li> The Book ID must be unique. </li>
+	<li> Choose the publisher you're working with.</li>
+</ul>
+<p>
+	Book status and visibility are set in the Publish box and are similar to Wordpress usage: 
+</p>
+<ul>
+	<li> Actually, status does nothing right now. </li>
+	<li> Private books can be seen by all Editors in your Wordpress website.<br>
+	http://codex.wordpress.org/Roles_and_Capabilities</li>
+</ul>
+<p>
+	<strong> For more information: </strong> 
+</p>
+<p>
+	<a href="http://codex.wordpress.org/Posts_Edit_SubPanel" target="_blank"> Edit Posts Documentation </a> 
+</p>
+<p>
+	<a href="http://wordpress.org/support/" target="_blank"> Support Forums </a> 
+</p>			
+			
+EOT;
+			
+			
 	} elseif ( 'edit-book' == $screen->id ) {
 		$contextual_help = 
 			'<p>' . __('This is the help screen displaying the table of books blah blah blah.', 'your_text_domain') . '</p>' ;
@@ -461,12 +479,23 @@ function mb_show_publish_button($post_ID) {
 	
 	$mb_book_id = get_post_meta($post_ID, "mb_book_id", true);
 	$mb_book_available = get_post_meta($post_ID, "mb_book_available", true);
+
+	// Publish button text changes depending on whether we're publishing the real book or
+	// a testing version
+	$mb_updating_book = mb_checkbox_is_checked( get_post_meta($post_ID, "mb_updating_book", true) );
+	
+	$mb_pub_button_label = "Publish eBook";
+	if ($mb_updating_book) {
+		$mb_pub_button_label = "Publish Private Draft";
+	}
+
+
 	if ($mb_book_available && $mb_book_id) {
 		?>
 		<input type="hidden" id="distribution_url_<?php echo $mb_book_id; ?>" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
 		<input type="hidden" id="base_url_<?php echo $mb_book_id; ?>" value="<?php print get_bloginfo('url');  ?>" />
 
-		<input type="button" class="wp-core-ui button-primary publish_book_button" id="<?php echo "$mb_book_id"; ?>" value="Publish eBook" />
+		<input type="button" class="wp-core-ui button-primary publish_book_button" id="<?php echo "$mb_book_id"; ?>" value="<?php echo $mb_pub_button_label; ?>" />
 		<br>
 		<div style="margin-top:0px;text-align:left;" class="publishing_progress_message" id="publishing_progress_message_<?php echo $mb_book_id; ?>" ></div>
 		<?php 
@@ -515,7 +544,7 @@ function mb_book_add_post_meta_boxes() {
 
 	add_meta_box(
 		'book-post-publish',			// Unique ID
-		esc_html__( 'Book Creation' ),		// Title
+		esc_html__( 'Book Publishing' ),		// Title
 		'mb_book_post_publish_meta_box',		// Callback function
 		'book',					// Admin page (or post type)
 		'side',					// Context
@@ -578,6 +607,36 @@ function mb_book_post_publish_meta_box( $post) {
 	}
 	$postlink = "edit.php?s&post_status=all&post_type=post&action=-1&m=0&cat={$book_cat_id}&paged=1&mode=list&action2=-1";
 				
+	// Publish button text changes depending on whether we're publishing the real book or
+	// a testing version
+	$mb_updating_book = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_updating_book", true) );
+	
+	$mb_pub_button_label = "Publish eBook";
+	if ($mb_updating_book) {
+		$mb_pub_button_label = "Publish Private Draft";
+	}
+				
+				
+	$values = $mb_api->get_publisher_ids();
+	$listname = "";
+
+	//$pid = get_post_meta($post->ID, "mb_publisher_id", true);
+	isset ($mb_book_publisher_id) ? $checked = $mb_book_publisher_id : $checked = 1;
+	$listname = "mb_publisher_id";
+	$sort = true;
+	$size = true;
+	$extrahtml = "";
+	$extraline = array();
+	$pub_id_menu = $mb_api->funx->OptionListFromArray ($values, $listname, $checked, $sort, $size, $extrahtml, $extraline);
+	
+	$mb_book_remote_url = get_post_meta( $post->ID, 'mb_book_remote_url', true );
+	
+	$mb_use_local_book_file = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_use_local_book_file", true) );
+
+	$mb_book_available = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_book_available", true) );
+
+	$mb_book_is_card_list = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_book_is_card_list", true) );
+
 
 	?>
 			<!-- defined on plugin settings page -->
@@ -585,23 +644,24 @@ function mb_book_post_publish_meta_box( $post) {
 			<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
 
 			<div id="mb-settings">
-				<div id="mb-misc-settings">
+				<div class="mb-settings-section ">
+					<a href="<?php echo $postlink; ?>">Show posts</a> in this book.		
+				</div>
+				<div id="mb-misc-settings no-border">
 					<div class="mb-settings-section">
 				
 					<?php
 					if ($mb_book_available) {
-					?>
-							<label for="book-post-publish">
-								Be sure to update this page if you have made changes.<br/>
-							</label>
-				
+					?>				
 							<div class="submitbox" >
 								<span style="margin-right:20px;" class="publishing_progress_message" id="publishing_progress_message" ></span>
 								<div style="text-align:right;float:right;">
-									<input type="button" id="publish_book_button" class="button-primary" value="Publish eBook" />
+									<input type="button" id="publish_book_button" class="button-primary" value="<?php echo $mb_pub_button_label; ?>" />
 								</div>
 							</div>
 							<div class="clear"></div>
+							<br>
+							<?php _e( "<i>* Be sure to publish the book again if you change any settings, authors, etc.</i>"); ?>
 					
 							<?php
 					} else {
@@ -613,10 +673,95 @@ function mb_book_post_publish_meta_box( $post) {
 					
 					</div>
 				</div>
-				<div class="mb-settings-section no-border">
-					<a href="<?php echo $postlink; ?>">Show posts</a> in this book.		
+			</div>
+		
+		<div id="mb-major-settings">
+			<div class="mb-settings-section no-border">
+	
+				<!-- defined on plugin settings page -->
+				<input type="hidden" id="distribution_url" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
+
+				<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
+			</div>
+				
+			<div class="mb-major-settings">
+				<div class="mb-settings-section">
+					<label for="mb_book_available">
+						<input class="mb_verify_hide_book" default_value="1" type="checkbox" name="mb_book_available" value="true" <?php echo($mb_book_available); ?>/> 
+						Show on Shelves<br>
+						<i>Uncheck this box to remove your book from the shelves. You can still work on it. <b>It is a bad idea to hide books that people have already sold or downloaded — the book will disappear from the reader's library!</b></i>
+					</label>
 				</div>
 			</div>
+<!--
+			<div class="mb-major-settings">
+				<div class="mb-settings-section">
+					
+						<input default_value="1" type="checkbox" name="mb_book_private" value="true" <?php echo($mb_book_available); ?>/> 
+						<label for="mb_book_available">Private Book</label>
+						<br>
+						<i>Check this box to hide your book from the public. Only people registered with this website, whose username is listed below, can see this book.</i>
+					
+				</div>
+			</div>
+-->
+<!-- The 'draft' concept is NOT working, leave it out for now -->
+<!--
+			<div id="mb-major-settings">
+				<div class="mb-settings-section">
+					<label for="mb_updating_book">
+						<input default_value="1" type="checkbox" name="mb_updating_book" value="true" <?php echo($mb_updating_book); ?>/> 
+						Updating this Book<br>
+						<i>Check this box while you are working on an update to your book. Uncheck it when you are ready to publish the update!</b></i>
+					</label>
+				</div>
+			</div>
+-->			
+				<div class="mb-settings-section">		
+					<label for="mb_book_id">
+						Book ID:
+					</label>
+					<input type="text" id="mb_book_id" name="mb_book_id" value="<?php print $mb_book_id;  ?>" />
+
+				</div>
+				
+				<div class="mb-settings-section">		
+					<label for="mb_publisher_id">
+						Publisher:
+					</label>
+					<?php print $pub_id_menu;  ?>
+
+				</div>
+				
+				<div class="mb-settings-section-break">
+					<h3>Special Settings</h3>
+				</div>
+				
+				<div class="mb-settings-section">		
+					
+					<h4>Use an Uploaded Book Package</h4>
+					<i>To make a package, use the shell command, <code>tar cfo item.tar *</code> from within the directory of book files. Use the resulting item.tar file.</i>					
+					<br>
+					<br>
+					<input type="checkbox" name="mb_use_local_book_file" value="true" <?php echo($mb_use_local_book_file); ?>/> <label for="mb_use_local_book_file">Use uploaded book package</label>
+				</div>
+				
+				<div class="mb-settings-section mb-settings-section-last">		
+					
+					<h4>Custom URL for App:</h4>
+					<i>If you want the app to download the book package from a different server, usually a cloud file delivery server (CDN), then you must enter that URL below.<br>
+					<b>You will have to copy the book package we create here to that server!</b><br>
+					Use the complete URL, including the file name, e.g.<br>
+					<b>http://myserver.com/mypath/item.tar</b></i>
+					
+					<br>
+					<br>
+					<label for="mb_book_remote_url">Custom URL for App:</label>
+					<input type="text" style="width:95%;" id="mb_book_remote_url" name="mb_book_remote_url" value="<?php print $mb_book_remote_url;  ?>" />
+				</div>
+				
+		</div>
+			
 	<?php 
 }
 
@@ -686,16 +831,46 @@ function mb_book_post_settings_meta_box( $post) {
 
 	$mb_book_is_card_list = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_book_is_card_list", true) );
 
+	// Status of book, e.g. editing, testing, published, live, whatever
+	
+	/*
+	Use the post status, built into WP:
+	'publish' - A published post or page
+	'pending' - post is pending review
+	'draft' - a post in draft status
+	'auto-draft' - a newly created post, with no content
+	'future' - a post to publish in the future
+	'private' - not visible to users who are not logged in
+	'inherit' - a revision. see get_children.
+	'trash' - post is in trashbin. added with Version 2.9.
+	*/
+
+	/*
+	$values = array("x","y");
+	$listname = "mb_book_status";
+	$checked = 1;
+	$sort = true;
+	$size = true;
+	$extrahtml = "";
+	$extraline = array();
+	$bookstatus = $mb_api->funx->OptionListFromArray ($values, $listname, $checked, $sort, $size, $extrahtml, $extraline);
+	*/
+	
+	$mb_updating_book = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_updating_book", true) );
+	
+
 	?>
 	<div id="mb-settings">
 		<div id="mb-misc-settings">
+		
+			<!--
 			<div id="mb-minor-settings">
 				<div class="mb-settings-section no-border">
 					<div class="mb-update-button">
 						<?php
 						$other_attributes = "";
 						$wrap = false;
-						$text = "Update";
+						$text = "Update Book Settings";
 						$other_attributes = "class='mb-update-button'";
 						echo get_submit_button( $text, "secondary", "submit", $wrap, $other_attributes );
 					?>
@@ -703,14 +878,9 @@ function mb_book_post_settings_meta_box( $post) {
 				</div>
 				<div class="clear"></div>
 			</div>
+			-->
+			
 			<div id="mb-minor-settings">
-				<div class="mb-settings-section">
-					<label for="mb_book_available">
-						<input class="mb_verify_hide_book" default_value="1" type="checkbox" name="mb_book_available" value="true" <?php echo($mb_book_available); ?>/> 
-						Show on Shelves<br>
-						<i>Uncheck this box to remove your book from the shelves. You can still work on it. <b>It is a bad idea to hide books that people have already sold or downloaded — the book will disappear from the reader's library!</b></i>
-					</label>
-				</div>
 	
 				<div class="mb-settings-section">
 					<label for="mb_book_theme_id">
@@ -724,7 +894,7 @@ function mb_book_post_settings_meta_box( $post) {
 					<input class="mb_verify_hide_book" default_value="1" type="checkbox" name="mb_book_is_card_list" value="true" <?php echo($mb_book_is_card_list); ?>/> 
 					<label for="mb_book_is_card_list">
 						Book can be used as a card list<br>
-						<i>Set the box to be use this book as a list of cards for games and reference.</b></i>
+						<i>Check the box to use this book as a pop-up book in an app, e.g. for games or reference.</b></i>
 					</label>
 						
 				</div>
@@ -757,59 +927,6 @@ function mb_book_post_settings_meta_box( $post) {
 			</div>
 		</div>
 		
-				<div class="mb-settings-section-break">
-					<h3>Book Publishing</h3>
-				</div>
-				
-				
-		<div id="mb-major-settings">
-				<div class="mb-settings-section no-border">
-					<label for="book-post-publish">
-						<?php _e( "Be sure to update this page if you have made changes." ); ?>
-
-						<br/>
-			
-						<!-- defined on plugin settings page -->
-						<input type="hidden" id="distribution_url" name="mb_api_book_publisher_url" size="" value="<?php print get_option('mb_api_book_publisher_url', trim($mb_api->settings['distribution_url']));  ?>" />
-						<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
-					</label>
-				</div>
-				
-				<div class="mb-settings-section">		
-					<label for="mb_book_id">
-						Book ID:
-					</label>
-					<input type="text" id="mb_book_id" name="mb_book_id" value="<?php print $mb_book_id;  ?>" />
-
-				</div>
-				
-				<div class="mb-settings-section">		
-					<label for="mb_publisher_id">
-						Publisher:
-					</label>
-					<?php print $pub_id_menu;  ?>
-
-				</div>
-				
-				<div class="mb-settings-section">		
-					<label for="no_header_on_poster">
-						<input type="checkbox" name="mb_use_local_book_file" value="true" <?php echo($mb_use_local_book_file); ?>/> 
-						Use an uploaded book package.<br>
-						<i>To make a package, use the shell command, <code>tar cfo item.tar *</code> from within the directory of book files. Use the resulting item.tar file.</i>
-
-					</label>
-				</div>
-				
-				<div class="mb-settings-section mb-settings-section-last">		
-					<label for="mb_book_remote_url">
-						Remote URL for downloading:<br>
-						<i>The remote URL is useful if you want to download a package from a remote server, such as a cloud file delivery server. The URL is not only the server folder, but it must include the file name, too. The URL must start with http://</i><br>
-					</label>
-					<input type="text" style="width:95%;" id="mb_book_remote_url" name="mb_book_remote_url" value="<?php print $mb_book_remote_url;  ?>" />
-				</div>
-				
-		</div>
-
 	</div>
 		
 	<?php 
@@ -900,6 +1017,8 @@ function mb_book_post_meta_save_postdata( $post_id) {
 			}
 
 
+
+
 			$cat_desc = "Pages in the book \"".$_POST['post_title']."\"";
 			if (!$cat) {
 				$mycat = array(
@@ -930,8 +1049,8 @@ function mb_book_post_meta_save_postdata( $post_id) {
 		}
 
 
-		// Now, assign this book to this category
-		wp_set_object_terms( $post_id, $book_id, "category" );
+		// Now, assign this book to this category, but KEEP any chosen categories as well.
+		wp_set_object_terms( $post_id, $book_id, "category", true );
 
 		// Now update the meta fields
 		if (isset($_POST['mb_book_theme_id']))
@@ -953,6 +1072,11 @@ function mb_book_post_meta_save_postdata( $post_id) {
 			$mb_api->write_shelves_file();
 		}
 		
+		// Update mb book publishing update setting
+		$tmp = isset($_POST['mb_updating_book']);
+		update_post_meta( $post_id, 'mb_updating_book', $tmp );
+
+
 		// Update mb book settings, e.g. no head on poster setting
 		$tmp = isset($_POST['mb_book_is_card_list']);
 		update_post_meta( $post_id, 'mb_book_is_card_list', $tmp );

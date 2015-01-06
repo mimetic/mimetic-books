@@ -109,7 +109,7 @@ class MB_API {
 
 	// Function to remove the "Private" and "Protected" from private and protected pages
 	function remove_private_prefix($title) {
-
+		
 		$title = esc_attr($title);
 
 		$findthese = array(
@@ -809,17 +809,17 @@ class MB_API {
 
 	public function get_book_info_from_post( $post_id = null, $category_id = null ) {
 		global $mb_api;
-	
+		
 		if ($post_id) {
 			$post = $this->get_book_post($post_id);
-			$category_id = $post->categories[0]->id;
+			$post->categories && $category_id = $post->categories[0]->id;
 		} elseif ($category_id) {
 			$post = get_book_post_from_category_id($category_id);
 		} else {
 			extract($mb_api->query->get(array('id', 'post_id')));
 			$post_id || $post_id = $id;
 			$post = $this->get_book_post($post_id);
-			$category_id = $post->categories[0]->id;
+			$post->categories && $category_id = $post->categories[0]->id;
 			
 			$post || $mb_api->error(__FUNCTION__.": Invalid post id.");
 			$post_id || $mb_api->error(__FUNCTION__.": Missing post id.");
@@ -838,6 +838,14 @@ class MB_API {
 			$book_id = "mb_".uniqid();
 			add_post_meta( $post->id, 'mb_book_id', $book_id );
 		}
+
+/*		
+		// If this book is UPDATING a draft, not a final, then the unique ID is modified.
+		$mb_updating_book = mb_checkbox_is_checked( $custom_fields["mb_updating_book"], true);
+		if ($mb_updating_book) {
+			$book_id .= ".draft";
+		}
+*/
 
 		$title = $post->title_plain;
 		$author = join (" ", array ($post->author->first_name, $post->author->last_name));
@@ -1032,8 +1040,6 @@ class MB_API {
 		// Modified time is NOW!
 		// $modified = date('Y-m-d H:i:s',current_time('timestamp',1));
 				
-		$category_id = $post->categories[0]->id;
-		
 //$this->write_log(__FUNCTION__.": FINAL: $book_id --> Modified = $modified");		
 //$this->write_log(__FUNCTION__.": FINAL: $book_id --> meta_modified = $book_post_modified\n");		
 
@@ -1126,6 +1132,9 @@ class MB_API {
 			// Only add the item if it is marked published with our custom meta field.
 			$is_published = get_post_meta($post->ID, "mb_published", true);
 			
+			// Status and visibility values
+			$visibility = get_post_status($post->ID);
+			
 			if ($is_published) {
 				$info = $this->get_book_info_from_post($post->ID);
 				$book_id = $info['id'];
@@ -1147,6 +1156,37 @@ class MB_API {
 				
 				
 						$book_info_from_file = json_decode( file_get_contents($infofile) );
+						
+						// Author(s) for this book
+						// Used to limit who can see it.
+						// If the book is private, user has to sign in as one of the authors
+						// to see it.
+						
+						// Multiple authors depends on the "Co-Authors Plus" Wordpress plugin
+						$authors = array( );
+						
+//$mb_api->write_log(__FUNCTION__.": info: ".print_r($post,true) );
+						
+						// Multiple authors
+						if ( function_exists( 'get_coauthors' ) ) {
+							$coauthors = get_coauthors( $post->ID );
+							
+							foreach( $coauthors as $coauthor ) {
+								$authors[] = $coauthor->user_login ? $coauthor->user_login : $coauthor->linked_account;
+							}
+							$authors = implode(",", $authors);
+
+						} else {
+						// Single author system without plugin
+							// Post author:
+							$l = get_user_by( 'id', $post->post_author );
+							$login = $l->data->user_login;
+							$authors = $login;
+						}
+						
+						
+						
+						$mb_api->write_log(__FUNCTION__.": authors: ".print_r($authors,true) );
 
 						// The names used in the info files are slightly different
 						// from the names used by the book post.
@@ -1168,7 +1208,12 @@ class MB_API {
 		//					'theme'				=> $info['theme'],				
 							'hideHeaderOnPoster'	=> $info['hideHeaderOnPoster'],
 							'orientation'		=> $info['orientation'],
-							'remoteURL'			=> $info['remoteURL']
+							'remoteURL'			=> $info['remoteURL'],
+							// Added 12/31/14
+							// The book code uses 'status' for other purposes, so let's use
+							// a different name. This is the Wordpress 'status' value.
+							'visibility'			=> $visibility,
+							'authors'				=> $authors
 						);
 				
 						$shelves['itemsByID'][$book_id] = $item;

@@ -1,6 +1,10 @@
 <?php
 /*
 	Book publishing functions, moved from the controller.
+	These functions are called from the mb-api.php when a user is managing the website,
+	i.e. publishing a book.
+	The Controller book functions are called when commands are sent using the API, from the app, 
+	OR FROM JAVASCRIPT!
 */
 
 class MB_API_Book {
@@ -53,7 +57,7 @@ We use some of the WP fields for our own purposes:
 	 
 	 * example : publish_book_package( array ( 'id'=>123, )
 	 */
-	public function publish_book_package($params) {
+	public function publish_book_package($params = array() ) {
 		global $mb_api;
 		
 		$u = "";
@@ -64,7 +68,7 @@ We use some of the WP fields for our own purposes:
 				return false;
 			}
 
-		$this->write_log("\n======================= ".__FUNCTION__.": Begin");
+		$this->write_log("\n======================= singleton:".__FUNCTION__.": Begin");
 
 		extract($mb_api->query->get(array('remote'), $params));
 		
@@ -140,20 +144,28 @@ We use some of the WP fields for our own purposes:
 				} else {
 					$mb_api->error(__FUNCTION__.": Invalid book id: $book_id");
 				}
-				$this->write_log("Publish book locally with Book ID={$book_id}.");
+				$this->write_log("Publish book locally with base Book ID={$book_id}");
 			} elseif (isset($id)) {
 				$book_post = $this->get_book_post($id);
 				$book_id = get_post_meta($id, "mb_book_id", true);
-				$this->write_log("Publish book locally with book post id={$id}.");
+				$this->write_log("Publish book locally with base Bookbook post id={$id}.");
 			} else {
 				$mb_api->error(__FUNCTION__.": Local publishing must include a book id (book_id) or a book post id (id).");
 			}
 			
-			// Update the book post so the modification date for this book is Now.
-			wp_update_post( array (
-				'ID'=>$id
-			));
+				
+			// If this book is UPDATING, then the unique ID is modified.
+			$mb_updating_book = mb_checkbox_is_checked( get_post_meta($id, "mb_updating_book", true) );
+			if ($mb_updating_book) {
+				$book_id .= ".draft";
+			}
 
+			// Update the book post so the modification date for this book is Now.
+			if (!$mb_updating_book) {
+				wp_update_post( array (
+					'ID'=>$id
+				));
+			}
 
 			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
 
@@ -588,8 +600,11 @@ We use some of the WP fields for our own purposes:
 			'theme'				=> $book_info['theme']
 			);
 		
-		
 		$mb = new Mimetic_Book($book_info, $options);
+
+//$this->write_log("*** ". print_r($mb, true));
+
+
 		
 		// get the array of wp chapters using id or slug of the book category
 		$book = $this->get_book($book_post_id);
@@ -603,8 +618,10 @@ We use some of the WP fields for our own purposes:
 			// Chapters are arrays of posts/pages
 			// $index is the number of the chapter
 			$index = 1;
+			$not_in_contents = ($book['chapters'] <= 1);
+				
 			foreach($book['chapters'] as $chapter) {
-				$mb->convert_chapter($chapter, $index);
+				$mb->convert_chapter($chapter, $index, $not_in_contents);
 				$index++;
 			}
 		} else {

@@ -3,6 +3,10 @@
 Controller name: Book
 Controller description: Mimetic Book methods. If the 'auth' controller is activated, all requests to this controller will require authentication. Otherwise, all requests are wide open and anyone can request information!
 
+This version is used from Javascript or external calls, e.g. from the app.
+Also used when publishing from the Wordpress website, because the call is made from JS!
+
+
 Many thanks to Matthew Berg for his JSON api and JSON API Auth on which key parts are based!
 https://github.com/mattberg/wp-json-api-auth
 
@@ -92,7 +96,7 @@ We use some of the WP fields for our own purposes:
 				return false;
 			}
 
-		$this->write_log("\n======================= ".__FUNCTION__.": Begin");
+		$this->write_log("\n======================= controller:".__FUNCTION__.": Begin");
 
 		extract($mb_api->query->get(array('remote'), $params));
 		
@@ -151,9 +155,12 @@ We use some of the WP fields for our own purposes:
 			$use_local_book_file = true;
 			
 		} else {
+		
+
+
+			// -------------------------
 			// LOCAL PUBLISHING
-			
-			
+						
 			$user = wp_get_current_user();
 			
 			// Get book ID
@@ -168,22 +175,31 @@ We use some of the WP fields for our own purposes:
 				} else {
 					$mb_api->error(__FUNCTION__.": Invalid book id: $book_id");
 				}
-				$this->write_log("Publish book locally with Book ID={$book_id}.");
+				$this->write_log("Publish book locally with base Book ID={$book_id}");
 			} elseif (isset($id)) {
 				$book_post = $this->get_book_post($id);
 				$book_id = get_post_meta($id, "mb_book_id", true);
-				$this->write_log("Publish book locally with book post id={$id}.");
+				$this->write_log("Publish book locally with base Bookbook post id={$id}.");
 			} else {
 				$mb_api->error(__FUNCTION__.": Local publishing must include a book id (book_id) or a book post id (id).");
 			}
 			
+				
+			// If this book is UPDATING, then the unique ID is modified.
+			$mb_updating_book = mb_checkbox_is_checked( get_post_meta($id, "mb_updating_book", true) );
+
 			// Update the book post so the modification date for this book is Now.
-			wp_update_post( array (
-				'ID'=>$id
-			));
-
-
-			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
+			if (!$mb_updating_book) {
+				wp_update_post( array (
+					'ID'=>$id
+				));
+			}
+			
+			// Name of the director to hold the book
+			$book_basedir = strtolower($book_id);
+			
+			// Full path for the book
+			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_basedir;
 
 			// Overwrite any existing file without asking
 			$filename = $dir . DIRECTORY_SEPARATOR . "item.tar";
@@ -206,7 +222,7 @@ We use some of the WP fields for our own purposes:
 					$this->write_log("Using remote URL : $remoteURL");
 				
 				if (!$remoteURL && !file_exists($filename)) {
-					$mb_api->error(__FUNCTION__.": The uploaded book package (" . basename($filename) . ") is not inside the book shelf folder ($book_id).");
+					$mb_api->error(__FUNCTION__.": The uploaded book package (" . basename($filename) . ") is not inside the book shelf folder ($book_basedir).");
 				}
 
 			} else {
@@ -214,7 +230,7 @@ We use some of the WP fields for our own purposes:
 				
 				$this->build_book_package($id);
 					
-				$src = $mb_api->package_dir . DIRECTORY_SEPARATOR . "$book_id.tar";
+				$src = $mb_api->package_dir . DIRECTORY_SEPARATOR . "$book_basedir.tar";
 
 				if (!file_exists($src)) {
 					$mb_api->error(__FUNCTION__.": " . basename($src) . " does not exist.");
@@ -236,7 +252,7 @@ We use some of the WP fields for our own purposes:
 
 		}
 		
-		// we use $book_id for directories, and WP insists on lowercase
+		// we use $book_basedir for directories, and WP insists on lowercase
 		$book_id = strtolower($book_id);
 
 		if (file_exists($filename)) {
@@ -337,7 +353,7 @@ We use some of the WP fields for our own purposes:
 				$info->publisherid = $book_info_from_wp['publisher_id'];
 				
 				// Now, merge info from the WP book post back into the info file
-				$book_info_from_wp['build_files_dir'] = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
+				$book_info_from_wp['build_files_dir'] = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_basedir;
 
 //$this->write_log(print_r($info,true));
 
@@ -508,7 +524,9 @@ We use some of the WP fields for our own purposes:
 		// Build the tar file from the files, ready for sending.
 		//$success = $mb_api->funx->tar_dir($mb->tempDir, "{$mb->id}.tar");
 		$tarfilename = $mb_api->package_dir . DIRECTORY_SEPARATOR . $mb->id . ".tar";
-		
+
+//$this->write_log("Controller:".__FUNCTION__.": tarfilename = $tarfilename");
+
 		// Delete previous version of the package
 		if (file_exists($tarfilename))
 			unlink ($tarfilename);
@@ -616,8 +634,11 @@ We use some of the WP fields for our own purposes:
 			'theme'				=> $book_info['theme']
 			);
 		
-		
 		$mb = new Mimetic_Book($book_info, $options);
+
+//$this->write_log("*** ". print_r($mb, true));
+
+
 		
 		// get the array of wp chapters using id or slug of the book category
 		$book = $this->get_book($book_post_id);
@@ -930,6 +951,8 @@ We use some of the WP fields for our own purposes:
 		$publisher_id = $info['publisher_id'];
 		$p = "password";
 		
+		// Name of the director to hold the book
+		$book_basedir = strtolower($book_id);
 
 		$localfile = $mb_api->package_dir . DIRECTORY_SEPARATOR . "{$book_id}.tar";
 		$transFile = chunk_split(base64_encode(file_get_contents($localfile))); 
