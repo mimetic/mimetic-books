@@ -103,9 +103,31 @@ class MB_API {
 		//remove_filter( 'get_the_excerpt', 'twentyeleven_custom_excerpt_more' );
 		remove_all_filters( 'get_the_excerpt' );
 		
+		// Handle passworded records. Instead of showing a password form, just get the data.
+		// 
+		add_filter( 'the_password_form', array(&$this, 'my_password_form') );
+
+		// This doesn't seem to be useful, at least at this location:
+		//add_filter( 'the_excerpt', array(&$this, 'my_excerpt_password_form') );
+
+		// Function to remove the "Private" and "Protected" from private and protected pages
 		add_filter('the_title', array(&$this, 'remove_private_prefix') ) ;
+
 	}
   
+
+	function my_password_form() {
+		$post = get_post();
+		return $post->post_content;
+	}
+	
+
+/*
+	function my_excerpt_password_form() {
+		$post = get_post();
+		return $post->post_excerpt;
+	}
+*/	
 
 	// Function to remove the "Private" and "Protected" from private and protected pages
 	function remove_private_prefix($title) {
@@ -735,7 +757,6 @@ class MB_API {
 		} else {
 			$book_post = array();
 		}
-
 		return $book_post;
 	}
 
@@ -815,6 +836,7 @@ class MB_API {
 			$post->categories && $category_id = $post->categories[0]->id;
 		} elseif ($category_id) {
 			$post = get_book_post_from_category_id($category_id);
+			$post_id = $post->id;
 		} else {
 			extract($mb_api->query->get(array('id', 'post_id')));
 			$post_id || $post_id = $id;
@@ -893,8 +915,14 @@ class MB_API {
 		$description = preg_replace ("/<img.*?\>/","",	$description);
 		$description = preg_replace ("/<\/?a.*?\>/","",	 $description);
 
-		$short_description = $post->excerpt;
+		// This fails with password-protected/private posts
+		// and the filter doesn't seem to fix it.
+		//$short_description = $post->excerpt;
 		
+		// This always get the post's excerpt:
+		$post_raw = get_post($post_id);
+		$short_description = $post_raw->post_excerpt;
+
 		if (isset($custom_fields['mb_publication_type']) && $custom_fields['mb_publication_type']) {
 			$type = $custom_fields['mb_publication_type'][0];
 		} else {
@@ -1139,6 +1167,14 @@ class MB_API {
 				$info = $this->get_book_info_from_post($post->ID);
 				$book_id = $info['id'];
 
+/*
+if ($post->post_password) {
+	$mb_api->write_log(__FUNCTION__.": HAS PASSWORD\n\n\n");
+	
+	$mb_api->write_log(__FUNCTION__.": info: ".print_r($info,true) );				
+}
+*/
+
 				// Also check the package's directory is there
 				$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
 				$is_published =  ( ($info['remoteURL'] || file_exists($tarfilepath)) && $is_published);
@@ -1184,9 +1220,7 @@ class MB_API {
 							$authors = $login;
 						}
 						
-						
-						
-						$mb_api->write_log(__FUNCTION__.": authors: ".print_r($authors,true) );
+						isset($info['post_password']) ? $password = $info['post_password'] : $password = "";
 
 						// The names used in the info files are slightly different
 						// from the names used by the book post.
@@ -1213,7 +1247,8 @@ class MB_API {
 							// The book code uses 'status' for other purposes, so let's use
 							// a different name. This is the Wordpress 'status' value.
 							'visibility'			=> $visibility,
-							'authors'				=> $authors
+							'authors'				=> $authors,
+							'password'				=> $password
 						);
 				
 						$shelves['itemsByID'][$book_id] = $item;
