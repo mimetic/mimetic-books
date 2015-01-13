@@ -1167,13 +1167,6 @@ class MB_API {
 				$info = $this->get_book_info_from_post($post->ID);
 				$book_id = $info['id'];
 
-/*
-if ($post->post_password) {
-	$mb_api->write_log(__FUNCTION__.": HAS PASSWORD\n\n\n");
-	
-	$mb_api->write_log(__FUNCTION__.": info: ".print_r($info,true) );				
-}
-*/
 
 				// Also check the package's directory is there
 				$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
@@ -1219,8 +1212,19 @@ if ($post->post_password) {
 							$login = $l->data->user_login;
 							$authors = $login;
 						}
-						
-						isset($info['post_password']) ? $password = $info['post_password'] : $password = "";
+
+/*					
+if ($post->post_password || isset($info['post_password'])) {
+	$mb_api->write_log(__FUNCTION__.": HAS PASSWORD\n\n\n");
+	
+	$mb_api->write_log(__FUNCTION__.": info: ". $post->post_password . "\n\n".print_r($info,true) );				
+}
+*/
+
+
+						//isset($info['post_password']) ? $password = $info['post_password'] : $password = "";
+						// Hash the password for security
+						$post->post_password ? $password = md5($post->post_password) : $password = "";
 
 						// The names used in the info files are slightly different
 						// from the names used by the book post.
