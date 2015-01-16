@@ -850,7 +850,8 @@ class MB_API {
 		
 		// Get custom fields
 		$custom_fields = get_post_custom($post_id);
-		//print_r($custom_fields);
+//error_log(__FILE__.":".__FUNCTION__);
+//error_log(print_r($custom_fields, true));
 		
 		if (isset($custom_fields['mb_book_id']) && $custom_fields['mb_book_id']) {
 			$book_id = $custom_fields['mb_book_id'][0];

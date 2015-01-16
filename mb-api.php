@@ -1,15 +1,15 @@
 <?php
 /*
 * Plugin Name: Mimetic Books API
-* Plugin URI: http://wordpress.org/extend/plugins/mb-api/
+* Plugin URI: http://mimetic.com/
 * Description: A RESTful API for WordPress eBook Publishing with Mimetic Books
-* Version: 0.1
+* Version: 0.2.0
 * Author: David Gross
 * Author URI: http://davidgross.org/
 * License: GPL2
 */
 
-/*  Copyright 2013  David Ian Gross  (email : info@mimetic.com)
+/*  Copyright 2015  David Ian Gross  (email : info@mimetic.com)
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License, version 2, as 
@@ -24,6 +24,10 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+
+// Clear buffer, stop buffering output
+// ob_start();
+// ob_end_clean();
 
 $dir = mb_api_dir();
 

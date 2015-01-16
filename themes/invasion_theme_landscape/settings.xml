@@ -3,17 +3,17 @@
 
 	<class value="slideview">
 
-		<captionFormat>{caption}
+		<captionFormat>{{caption}}
 		### set, Baskerville-Italic
-{date}  {place}</captionFormat>
+{{date}}  {{place}}</captionFormat>
 
-		<captionPlaceFormat>{sublocation} {city}{citySeparator}{state}{stateSeparator}{country}</captionPlaceFormat>
+		<captionPlaceFormat>{{sublocation}} {{city}}{{citySeparator}}{{state}}{{stateSeparator}}{{country}}</captionPlaceFormat>
 
 		<captionFooterAlignment value="center" />
 
 		<captionFooterText>
 		### set, ,,,,,,,50%
-		( {pageNumberInBook} of {pagecountInBook} )
+		( {{pageNumberInBook}} of {{pagecountInBook}} )
 		</captionFooterText>
 
 	</class>

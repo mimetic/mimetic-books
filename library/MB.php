@@ -237,6 +237,11 @@ class Mimetic_Book
 	 */
     public function book_to_xml() 
     {
+		global $mb_api;
+
+//error_log(basename(__FILE__).":".__FUNCTION__);
+//error_log(print_r($this->book, true));
+
 		require_once "Array2XML.php";
 		//$Array2XML = new Array2XML();
 
@@ -604,34 +609,46 @@ class Mimetic_Book
 			$mb_api->load_themes();
 		}
 		$themePageIDList = $mb_api->themes->themes[$this->theme_id]->details->format_ids;
-		$themePageIsTOCList = $mb_api->themes->themes[$this->theme_id]->details->format_is_toc;
-
+		
 		// If we don't have a theme template page assigned, use the first one in the list
 		if (!$themePageID || !array_search($themePageID, $themePageIDList)) {
 			$themePageID = $themePageIDList[0];
 		}
 
-
+		// True if this page uses a Table of Contents format, which makes it a contents page!
+		//$themePageIsTOCList = $mb_api->themes->themes[$this->theme_id]->details->format_is_toc;
+		
+		
+		// True if this page uses a Table of Contents format, which makes it a contents page!
+		if ($mb_api->themes->themes[$this->theme_id]->details->format_is_toc[$themePageID])
+			$attr["contents"] = "true";
+		
+		
+		// IF this is a table of contents page, add that to the attributes
+// 		if (isset($themePageIsTOCList[$themePageID])) {
+// 			$attr["contents"] = $themePageIsTOCList[$themePageID];
+// 		}
+		
+		
 		// ----
 		// Add custom field values
 		$fields = array();
 		foreach ($mb_api->themes->themes[$this->theme_id]->details->custom_fields as $fieldname) {
-			$t = get_post_meta($wp_page->id, "mb_custom_".$fieldname, true);
-			$t = trim($t);
-			if ($t == "") {
-				$fields[$fieldname] = "";
-			} else {
-				$fields[$fieldname] = array('@cdata'=>$t);
+
+			// A corrupt or poorly made template (?) might have empty custom fields!
+			// This will crash, so check for it.
+			if ($fieldname) {
+				$t = get_post_meta($wp_page->id, "mb_custom_".$fieldname, true);
+				$t = trim($t);
+				if ($t == "") {
+					$fields[$fieldname] = "";
+				} else {
+					$fields[$fieldname] = array('@cdata'=>$t);
+				}
 			}
 			
 		}
 
-		
-		// IF this is a table of contents page, add that to the attributes
-		if (isset($themePageIsTOCList[$themePageID])) {
-			$attr["contents"] = $themePageIsTOCList[$themePageID];
-		}
-		
 		
 		// Post label for the navigation bar
 		$nav_label = get_post_meta($wp_page->id, "mb_page_nav_label", true);
@@ -669,12 +686,12 @@ class Mimetic_Book
 			
 
 			
-//$mb_api->write_log(print_r($attr,true));		
-		
+//$mb_api->write_log(print_r($attr,true));
+
 		// Add a table of contents element to the page
-		if (isset($themePageIsTOCList[$themePageID])) {
-			$page['tableofcontents'] = "";
-		}
+// 		if (isset($themePageIsTOCList[$themePageID])) {
+// 			$page['tableofcontents'] = "";
+// 		}
 
 		
 		// GET EMBEDDED PICTURES (NOT ATTACHED)

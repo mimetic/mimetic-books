@@ -24,7 +24,7 @@
 		### set, ,,,,,,,50%
 		— {{pageNumberInBook}} —
 		</captionFooterText>
-		<captionPlaceFormat>{sublocation} {city}{citySeparator}{state}{stateSeparator}{country}</captionPlaceFormat>
+		<captionPlaceFormat>{{sublocation}} {{city}}{{citySeparator}}{{state}}{{stateSeparator}}{{country}}</captionPlaceFormat>
 
 		<overlayFilename value="*/images/card-overlay.png" />
 

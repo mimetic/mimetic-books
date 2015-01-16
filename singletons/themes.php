@@ -204,8 +204,14 @@ class MB_API_Themes
 
 			foreach ($theme->chapter[0]->page as $page) {
 				$id = (string)$page->attributes()->id;
+				$isContents = (boolean)$page->attributes()->contents;
 				$theme_ids[] = $id;
 				(isset($page->tableofcontents)) ? $toc[$id] = true : $toc[] = false;
+				$toc[$id] = $isContents;
+
+
+// error_log( print_r($page->attributes(),true));
+// error_log( "Is contents? ". (string)$isContents);
 			}
 		} else {
 			$mb_api->error(__FUNCTION__.": The theme at $themepath is missing the $xmlFileName file!");

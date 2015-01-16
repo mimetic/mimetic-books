@@ -1,12 +1,1 @@
-{
-  "description": "A basic photography theme.",
-  "id": "photo_theme",
-  "author": "David Gross",
-  "date": "Sunday, 17 Mar 2013 05:50:16 GMT",
-  "name": "Photography Theme",
-  "modificationDate": "Sunday, 17 Mar 2013 05:50:16 GMT",
-  "disabled": false,
-  "height": "768",
-  "width": "1024",
-  "aspect": "landscape"
-}
+﻿{   "description": "A basic photography theme.", "id": "photo_theme", "author": "David Gross", "date": "Thursday, 15 Jan 2015 23:46:55 GMT", "name": "Photography Theme", "modificationDate": "Thursday, 15 Jan 2015 23:46:55 GMT", "disabled": false, "height": "768", "width": "1024", "aspect": "landscape"}
