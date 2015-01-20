@@ -1,4 +1,4 @@
-=== Mimetic Books API ===
+=== Mimetic Books ===
 Contributors: mimetic
 Tags: Mimetic Books, Mimetic, iPad
 Requires at least: 4.0

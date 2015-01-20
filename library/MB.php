@@ -546,9 +546,16 @@ class Mimetic_Book
 			$textblocks['textblock'] = array();
 
 			if ($title != "" ) {
+				$attr = array (
+					"isHTML"	=> true
+				);
+			
 				$textblocks['textblock'][] = array (
-					'title' => array('@cdata'=>$title)
-					);
+					'title' => array(
+						'@attributes'		=> $attr,
+						'@cdata'			=>$title
+					)
+				);
 			} else {
 				$textblocks['textblock'][] = array (
 					'title' => ""
@@ -570,10 +577,17 @@ class Mimetic_Book
 
 
 //$mb_api->write_log(__FUNCTION__.": t = ###{$t}###");
+
+				$attr = array (
+					"isHTML"	=> true
+				);
 			
 				$textblocks['textblock'][] = array (
-					'text' => array('@cdata'=> trim($t))
-					);
+					'text' => array(
+						'@attributes'		=> $attr,
+						'@cdata' 			=> trim($t)
+					)
+				);
 			}
 
 		} else {
