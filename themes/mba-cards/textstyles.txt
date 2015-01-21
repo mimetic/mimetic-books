@@ -1,7 +1,0 @@
-﻿[No Paragraph Style]=Baskerville,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
-[Basic Paragraph]=Baskerville,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
-Format Code=Baskerville,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
-card-title=JournalBold,36,43.2,0,0,0,,100%,NORMAL,center,0,0,0,0,0
-card-body=JournalText,18,21.6,0,0,0,,100%,NORMAL,left,0,6,0,0,0
-card-consumes-title=JournalText,16,19.2,0,0,0,,100%,NORMAL,center,0,0,0,0,0
-card-icon-label=JournalText,18,18,0,0,0,,100%,ALL_CAPS,center,0,0,0,0,0
