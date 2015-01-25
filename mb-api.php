@@ -1,9 +1,9 @@
 <?php
 /*
-* Plugin Name: Mimetic Books API
+* Plugin Name: Mimetic Books
 * Plugin URI: http://mimetic.com/
-* Description: A RESTful API for WordPress eBook Publishing with Mimetic Books
-* Version: 0.2.0
+* Description: This plugin allows WordPress bloggers to publish books using the Mimetic Books publishing system.
+* Version: 0.2.1
 * Author: David Gross
 * Author URI: http://davidgross.org/
 * License: GPL2
@@ -232,11 +232,12 @@ function mb_book_page_meta_save_postdata( $post_id) {
 	}
 
 	// OK, we're authenticated: we need to find and save the data
+	
+	// Update the publishers list, and to remove any publishers!
 	$pid = $_REQUEST['mb_publisher_id'];
 	$pid = trim($pid);
-	update_post_meta( $post_id, 'mb_publisher_id', $_REQUEST['mb_publisher_id'] );
-	$mb_api->write_publishers_file();
-		
+	update_post_meta( $post_id, 'mb_publisher_id', $pid );
+	$mb_api->write_publishers_file();		
 }
 
 

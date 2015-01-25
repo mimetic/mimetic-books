@@ -220,7 +220,7 @@ We use some of the WP fields for our own purposes:
 					$this->write_log("Using remote URL : $remoteURL");
 				
 				if (!$remoteURL && !file_exists($filename)) {
-					$mb_api->error(__FUNCTION__.": The uploaded book package (" . basename($filename) . ") is not inside the book shelf folder (" . $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_basedir . ").");
+					$mb_api->error(__FUNCTION__.": The uploaded book package (" . basename($filename) . ") is not inside the book's subfolder ($book_basedir) of the book shelf folder.");
 				}
 
 			} else {

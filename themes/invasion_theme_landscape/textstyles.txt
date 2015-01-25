@@ -1,9 +1,0 @@
-﻿[No Paragraph Style]=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
-[Basic Paragraph]=SpecialElite-Regular,18,30,0,0,0,,100%,NORMAL,center,0,0,0,0,0
-Typewriter Body=SpecialElite-Regular,16,23.6,0,0,0,,100%,NORMAL,left,0,30,0,0,0
-Typewriter Body Light=SpecialElite-Regular,16,23.6,245,245,245,,100%,NORMAL,left,0,30,0,0,0
-Typewriter Body Centered=SpecialElite-Regular,16,23.6,0,0,0,,100%,NORMAL,center,0,30,0,0,0
-Title=SpecialElite-Regular,32,38.4,0,0,0,,100%,NORMAL,center,0,0,0,0,0
-Title Light=SpecialElite-Regular,32,38.4,255,255,255,,100%,NORMAL,left,0,0,0,0,0
-Format Code=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
-Typewriter Caption=SpecialElite-Regular,18,30,0,0,0,,100%,NORMAL,left,0,30,0,0,0
