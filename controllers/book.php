@@ -111,14 +111,12 @@ We use some of the WP fields for our own purposes:
 
 		if ($remote) {
 			// REMOTE PUBLISHING
+			$this->write_log("\n======================= controller:".__FUNCTION__.": Remote");
 
 			// Get book ID, username, password
-			extract($mb_api->query->get(array('book_id', 'u', 'p', 'f'), $params));
+			extract($mb_api->query->get(array('book_id', 'u', 'p', 'f', 'cookie'), $params));
 
-			
-			// TESTING
-			$u = "digross";
-			$p = "nookie";
+			$user_id = wp_validate_auth_cookie($cookie, 'logged_in');
 
 			$this->write_log("Publish from remote site...getting file ");
 			$this->write_log("book_id = $book_id, username = $u, password = $p");
@@ -222,7 +220,7 @@ We use some of the WP fields for our own purposes:
 					$this->write_log("Using remote URL : $remoteURL");
 				
 				if (!$remoteURL && !file_exists($filename)) {
-					$mb_api->error(__FUNCTION__.": The uploaded book package (" . basename($filename) . ") is not inside the book shelf folder ($book_basedir).");
+					$mb_api->error(__FUNCTION__.": The uploaded book package (" . basename($filename) . ") is not inside the book shelf folder (" . $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_basedir . ").");
 				}
 
 			} else {
@@ -253,7 +251,8 @@ We use some of the WP fields for our own purposes:
 		}
 		
 		// we use $book_basedir for directories, and WP insists on lowercase
-		$book_id = strtolower($book_id);
+		// Name of the director to hold the book
+		$book_basedir = strtolower($book_id);
 
 		if (file_exists($filename)) {
 			// This works to make a tar file PHP can read, from the directory of files: 
@@ -455,6 +454,8 @@ We use some of the WP fields for our own purposes:
 			//data,textStatus
 			$error['data'] = $error;
 			$error = json_encode($error);
+		} else {
+			$error = array ('status'=>"ok");
 		}
 		
 		$this->write_log(__FUNCTION__.": End\n=======================\n");
@@ -751,81 +752,6 @@ We use some of the WP fields for our own purposes:
 		
 		// MOVED TO api.php
 		
-		/*
-		$this->write_log(__FUNCTION__);
-
-		
-		$shelves = array (
-			'path'		=> "shelves",
-			'title'		=> "mylib",
-			'maxsize'	=> 100,
-			'id'		=> "shelves",
-			'password'	=> "mypassword",
-			'filename'	=> "shelves.json",
-			'itemsByID'	=> array ()
-		);
-		
-		// Get all books
-		$posts = $mb_api->introspector->get_posts(array(
-				'post_type' => 'book',
-				'posts_per_page'	=> -1,
-				'post_status' => 'any'
-			), true);
-	
-		foreach ($posts as $post) {
-			$info = $mb_api->get_book_info_from_post($post->ID);
-			$book_id = $info['id'];
-			// Only add the item if it is marked published with our custom meta field.
-			$is_published = get_post_meta($post->ID, "mb_published", true);
-			// Also check the package's directory is there
-			$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
-			$is_published =  ( ($info['remoteURL'] || file_exists($tarfilepath)) && $is_published);
-				
-			if ($is_published and $mb_api->book_is_available($post->ID)) {
-				
-				// Get the definitive modified datetime from the item date file.
-				// This modified tells us whether the client should update the
-				// actual book. Even if the descriptive shelf data for a book is
-				// updated, that doesn't mean they need to update the book itself,
-				// which might be a huge download.
-				$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
-				$book_info_from_file = json_decode( file_get_contents($dir . DIRECTORY_SEPARATOR . "item.json") );
-
-				// almost all names are same, but not completely....
-				// I've included some extras...maybe they'll be useful later.
-
-				$item = array (
-					'id'				=> $book_id, 
-					'title'				=> $info['title'], 
-					'author'			=> $info['author'], 
-					'publisherid'		=> $info['publisher_id'],  
-					'description'		=> $info['description'], 
-					'shortDescription'	=> $info['short_description'], 
-					'type'				=> $info['type'], 
-					'datetime'			=> $info['datetime'], 
-					'modified'			=> $info['modified'],
-					'metaModified'		=> $info['meta_modified'],
-					'path'				=> $book_id,
-					'shelfpath'			=> $mb_api->settings['shelves_dir_name'],
-					'itemShelfPath'		=>$mb_api->settings['shelves_dir_name'] . DIRECTORY_SEPARATOR . $info['id'],
-//					'theme'				=> $info['theme'],				
-					'hideHeaderOnPoster'	=> $info['hideHeaderOnPoster'],
-					'orientation'		=> $info['orientation'],
-					'remoteURL'			=> $info['remoteURL']
-				);
-				
-				$shelves['itemsByID'][$book_id] = $item;
-			}
-		}
-		   $output = json_encode($shelves);
-		   $fn = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . "shelves.json";
-		   // Delete previous version of the shelves
-		   if (file_exists($fn))
-			   unlink ($fn);
-		   file_put_contents ($fn, $output, LOCK_EX);
-		   return $output;
-		   
-		*/
 	}
 	
 	
@@ -897,6 +823,37 @@ We use some of the WP fields for our own purposes:
 		}
 	}
 	
+
+	// Function to call a Wordpress site's controller and method, 
+	// e.g. http://mywebsite/mb/auth/get_nonce
+	private function callRemoteController($baseurl, $postdata) {
+		$ch = curl_init();
+		if ($ch) {
+
+//$this->write_log(__FUNCTION__.": http://".$baseurl);
+
+			curl_setopt($ch, CURLOPT_URL, "http://".$baseurl); 
+			//curl_setopt($ch, CURLOPT_HEADER, 0); 
+			curl_setopt($ch, CURLOPT_POST, 1); 
+			// Localhost doesn't work unless we disable SSL verify
+			if (substr($baseurl, 0,9) == "localhost") {
+				curl_setopt ($ch, CURLOPT_SSL_VERIFYPEER, 0);
+				$this->write_log ("WARNING: Must be testing...this is a localhost connection so I turned off turn off verify peer.<br>");
+			}
+			curl_setopt ($ch, CURLOPT_POSTFIELDS, $postdata);
+			// Get the result?
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+			$result = curl_exec($ch); 
+			curl_close($ch);
+		} else {
+			$mb_api->error(__FUNCTION__.": Authentication error. Failed to init curl.");
+			$result = false;
+		}
+		
+		return $result;
+	}
+
+
 	
 	/*
 	 * Send a converted tar file book from a client site. 
@@ -933,13 +890,14 @@ We use some of the WP fields for our own purposes:
 		isset($this->settings['distribution_url']) ? $d = trim($this->settings['distribution_url']) : $d = "";
 
 		$url = get_option('mb_api_book_publisher_url', $d); 
-		
+		$username = get_option('mb_api_book_publisher_username', $d); 
+		$password = get_option('mb_api_book_publisher_password', $d); 
+	
 		// be sure there's an ending slash
 		$url = preg_replace("/(\/*)$/", '', $url) . "/";
+		$baseurl = $url;
 		
-		if (isset($url)) {
-			$url .=  "mb/book/publish_book_package/";
-		} else {
+		if (!isset($url)) {
 			$this->write_log("ERROR: Tried to send a book when no URL was provided.");
 			$mb_api->error(__FUNCTION__.": Tried to send a book when no URL was provided.");
 		}
@@ -949,7 +907,6 @@ We use some of the WP fields for our own purposes:
 		$this->build_book_package($id);
 		
 		$publisher_id = $info['publisher_id'];
-		$p = "password";
 		
 		// Name of the director to hold the book
 		$book_basedir = strtolower($book_id);
@@ -957,38 +914,93 @@ We use some of the WP fields for our own purposes:
 		$localfile = $mb_api->package_dir . DIRECTORY_SEPARATOR . "{$book_id}.tar";
 		$transFile = chunk_split(base64_encode(file_get_contents($localfile))); 
 
-		$this->write_log("Prepare to send book id#{$book_id} to {$url}.");
+		$this->write_log("Controller: Prepare to send book id#{$book_id} to {$url}.");
+
+		$cookie = "";
 
 
-		$ch = curl_init();
-		$data = array (
+		// ----------------------------------------
+		// Authenticate before transfer
+		// We need a valid username/password for the remote site!
+		// First, get a nonce
+		$postdata = array (
+			'username'		=> $username,
+			'password'		=> $password,
+			'controller'	=> "auth",
+			'method'		=> "generate_auth_cookie"
+		);
+	
+		$result = json_decode( $this->callRemoteController("{$baseurl}mb/book/get_nonce", $postdata) );
+		//$this->write_log(__FUNCTION__.": Tried for a nonce: ".print_r($result, true));
+		
+		if ($result && $result->status == "ok" ) {
+
+			$nonce = $result->nonce;
+			//$this->write_log(__FUNCTION__.": Got nonce ($nonce), Get a cookie");
+
+			$postdata = array (
+				'nonce'			=> $nonce,
+				'username'		=> $username,
+				'password'		=> $password
+			);
+			
+			$result = json_decode( $this->callRemoteController("{$baseurl}mb/auth/generate_auth_cookie", $postdata) );
+			//$mb_api->write_log(__FUNCTION__.": D: Tried for a cookie: ".print_r($postdata, true)."\n".print_r($result, true));
+			
+			if (!$result || $result->status != "ok" ) {
+				$mb_api->error("Failed to get a cookie.");
+				return false;
+			}
+			
+			$cookie = $result->cookie;
+			
+			// Does this user have the authority to receive a file? Must be an Author or higher.
+			$capabilities = $result->user->capabilities;
+			if (!($capabilities->administrator || $capabilities->editor || $capabilities->editor)) {
+				$mb_api->error("User $username does not have the authority to send a file. Must be administrator/editor/author.");
+				return false;
+			}
+		
+		} else {
+			$mb_api->error("Your 'nonce' value was incorrect. Use the 'get_nonce' API method.");
+			return false;
+		}
+		// ----------------------------------------		
+	
+		$postdata = array (
 				'remote'		=> 'remote',
 				'book_id'		=> $book_id,
-				'u'				=> $publisher_id,
-				'p'				=> $p,
-				'f'				=> $transFile
+				'u'				=> $username,
+				'p'				=> $password,
+				'f'				=> $transFile,
+				'cookie'		=> $cookie
 			);
-		
-		curl_setopt($ch, CURLOPT_URL, $url); 
-		//curl_setopt($ch, CURLOPT_HEADER, 0); 
-		curl_setopt($ch, CURLOPT_POST, 1); 
-		curl_setopt ($ch, CURLOPT_POSTFIELDS, $data);
-		//curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
 
-		$success = curl_exec($ch); 
-		curl_close($ch); 
+
+// $this->write_log(__FUNCTION__.": url = " . "http://".$baseurl);
+// $this->write_log(__FUNCTION__.": remote = ".$postdata['remote']);
+// $this->write_log(__FUNCTION__.": book_id = ".$postdata['book_id']);
+// $this->write_log(__FUNCTION__.": u = ".$postdata['u']);
+// $this->write_log(__FUNCTION__.": p = ".$postdata['p']);
+// $this->write_log(__FUNCTION__.": \n\n\n");
+
+
+		$result = json_decode( $this->callRemoteController("{$baseurl}mb/book/publish_book_package", $postdata) );
+
+		$mb_api->write_log(__FUNCTION__.": Sent the book: status = ".$result->status);
+
+//xdebug_break();
 		
-		// delete the book package
+		// delete the book package in any case
 		unlink ($localfile);
 		
 		
-		if ($success) {
+		if ($result && $result->status == "ok" ) {
 			$output = "";
+			$this->write_log("Sent book id#{$book_id} to {$url}.");
 		} else {
-			$mb_api->error(__FUNCTION__.": Error sending book to $url");
+			$this->write_log(__FUNCTION__.": Error sending book id#{$book_id} to $url");
 		}
-		
-		$this->write_log("Sent book id#{$book_id} to {$url}.");
 
 		return $output; 
 	} 
@@ -1947,7 +1959,7 @@ foreach ($posts as $p) {
 		*/
 	
 		if (!$mb_api->query->cookie) {
-			$mb_api->error("You must include a 'cookie' authentication cookie. Use the `create_auth_cookie` Auth API method.");
+			$mb_api->error("You must include a 'cookie' authentication cookie.");
 			return false;
 		}
 		

@@ -34,7 +34,7 @@ class MB_API_User_Controller {
 		global $mb_api;
 
 		if (!$mb_api->query->cookie) {
-			$mb_api->error("You must include a 'cookie' authentication cookie. Use the `create_auth_cookie` Auth API method.");
+			$mb_api->error("You must include a 'cookie' authentication cookie.");
 		}		
 
     	$valid = wp_validate_auth_cookie($mb_api->query->cookie, 'logged_in') ? true : false;

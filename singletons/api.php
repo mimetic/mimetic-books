@@ -29,7 +29,7 @@ class MB_API {
 
 		$uploads = wp_upload_dir();
 
-		$this->logfile = $dir . DIRECTORY_SEPARATOR . "mb-books-api.log";
+		$this->logfile = $dir . DIRECTORY_SEPARATOR . "mb.log";
 
 		// Create the temp dir for building book packages
 		$this->tempDir = $uploads['basedir'] . DIRECTORY_SEPARATOR . $this->settings['temp_dir_name'];
@@ -889,11 +889,16 @@ class MB_API {
 		if (!$mb_api->themes->themes) {
 			$mb_api->load_themes();
 		}
-
+		
+		// Set $theme; use default ("1") if missing
 		if (!isset($mb_api->themes->themes[$theme_id])) {
 			$this->write_log(__FUNCTION__.": The chosen theme ({$theme_id}) does not exist!");
 			$theme_id = $theme_id || "NONE";
 			//$this->error(__FUNCTION__.": The chosen theme ({$theme_id}) does not exist!");
+//$this->write_log(__FUNCTION__. print_r(	$mb_api->themes->themes, true));		
+			$theme = $mb_api->themes->themes[1];
+$this->write_log(__FUNCTION__.": Theme set to default!");			
+			//$this->error(__FUNCTION__.": WARNING: The chosen theme ({$theme_id}) does not exist! Using 'default'");
 		} else {
 			$theme = $mb_api->themes->themes[$theme_id];
 		}
@@ -1103,7 +1108,7 @@ class MB_API {
 			'remoteURL'		=> $remoteURL,
 			'is_card_list'	=> $is_card_list
 			);
-		
+
 		return $result;
 	}
 	
@@ -1157,6 +1162,8 @@ class MB_API {
 			'poster_url'	=> $poster_url,
 			'category_id'	=> $category_id
 		 */
+
+
 		foreach ($posts as $post) {
 			// Only add the item if it is marked published with our custom meta field.
 			$is_published = get_post_meta($post->ID, "mb_published", true);
@@ -1172,7 +1179,7 @@ class MB_API {
 				// Also check the package's directory is there
 				$tarfilepath = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id . DIRECTORY_SEPARATOR . "item.tar";
 				$is_published =  ( ($info['remoteURL'] || file_exists($tarfilepath)) && $is_published);
-			
+		
 				if ($is_published and $mb_api->book_is_available($post->ID)) {
 				
 					// Get the definitive modified datetime from the item date file.
@@ -1183,7 +1190,6 @@ class MB_API {
 					$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_id);
 					$infofile = $dir . DIRECTORY_SEPARATOR . "item.json";
 					if (file_exists($infofile)) {
-				
 				
 						$book_info_from_file = json_decode( file_get_contents($infofile) );
 						
@@ -1906,7 +1912,7 @@ if ($post->post_password || isset($info['post_password'])) {
 		*/
 	
 		if (!$this->query->cookie) {
-			$this->error("You must include a 'cookie' authentication cookie. Use the `create_auth_cookie` Auth API method.");
+			$this->error("You must include a 'cookie' authentication cookie.");
 			return false;
 		}
 		

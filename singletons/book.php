@@ -1912,7 +1912,7 @@ foreach ($posts as $p) {
 		*/
 	
 		if (!$mb_api->query->cookie) {
-			$mb_api->error("You must include a 'cookie' authentication cookie. Use the `create_auth_cookie` Auth API method.");
+			$mb_api->error("You must include a 'cookie' authentication cookie.");
 			return false;
 		}
 		

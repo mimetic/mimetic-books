@@ -1,13 +1,12 @@
 <?php
 /*
-* Plugin Name: Mimetic Books
+* Plugin Name: Mimetic Books API
 * Plugin URI: http://mimetic.com/
-* Description: WordPress eBook publishing for the Mimetic Books mobile app.
-* Version: 0.3.0
+* Description: A RESTful API for WordPress eBook Publishing with Mimetic Books
+* Version: 0.2.0
 * Author: David Gross
-* Author URI: http://www.mimetic.com/
+* Author URI: http://davidgross.org/
 * License: GPL2
-* License URI: http://www.gnu.org/licenses/gpl-2.0.html
 */
 
 /*  Copyright 2015  David Ian Gross  (email : info@mimetic.com)
