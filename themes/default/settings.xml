@@ -9,7 +9,7 @@
 		### set, Baskerville-Italic
 {{date}}  {{place}}</captionFormat>
 
-		<captionPlaceFormat>{{sublocation}} {{city}}{{citySeparator}}{{state}}{{stateSeparator}}{{country}}</captionPlaceFormat>
+		<captionPlaceFormat>{{country}}</captionPlaceFormat>
 
 		<captionFooterAlignment value="center" />
 

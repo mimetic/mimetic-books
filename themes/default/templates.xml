@@ -33,7 +33,7 @@
 		</index>
 		<page id="A" ignoreExtraSourceElements="true" order="1">
 			<backgroundfile>
-				*/backgrounds/_background_B-Master.jpg
+				*/backgrounds/_background.jpg
 			</backgroundfile>
 			<textblocks>
 				<textblock>
@@ -54,7 +54,7 @@
 		</page>
 		<page id="B" ignoreExtraSourceElements="true" order="2">
 			<backgroundfile>
-				*/backgrounds/_background_C-Master.jpg
+				*/backgrounds/_background.jpg
 			</backgroundfile>
 			<textblocks>
 				<textblock>
@@ -72,14 +72,10 @@
 				<picture noThumbnail="false" filename="" noShadow="true" zoomedScale="1" x="522" y="448" width="463" height="280" absolute="true">
 				</picture>
 			</pictures>
-			<shapes>
-				<shape name="rectangle" color="0,0,0,0" stroke="1" strokeColor="0,0,0,100%" strokeStyle="Solid" x="522" y="148" width="463" height="581" absolute="true">
-				</shape>
-			</shapes>
 		</page>
 		<page id="C" ignoreExtraSourceElements="true" order="3">
 			<backgroundfile>
-				*/backgrounds/_background_C-Master.jpg
+				*/backgrounds/_background.jpg
 			</backgroundfile>
 			<textblocks>
 				<textblock>
@@ -92,26 +88,18 @@
 				</textblock>
 			</textblocks>
 			<pictures>
-				<picture noThumbnail="false" filename="" noShadow="true" time="1000" x="522" y="148" width="463" height="581" absolute="true">
+				<picture noThumbnail="false" addCorners="true" canPinchZoom="true" filename="" noShadow="true" time="1000" x="522" y="148" width="463" height="581" absolute="true">
 				</picture>
 			</pictures>
-			<shapes>
-				<shape name="rectangle" color="0,0,0,0" stroke="1" strokeColor="0,0,0,100%" strokeStyle="Solid" x="522" y="148" width="463" height="581" absolute="true">
-				</shape>
-			</shapes>
 		</page>
 		<page id="D" ignoreExtraSourceElements="true" order="4">
 			<backgroundfile>
-				*/backgrounds/_background_D-Master.jpg
+				*/backgrounds/_background.jpg
 			</backgroundfile>
 			<pictures>
-				<picture noThumbnail="false" filename="" noShadow="true" time="1000" x="39" y="69" width="945" height="630" absolute="true">
+				<picture noThumbnail="false" filename="" scale="none" noShadow="true" time="1000" x="center" y="center" width="945" height="630" absolute="true">
 				</picture>
 			</pictures>
-			<shapes>
-				<shape name="rectangle" color="0,0,0,0" stroke="1" strokeColor="0,0,0,100%" strokeStyle="Solid" x="39" y="69" width="945" height="630" absolute="true">
-				</shape>
-			</shapes>
 		</page>
 	</chapter>
 </book>

@@ -1,6 +1,7 @@
-﻿[No Paragraph Style]=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
-[Basic Paragraph]=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
-H1=HelveticaNeue-Light,72,86.4,106,60,0,,100%,NORMAL,left,16,0,0,0,0
-H2=HelveticaNeue-Light,36,43.2,106,60,0,,100%,NORMAL,left,14,10,0,0,0
-Body=Baskerville,16,30,106,60,0,,100%,NORMAL,left,0,0,0,0,0
-Format Code=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+﻿[No Paragraph Style]=Georgia,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+[Basic Paragraph]=Georgia,16,20,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+H1=Georgia-Bold,72,86.4,106,60,0,,100%,NORMAL,left,16,0,0,0,0
+H2=Georgia-Bold,36,43.2,106,60,0,,100%,NORMAL,left,14,10,0,0,0
+H3=Georgia-Bold,24,,106,60,0,,100%,NORMAL,left,14,10,0,0,0
+Body=Georgia,16,30,106,60,0,,100%,NORMAL,left,0,0,0,0,0
+Format Code=Courier,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
