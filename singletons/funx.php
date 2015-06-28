@@ -99,7 +99,7 @@ class MB_API_Funx
 			$name = trim($name);
 			if ($name[0] != "/") {
 				($ID == $checked) ? $check = " selected" : $check = "";
-				$optionlist .= "<li><img src=\"$name\"></li>\n";
+				$optionlist .= "<li><img src=\"$name\" alt=\"\" /></li>\n";
 				$k++;
 			}
 		}

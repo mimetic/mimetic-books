@@ -248,7 +248,19 @@ function mb_book_page_meta_save_postdata( $post_id) {
  * See: http://codex.wordpress.org/Function_Reference/register_post_type
  * ----------------------------------------------------------------------
  */
- 
+
+
+// Add a custom icon to the admin menu
+function add_menu_icons_styles() { 
+?>
+	<style>
+	#adminmenu .menu-icon-book div.wp-menu-image:before {
+	  color: #F33;
+	}
+	</style>
+<?php
+}
+
 
 // Init to create the BOOK custom post type
 function mb_make_custom_post_type_init() {
@@ -268,7 +280,7 @@ function mb_make_custom_post_type_init() {
     'not_found' =>  __('No books found', 'your_text_domain'),
     'not_found_in_trash' => __('No books found in Trash', 'your_text_domain'), 
     'parent_item_colon' => '',
-    'menu_name' => __('Books', 'your_text_domain')
+    'menu_name' => __('Mimetic Books', 'your_text_domain')
 
 	);
 	
@@ -285,10 +297,11 @@ function mb_make_custom_post_type_init() {
 		'capability_type' => 'post',
 		'has_archive' => true, 
 		'hierarchical' => false,
-		'menu_position' => null,
+		'menu_position' => 5, // places menu item directly below Posts
 		'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments', 'custom-fields', 'revisions' ),
 		'taxonomies'	=> array('category'),
-		'register_meta_box_cb'	=> 'mb_book_post_meta_boxes_setup'
+		'register_meta_box_cb'	=> 'mb_book_post_meta_boxes_setup',
+		'menu_icon' => 'dashicons-book-alt',
 	); 
 	register_post_type('book', $args);
 	
@@ -297,12 +310,17 @@ function mb_make_custom_post_type_init() {
 	//add_action( 'load-post-new.php', 'mb_book_post_meta_boxes_setup' );
 	add_action('save_post', 'mb_book_post_meta_save_postdata');
 	
+	// Now using the dash-icon icon. Simpler, faster.
 	// Custom Icon for book type
-	add_action( 'admin_head', 'mb_wpt_book_icons' );
+	//add_action( 'admin_head', 'mb_wpt_book_icons' );
+	
+	// Style the icon
+	//add_action( 'admin_head', 'add_menu_icons_styles' );
+
 	
 }
 
-
+/*
 // Styling for the custom post type icon
 function mb_wpt_book_icons() {
 	global $dir;
@@ -324,6 +342,7 @@ function mb_wpt_book_icons() {
     </style>
 <?php 
 }
+*/
  
 // Add filter to ensure the text Book, or book, is displayed when user updates a book 
 function mb_api_book_updated_messages( $messages ) {
@@ -924,7 +943,7 @@ function mb_book_post_settings_meta_box( $post) {
 							<a href="#" class="button insert-media add_media poster_upload"><span class="wp-media-buttons-icon"></span> Add Poster</a>
 						</div>
 						<div class="clear"></div>
-						<img class="poster_image" src="<?php echo $mb_poster_attachment_url;  ?>" />
+						<img class="poster_image" src="<?php echo $mb_poster_attachment_url;  ?>" alt="" />
 						<input class="poster_url" type="hidden" name="mb_poster_attachment_url" value="<?php echo $mb_poster_attachment_url;  ?>">
 						<input class="poster_id" type="hidden" name="mb_poster_attachment_id" value="<?php echo $mb_poster_attachment_id;  ?>">
 					</label>
@@ -954,7 +973,7 @@ function mb_book_post_poster_meta_box( $post) {
 				<a href="#" class="button insert-media add_media poster_upload"><span class="wp-media-buttons-icon"></span> Add Poster</a>
 			</div>
 			<br/>
-			<img class="poster_image" src="<?php echo $mb_poster_attachment_url;  ?>" />
+			<img class="poster_image" src="<?php echo $mb_poster_attachment_url;  ?>" alt="" />
 			<input class="poster_url" type="hidden" name="mb_poster_attachment_url" value="<?php echo $mb_poster_attachment_url;  ?>">
 			<input class="poster_id" type="hidden" name="mb_poster_attachment_id" value="<?php echo $mb_poster_attachment_id;  ?>">
 		</label>
@@ -1205,14 +1224,10 @@ function mb_post_meta_boxes_setup() {
 	//wp_enqueue_script('thickbox');
 	//wp_enqueue_style('thickbox');
 
-	$jsURL = plugins_url( 'js/posts.js', __FILE__ );
-	wp_register_script('mb-posts', $jsURL, array('jquery', 'jquery-ui-core', 'jquery-ui-selectable', 'jquery-ui-dialog'));
-	wp_enqueue_script('mb-posts');
+	// Hook into the 'admin_enqueue_scripts' action
+	// to set up the javascript/css
+	add_action( 'admin_enqueue_scripts', 'mb_post_meta_boxes_scripts' );
 	
-	$jsCSS = plugins_url( 'js/style.css', __FILE__ );
-	wp_register_style( 'mb_api_style', $jsCSS);
-	wp_enqueue_style('mb_api_style');
-
 	// Create the meta box
 	add_action( 'add_meta_boxes', 'mb_post_add_page_meta_boxes' );
 	add_action( 'save_post', 'mb_post_meta_save_postdata');
@@ -1220,8 +1235,34 @@ function mb_post_meta_boxes_setup() {
 	// AJAX to display the page design chooser
 	add_action('wp_ajax_page_design_chooser', 'mb_post_page_design_chooser_ajax');
 
-	
 }
+
+// Set up the Javascript enqueue, etc.
+
+// Register Script
+// Run only on a post page, don't need elsewhere.
+function mb_post_meta_boxes_scripts($hook) {
+    if ( 'post.php' != $hook ) {
+        return;
+    }
+    $jsURL = plugins_url( 'js/posts.js', __FILE__ );
+	wp_register_script( 'mb-posts', $jsURL, array( 'jquery', 'jquery-ui-selectable', 'jquery-ui-dialog' ), false, false );
+	//wp_register_script( 'mb-posts', $jsURL, array( 'jquery-ui-dialog' ), false, false );
+	wp_enqueue_script( 'mb-posts' );
+
+
+	$jsCSS = plugins_url( 'js/style.css', __FILE__ );
+	wp_register_style( 'mb_api_style', $jsCSS, false, false );
+	// MUST enqueue the built-in jquery dialog css or it fails!!!
+	wp_enqueue_style("wp-jquery-ui-dialog", false, false );
+	wp_enqueue_style('mb_api_style');
+
+}
+
+
+
+
+
 
 
 /* Create one or more meta boxes to be displayed on the post editor screen. */
@@ -1486,7 +1527,7 @@ function mb_post_mb_page_theme_meta_box( $post) {
 			}
 
 			// Posts link
-			$all_posts_link = "<a href=\"edit.php?s&post_status=all&post_type=post&action=-1&m=0&cat={$book_cat_id}&paged=1&mode=list&action2=-1\">List all posts</a> in this book.";
+			$all_posts_link = "<a href=\"edit.php?s&amp;post_status=all&amp;post_type=post&amp;action=-1&amp;m=0&amp;cat={$book_cat_id}&amp;paged=1&amp;mode=list&amp;action2=-1\">List all posts</a> in this book.";
 
 
 		} else {

@@ -17,7 +17,7 @@ For more information, see [Mimetic](http://mimetic.com/ "Mimetic").
 == Installation ==
 Install as usual.
 
-Choose \"Settings:Mimetic Books\". 
+Choose "Settings:Mimetic Books". 
 
 Activate all the controllers.
 

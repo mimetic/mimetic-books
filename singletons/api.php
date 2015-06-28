@@ -1398,44 +1398,48 @@ if ($post->post_password || isset($info['post_password'])) {
 	
 		// Capture the following into a variable:
 		ob_start();
+		
+		$preview_loading_img_url = $mb_api->url.DIRECTORY_SEPARATOR. $mb_api->themes_dir_name.DIRECTORY_SEPARATOR."loading.jpg";
 
 		?>
 		<div class="mb-settings-section no-border">
+			<input type="hidden" id="theme_page_preview_box_loading_url" value="<?php echo ( $preview_loading_img_url ); ?>" />
+			
 			<input type="button" style="float:right;" class="wp-core-ui button-secondary" id="show-styles" name="show-styles" value="Show Styles" />
-			<br style="clear:all;"/>
+			<br style="clear:all;" />
 			<br/>
 
 			<div class="theme_page_preview_box" name="show-styles">
 				<label for="format_page_preview">
 				</label>
 				<div class="theme_page_preview <?php echo ($isPortraitTheme); ?>">
-					<img id="format_page_preview" src="<?php echo ($previewFileName); ?>"/>
+					<img id="format_page_preview" src="<?php echo ($previewFileName); ?>" alt="" />
 				</div>
 			</div>
-			<label for="mb_book_theme_page_id">
-				<div	style="text-align:center;">
-				Current Page Style : &quot;<span id="mb_book_theme_page_id_display"><?php echo($themePageID) ?></span>&quot;
-				</div>
-			</label>
+			<label for="mb_book_theme_page_id"></label>
+			<div style="text-align:center;">
+			Current Page Style : &quot;<span id="mb_book_theme_page_id_display"><?php echo($themePageID) ?></span>&quot;
+			</div>
+			
 		</div>
 	
 		<?php
 		$chooser .= ob_get_contents();
 		ob_end_clean();
 
-	
-		// BUILD DIALOG CHOOSER
+		// ----------------------------------------
+		// Built page theme dialog chooser
 		// Default theme is 1;
 		!$theme_id && $theme_id = 1;
 		$name = "mb_book_theme_page_id";
 		$id = "mb_book_themes_selector";
 		$sort = true;
 
-		$dialog = '<div id="mb-page-styles-dialog" style="display:none;" title="Page Styles"><div id="mb-page-styles-dialog-menu" style="margin-left:auto;margin-right:auto;width:830px;"/>';
+		$dialog = '<div id="mb-page-styles-dialog" style="display:none;" title="Page Styles"><div id="mb-page-styles-dialog-menu" style="margin-left:auto;margin-right:auto;width:830px;">';
 
 		$dialog .= $mb_api->funx->jQuerySelectableFromArray ($id, $previews, $theme_id, $sort);
 
-		$dialog .= "</div></div>";
+		$dialog .= "</div></div>\n<!-- END DIALOG DEFINITION -->\n";
 
 		$chooser .= $dialog;
 
