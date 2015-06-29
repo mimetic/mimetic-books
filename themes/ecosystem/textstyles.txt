@@ -1,0 +1,7 @@
+﻿[No Paragraph Style]=AvenirNext-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+[Basic Paragraph]=AvenirNext-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+Format Code=AvenirNext-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+card-title=AvenirNext-Bold,36,43.2,0,0,0,,100%,NORMAL,center,0,0,0,0,0
+card-body=AvenirNext-Regular,18,21.6,0,0,0,,100%,NORMAL,left,0,6,0,0,0
+card-consumes-title=AvenirNext-Bold,16,19.2,0,0,0,,100%,NORMAL,center,0,0,0,0,0
+card-icon-label=AvenirNext-Bold,14,16.8,0,0,0,,100%,ALL_CAPS,center,0,0,0,0,0

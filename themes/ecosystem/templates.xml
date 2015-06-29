@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<book xml:space="preserve">
+	<title>
+		Ecosystem
+	</title>
+	<author>
+		David Gross
+	</author>
+	<orientation>
+		landscape
+	</orientation>
+	<documentPath>
+		/Volumes/Macintosh HD/Users/dgross/Corona Projects/Photobook Tools/Themes DEV/Ecosystem Cards Theme Folder/theme
+	</documentPath>
+	<imagePath>
+		~/Corona%20Projects/Photobook%20Tools/Themes%20DEV/Ecosystem%20Cards%20Theme%20Folder/themeundefined
+	</imagePath>
+	<previewPath>
+		~/Corona%20Projects/Photobook%20Tools/Themes%20DEV/Ecosystem%20Cards%20Theme%20Folder/theme/template_previews
+	</previewPath>
+	<uniqueid>
+		ecosystem-cards
+	</uniqueid>
+	<fields>
+		card-consumes-title,icon-1-label,icon-2-label,icon-3-label,link-1,link-2,link-3,link-4,link-5,link-6,icon-1,icon-2,icon-3,thumbnail,level,clue,consumption_rate,reproduction_rate,in_ecosystem_game,zone,size,speed,direction_of_picture,longevity,swim_on_page
+	</fields>
+	<description>
+		Ecosystem Cards
+	</description>
+	<chapter>
+		<title>
+			Ecosystem
+		</title>
+		<altTitle>
+			Ecosystem
+		</altTitle>
+		<index>
+			1
+		</index>
+		<page id="AA" ignoreExtraSourceElements="true" order="1" contents="true" label="Contents" notInContents="true">
+			<backgroundfile>
+				*/backgrounds/card-background-blank.png
+			</backgroundfile>
+			<overlay>
+				*/images/chapter_1_overlay_1.png
+			</overlay>
+			<textblocks absolute="true">
+				<textblock>
+					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isContents="true" isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-body" x="60" y="165" width="452" height="503" absolute="true">
+						Contents list here...
+					</text>
+				</textblock>
+			</textblocks>
+			<pictures>
+				<picture noThumbnail="true" filename="" noShadow="true" restoreLayersOnZoomOut="true" x="913" y="76" width="44" height="44" absolute="true">
+				</picture>
+			</pictures>
+			<buttons absolute="true">
+				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+			</buttons>
+		</page>
+		<page id="AB" ignoreExtraSourceElements="true" order="2">
+			<backgroundfile>
+				*/backgrounds/card-background.png
+			</backgroundfile>
+			<overlay>
+			</overlay>
+			<pictures>
+				<picture filename="" noShadow="true" restoreLayersOnZoomOut="true" zoomedScale="1" x="569" y="201" width="374" height="141" absolute="true">
+				</picture>
+				<picture custom="{{icon-1}}" condition="custom,is not, blank" noThumbnail="true" filename="*/images/{{icon-1}}.png" noShadow="true" restoreLayersOnZoomOut="true" x="60" y="167" width="120" height="120" absolute="true">
+				</picture>
+				<picture custom="{{icon-2}}" condition="custom,is not, blank" noThumbnail="true" filename="*/images/{{icon-2}}.png" noShadow="true" restoreLayersOnZoomOut="true" x="226" y="167" width="120" height="120" absolute="true">
+				</picture>
+				<picture custom="{{icon-3}}" condition="custom,is not, blank" noThumbnail="true" filename="*/images/{{icon-3}}.png" noShadow="true" restoreLayersOnZoomOut="true" x="392" y="167" width="120" height="120" absolute="true">
+				</picture>
+				<picture noThumbnail="true" filename="" noShadow="true" restoreLayersOnZoomOut="true" x="913" y="76" width="44" height="44" absolute="true">
+				</picture>
+			</pictures>
+			<textblocks absolute="true">
+				<textblock>
+					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-consumes-title" source="card-consumes-title" noReplace="true" x="576" y="404" width="349" height="27" absolute="true">
+					</text>
+				</textblock>
+				<textblock>
+					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-icon-label" source="icon-1-label" noReplace="true" x="60" y="296" width="121" height="41" absolute="true">
+					</text>
+				</textblock>
+				<textblock>
+					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-icon-label" source="icon-2-label" noReplace="true" x="226" y="296" width="121" height="41" absolute="true">
+					</text>
+				</textblock>
+				<textblock>
+					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-icon-label" source="icon-3-label" noReplace="true" x="392" y="296" width="121" height="41" absolute="true">
+					</text>
+				</textblock>
+				<textblock>
+					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-body" x="60" y="350" width="452" height="318" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+			<buttons absolute="true">
+				<button x="619" y="476" width="100" height="100" id="Button 1" custom="{{link-1}}" condition="custom,is not, blank" params="{{link-1}}" action="goPageByID" imagefile="*/pictures/{{link-1}}-card.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+				<button x="752" y="476" height="100" width="100" id="Button 3" custom="{{link-2}}" condition="custom,is not, blank" params="{{link-2}}" action="goPageByID" imagefile="*/pictures/{{link-2}}-card.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+				<button x="885" y="476" height="100" width="100" id="Button 5" custom="{{link-3}}" condition="custom,is not, blank" params="{{link-3}}" action="goPageByID" imagefile="*/pictures/{{link-3}}-card.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+				<button x="619" y="592" height="100" width="100" id="Button 2" custom="{{link-4}}" condition="custom,is not, blank" params="{{link-4}}" action="goPageByID" imagefile="*/pictures/{{link-4}}-card.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+				<button x="752" y="592" height="100" width="100" id="Button 4" custom="{{link-5}}" condition="custom,is not, blank" params="{{link-5}}" action="goPageByID" imagefile="*/pictures/{{link-5}}-card.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+				<button x="885" y="592" height="100" width="100" id="Button 6" custom="{{link-6}}" condition="custom,is not, blank" params="{{link-6}}" action="goPageByID" imagefile="*/pictures/{{link-6}}-card.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+				
+				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+			</buttons>
+		</page>
+		<page id="AC" ignoreExtraSourceElements="true" order="3">
+			<backgroundfile>
+				*/backgrounds/card-background-no-prey.png
+			</backgroundfile>
+			<overlay>
+			</overlay>
+			<pictures>
+				<picture filename="" noShadow="true" restoreLayersOnZoomOut="true" zoomedScale="1" x="569" y="201" width="374" height="141" absolute="true">
+				</picture>
+				<picture noThumbnail="true" filename="" noShadow="true" restoreLayersOnZoomOut="true" x="913" y="76" width="44" height="44" absolute="true">
+				</picture>
+			</pictures>
+			<textblocks absolute="true">
+				<textblock>
+					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-body" x="60" y="165" width="452" height="318" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+			<buttons absolute="true">
+				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+			</buttons>
+		</page>
+		<page id="AD" ignoreExtraSourceElements="true" order="4">
+			<backgroundfile>
+				*/backgrounds/card-background-blank.png
+			</backgroundfile>
+			<overlay>
+			</overlay>
+			<textblocks absolute="true">
+				<textblock>
+					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-body" x="60" y="165" width="888" height="503" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+			<buttons absolute="true">
+				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+			</buttons>
+			<pictures>
+				<picture noThumbnail="true" filename="*/images/button-back.png" noShadow="true" restoreLayersOnZoomOut="true" noReplace="true" x="913" y="76" width="45" height="45" absolute="true">
+				</picture>
+			</pictures>
+		</page>
+		<page id="AE" ignoreExtraSourceElements="true" order="5">
+			<backgroundfile>
+				*/backgrounds/card-background-blank.png
+			</backgroundfile>
+			<overlay>
+			</overlay>
+			<textblocks absolute="true">
+				<textblock>
+					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					</title>
+				</textblock>
+				<textblock>
+					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-body" x="60" y="165" width="513" height="503" absolute="true">
+					</text>
+				</textblock>
+			</textblocks>
+			<pictures>
+				<picture noThumbnail="true" filename="" noShadow="true" restoreLayersOnZoomOut="true" x="680" y="166" width="250" height="500" absolute="true">
+				</picture>
+			</pictures>
+			<buttons absolute="true">
+				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				</button>
+			</buttons>
+		</page>
+	</chapter>
+</book>
