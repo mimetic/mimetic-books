@@ -3,7 +3,7 @@
 * Plugin Name: Mimetic Books
 * Plugin URI: http://mimetic.com/
 * Description: This plugin allows WordPress bloggers to publish books using the Mimetic Books publishing system.
-* Version: 0.2.2
+* Version: 0.2.3
 * Author: David Gross
 * Author URI: http://davidgross.org/
 * License: GPL2

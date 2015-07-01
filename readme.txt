@@ -3,7 +3,7 @@ Contributors: mimetic
 Tags: Mimetic Books, Mimetic, iPad
 Requires at least: 4.0
 Tested up to: 4.2.2
-Stable tag: 0.2.2
+Stable tag: 0.2.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,3 +32,6 @@ Nothing yet.
 * Fixed the problem with jQuery popup dialogs not working since the WordPress update changed how jQuery worked.
 * When the user choose a different book in "Mimetic Book Setings", the style chooser shows "Loading" while a new book template loads.
 * Renamed the custom post type in the admin menus form "Book" to "Mimetic Books". Fixed the icon. Note that the post type is still "book", which certain can conflict with other plugins!
+
+= 0.2.3 =
+* Add an ecosystems cards theme.
