@@ -42,7 +42,6 @@
 				*/backgrounds/card-background-blank.png
 			</backgroundfile>
 			<overlay>
-				*/images/chapter_1_overlay_1.png
 			</overlay>
 			<textblocks absolute="true">
 				<textblock>

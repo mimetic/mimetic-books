@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <settings>
 
-	<class value="slideview">
+	<slideview>
 		
 		<showToolbar value="false" />
 
@@ -35,10 +35,10 @@
 
 		<pageBackgroundAlpha value="10%" />
 
-	</class>
+	</slideview>
 
 
-	<class value="navbar">
+	<navbar>
 		<showOnStart value="false" />
 
 		<pickerShowLabels value="false" />
@@ -57,12 +57,12 @@
 		<pickerPageReferenceDisplayFontSizeForTitle value="42" />
 
 		
-	</class>
+	</navbar>
 
-	<class value="toolbar">
+	<toolbar>
 		<showLibraryButton value="false" />
 		<showFloatingBookButton value="false" />
-	</class>
+	</toolbar>
 
 
 
