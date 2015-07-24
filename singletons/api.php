@@ -78,7 +78,7 @@ class MB_API {
 		add_action('admin_print_styles', array(&$this, 'image_uploader_styles'));
 
 		// Book Custom Post: 
-		// Delete all attached media from a custom 'book' post if the post is deleted.
+		// Delete all attached media from a custom 'mimeticbook' post if the post is deleted.
 		//add_action('update_option_mb_api_base', array(&$this, 'flush_rewrite_rules'));
 		
 		
@@ -327,7 +327,7 @@ class MB_API {
 				<td>
 					<?php
 						$args = array (
-							'post_type' => 'book',
+							'post_type' => 'mimeticbook',
 							'posts_per_page' => -1
 						);
 
@@ -729,7 +729,7 @@ class MB_API {
 		global $mb_api;
 		$posts = get_posts(array( 
 					'category' => $id, 
-					'post_type' => 'book', 
+					'post_type' => 'mimeticbook', 
 					'post_status' => 'any' 
 		));
 		if ($posts) {
@@ -747,7 +747,7 @@ class MB_API {
 		$posts = $mb_api->introspector->get_posts(array(
 			'meta_key' => 'mb_book_id',
 			'meta_value' => $id,
-			'post_type' => 'book',
+			'post_type' => 'mimeticbook',
 			'post_status' => 'any',
 			'posts_per_page'	=> 1
 		), true);
@@ -763,7 +763,7 @@ class MB_API {
 
 	private function get_book_post_from_category_slug( $slug ) {
 		global $mb_api;
-		$posts = $mb_api->introspector->get_posts(array( 'category_name' => $slug, 'post-type' => 'book', 'post_status' => 'any' ));	
+		$posts = $mb_api->introspector->get_posts(array( 'category_name' => $slug, 'post-type' => 'mimeticbook', 'post_status' => 'any' ));	
 		if ($posts) {
 			$book_post = $posts[0];
 		}
@@ -783,7 +783,7 @@ class MB_API {
 			/*
 			$response = $mb_api->introspector->get_posts(array(
 				'p' => $post_id,
-				'post_type' => 'book',
+				'post_type' => 'mimeticbook',
 				'post_status' => 'any'
 			));
 			$post = $response[0];
@@ -801,12 +801,12 @@ class MB_API {
 				$post_id = get_option('mb_api_book_info_post_id');
 				$response = $mb_api->introspector->get_posts(array(
 					'p' => $post_id,
-					'post_type' => 'book'
+					'post_type' => 'mimeticbook'
 				));
 				$post = $response[0];
 				$post = get_posts( array(
 					'p' => $post_id,
-					'post_type' => 'book',
+					'post_type' => 'mimeticbook',
 					'posts_per_page' => 1
 				));
 			} else {
@@ -932,7 +932,7 @@ $this->write_log(__FUNCTION__.": Theme set to default!");
 		if (isset($custom_fields['mb_publication_type']) && $custom_fields['mb_publication_type']) {
 			$type = $custom_fields['mb_publication_type'][0];
 		} else {
-			$type = 'book';
+			$type = 'mimeticbook';
 		}
 
 		// Use the post thumbnail as the icon. It will be small, so it won't get
@@ -1140,7 +1140,7 @@ $this->write_log(__FUNCTION__.": Theme set to default!");
 		// Get all books
 		// Suppress filters makes my modified "own posts media" plugin not suppress other's books.
 		$posts = $mb_api->introspector->get_posts(array(
-				'post_type' => 'book',
+				'post_type' => 'mimeticbook',
 				'posts_per_page'	=> -1,
 				'post_status' => 'any',
 				'suppress_filters' => true
@@ -1456,7 +1456,7 @@ if ($post->post_password || isset($info['post_password'])) {
 		
 		$books = get_posts(array(
 			'posts_per_page'	=> -1,
-			'post_type'		=> 'book',
+			'post_type'		=> 'mimeticbook',
 			'post_status'	=> 'any',
 			'order'=> 'ASC', 
 			'orderby' => 'title'
@@ -1529,7 +1529,7 @@ if ($post->post_password || isset($info['post_password'])) {
 		wp_reset_query();
 		$books = get_posts(array(
 			'posts_per_page'	=> -1,
-			'post_type'		=> 'book',
+			'post_type'		=> 'mimeticbook',
 			'post_status'	=> 'any'
 		));
 		
@@ -1627,7 +1627,7 @@ if ($post->post_password || isset($info['post_password'])) {
 	function book_select_list ($user_id) {
 
 		$args = array (
-			'post_type' => 'book',
+			'post_type' => 'mimeticbook',
 			'posts_per_page' => -1,
 			'post_author' => $user_id
 		);

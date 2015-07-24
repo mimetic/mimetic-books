@@ -81,6 +81,10 @@ function mb_api_init() {
 	add_filter('manage_book_posts_columns', 'mb_book_custom_columns_head');
 	add_action('manage_posts_custom_column', 'mb_book_custom_columns_content', 10, 2);
 	
+	// Add custom column to posts listings (for keywords, etc.)
+// 	add_filter('manage_post_posts_columns', 'mb_book_post_custom_columns_head');
+// 	add_action('manage_posts_custom_column', 'mb_book_post_custom_columns_content', 10, 2);
+	
 	// Add cleanup actions to handle deleting of books and publishers.
 	// Note, we do 'before' the delete so we still have access to the post info.
 	add_action('before_delete_post', 'mb_delete_book_post');
@@ -132,13 +136,44 @@ function mb_api_dir() {
 
 
 
+/*
+ * ----------------------------------------------------------------------
+ * Add custom COLUMNS to the posts
+ * NOT IN USE
+ * ----------------------------------------------------------------------
+ */
+
+
+
+
+
+// ADD NEW COLUMN  
+// function mb_book_post_custom_columns_head($defaults) {  
+//     $defaults['keywords'] = 'Keywords';  
+//     return $defaults;  
+// }  
+  
+// SHOW THE PUBLISH BUTTON
+// function mb_book_post_custom_columns_content($column_name, $post_ID) {  
+// 	switch ( $column_name ) {
+// 	case 'keywords':
+// 
+// 		$jsURL = plugins_url( 'js/mb_api.js', __FILE__ );
+// 		wp_register_script('my-keywords', $jsURL, array('jquery'));
+// 		wp_enqueue_script('my-keywords');
+// 
+// 		print ("KEYWORDS HERE");	  
+// 		break;
+//     }  
+// }  
+
 
 
 
 
 /*
  * ----------------------------------------------------------------------
- * Add custom metaboxes to 'book' types.
+ * Add custom metaboxes to 'mimeticbook' types.
  * This lets us add publisher ID's and other stuff to pages
  * ----------------------------------------------------------------------
  */
@@ -244,7 +279,7 @@ function mb_book_page_meta_save_postdata( $post_id) {
 
 /*
  * ----------------------------------------------------------------------
- * Add custom post type, 'book'
+ * Add custom post type, 'mimeticbook'
  * See: http://codex.wordpress.org/Function_Reference/register_post_type
  * ----------------------------------------------------------------------
  */
@@ -268,17 +303,17 @@ function mb_make_custom_post_type_init() {
 	
 	// Create a custom post type, "book"	
 	$labels = array(
-    'name' => _x('Books', 'post type general name', 'your_text_domain'),
-    'singular_name' => _x('Book', 'post type singular name', 'your_text_domain'),
-    'add_new' => _x('Add New', 'book', 'your_text_domain'),
-    'add_new_item' => __('Add New Book', 'your_text_domain'),
-    'edit_item' => __('Edit Book', 'your_text_domain'),
-    'new_item' => __('New Book', 'your_text_domain'),
-    'all_items' => __('All Books', 'your_text_domain'),
-    'view_item' => __('View Book', 'your_text_domain'),
-    'search_items' => __('Search Books', 'your_text_domain'),
-    'not_found' =>  __('No books found', 'your_text_domain'),
-    'not_found_in_trash' => __('No books found in Trash', 'your_text_domain'), 
+    'name' => _x('Mimetic Books', 'post type general name', 'your_text_domain'),
+    'singular_name' => _x('Mimetic Book', 'post type singular name', 'your_text_domain'),
+    'add_new' => _x('Add New', 'mimeticbook', 'your_text_domain'),
+    'add_new_item' => __('Add New Mimetic Book', 'your_text_domain'),
+    'edit_item' => __('Edit Mimetic Book', 'your_text_domain'),
+    'new_item' => __('New Mimetic Book', 'your_text_domain'),
+    'all_items' => __('All Mimetic Books', 'your_text_domain'),
+    'view_item' => __('View Mimetic Book', 'your_text_domain'),
+    'search_items' => __('Search Mimetic Books', 'your_text_domain'),
+    'not_found' =>  __('No Mimetic Books found', 'your_text_domain'),
+    'not_found_in_trash' => __('No Mimetic Books found in Trash', 'your_text_domain'), 
     'parent_item_colon' => '',
     'menu_name' => __('Mimetic Books', 'your_text_domain')
 
@@ -293,7 +328,7 @@ function mb_make_custom_post_type_init() {
 		'show_ui' => true, 
 		'show_in_menu' => true, 
 		'query_var' => true,
-		'rewrite' => array( 'slug' => _x( 'book', 'URL slug', 'your_text_domain' ) ),
+		'rewrite' => array( 'slug' => _x( 'mimeticbook', 'URL slug', 'your_text_domain' ) ),
 		'capability_type' => 'post',
 		'has_archive' => true, 
 		'hierarchical' => false,
@@ -303,7 +338,7 @@ function mb_make_custom_post_type_init() {
 		'register_meta_box_cb'	=> 'mb_book_post_meta_boxes_setup',
 		'menu_icon' => 'dashicons-book-alt',
 	); 
-	register_post_type('book', $args);
+	register_post_type('mimeticbook', $args);
 	
 	/* Fire our meta box setup function mb_on the post editor screen. */
 	//add_action( 'load-post.php', 'mb_book_post_meta_boxes_setup' );
@@ -348,7 +383,7 @@ function mb_wpt_book_icons() {
 function mb_api_book_updated_messages( $messages ) {
 	global $post, $post_ID;
 
-	$messages['book'] = array(
+	$messages['mimeticbook'] = array(
 		0 => '', // Unused. Messages start at index 1.
 		1 => sprintf( __('Book updated. <a href="%s">View book</a>', 'your_text_domain'), esc_url( get_permalink($post_ID) ) ),
 		2 => __('Custom field updated.', 'your_text_domain'),
@@ -375,7 +410,7 @@ function mb_api_book_updated_messages( $messages ) {
 
 function mb_api_add_help_text( $contextual_help, $screen_id, $screen ) { 
 	//$contextual_help .= __FUNCTION__. ":" . var_dump( $screen ); // use this to help determine $screen->id
-	if ( 'book' == $screen->id ) {
+	if ( 'mimeticbook' == $screen->id ) {
 			$contextual_help = <<<EOT
 <p>
 	Things to remember when adding or editing a book: 
@@ -406,8 +441,21 @@ EOT;
 			
 			
 	} elseif ( 'edit-book' == $screen->id ) {
-		$contextual_help = 
-			'<p>' . __('This is the help screen displaying the table of books blah blah blah.', 'your_text_domain') . '</p>' ;
+		$contextual_help = <<<EOT
+<p>
+Tips for using Mimetic Books.
+
+<ul>
+	<li>Add pictures to a page using "Add Media." Add pictures at their full size, but no larger. 
+	For example, if you want a picture to be seen at 1024x768 pixels (full screen), upload it that big.
+	It doesn't matter how large it appears in WordPress, however. You can choose to show it at medium size in your post.
+	</li>
+</ul>
+
+EOT;
+		
+		//$contextual_help = 
+			//'<p>' . __('Tips for using Mimetic Books.', 'your_text_domain') . '</p>' ;
 	}
 	return $contextual_help;
 }
@@ -455,7 +503,7 @@ function mb_delete_book_post($post_id)
 	$funx = new MB_API_Funx();
 	
 	$post = get_post($post_id);
-	if ($post->post_type == 'book') {
+	if ($post->post_type == 'mimeticbook') {
 		mb_delete_all_attachments($post_id);
 		$book_id = get_post_meta($post_id, "mb_book_id", true);
 		if ($book_id) {
@@ -570,7 +618,7 @@ function mb_book_add_post_meta_boxes() {
 		'book-post-publish',			// Unique ID
 		esc_html__( 'Book Publishing' ),		// Title
 		'mb_book_post_publish_meta_box',		// Callback function
-		'book',					// Admin page (or post type)
+		'mimeticbook',					// Admin page (or post type)
 		'side',					// Context
 		'high'					// Priority
 	);
@@ -580,7 +628,7 @@ function mb_book_add_post_meta_boxes() {
 		'book-post-theme',			// Unique ID
 		esc_html__( 'Book Design Theme' ),		// Title
 		'mb_book_post_theme_meta_box',		// Callback function
-		'book',					// Admin page (or post type)
+		'mimeticbook',					// Admin page (or post type)
 		'side',					// Context
 		'high'					// Priority
 	);
@@ -590,7 +638,7 @@ function mb_book_add_post_meta_boxes() {
 		'book-post-settings',			// Unique ID
 		esc_html__( 'Book Settings' ),		// Title
 		'mb_book_post_settings_meta_box',		// Callback function
-		'book',					// Admin page (or post type)
+		'mimeticbook',					// Admin page (or post type)
 		'side',					// Context
 		'high'					// Priority
 	);
@@ -600,7 +648,7 @@ function mb_book_add_post_meta_boxes() {
 		'book-post-poster',			// Unique ID
 		esc_html__( 'Book Poster' ),		// Title
 		'mb_book_post_poster_meta_box',		// Callback function
-		'book',					// Admin page (or post type)
+		'mimeticbook',					// Admin page (or post type)
 		'side',					// Context
 		'high'					// Priority
 	);
@@ -998,7 +1046,7 @@ function mb_book_post_meta_save_postdata( $post_id) {
 
 	// Check post type and permissions
 	// NOTE: A bulk edit won't have a post_type!
-	if ( isset($_POST['post_type']) && 'book' == $_POST['post_type'] ) {
+	if ( isset($_POST['post_type']) && 'mimeticbook' == $_POST['post_type'] ) {
 		if ( !current_user_can( 'edit_page', $post_id ) )
 			return;
 	} else {
@@ -1789,7 +1837,7 @@ register_deactivation_hook("$dir/mb-api.php", 'mb_api_deactivation');
 
 // custom post: book
 add_filter( 'post_updated_messages', 'mb_api_book_updated_messages' );
-// Handle our custom post type, 'book', in case of theme change
+// Handle our custom post type, 'mimeticbook', in case of theme change
 add_action( 'after_switch_theme', 'mb_rewrite_flush' );
 
 	

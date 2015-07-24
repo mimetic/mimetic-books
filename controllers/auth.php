@@ -1,7 +1,7 @@
 <?php
 /*
 Controller Name: Auth
-Controller Description: Authentication add-on controller for the Wordpress Mimetic Books API plugin. If this controller is activated, all requests to the 'book' controller will require authentication.
+Controller Description: Authentication add-on controller for the Wordpress Mimetic Books API plugin. If this controller is activated, all requests to the mb/book controller will require authentication.
 Controller Author: Matt Berg
 Controller Author Twitter: @mimetic
 */

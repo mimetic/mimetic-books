@@ -69,13 +69,13 @@ print_r($purchase_history);
 		// Build the shelf array
 		
 		$posts = $mb_api->introspector->get_posts(array(
-				'post_type' => 'book',
+				'post_type' => 'mimeticbook',
 				'posts_per_page'	=> -1,
 				'post_status' => 'any'
 			), true);
 	
 		$posts = $mb_api->introspector->get_posts(array(
-				'post_type' => 'book',
+				'post_type' => 'mimeticbook',
 				'posts_per_page'	=> -1,
 				'post_status' => 'any',
 				'post__in' => $purchase_history
