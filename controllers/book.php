@@ -372,8 +372,8 @@ We use some of the WP fields for our own purposes:
 				'comment_status' => 'open', // 'closed' means no comments.
 				'ping_status'    => 'closed', // 'closed' means pingbacks or trackbacks turned off
 				'post_status'    => 'private',  //Set the status of the new post.
-				'post_type'      => 'book',
-				'tags_input'     => 'book',
+				'post_type'      => 'mimeticbook',
+				'tags_input'     => 'mimeticbook',
 				'ID'             => $post_id,
 				'post_content'   => $info->description,
 				'post_excerpt'   => $info->shortDescription,
@@ -1064,7 +1064,7 @@ We use some of the WP fields for our own purposes:
 		if ($post_id) {
 			$response = $mb_api->introspector->get_posts(array(
 				'p' => $post_id,
-				'post_type' => 'book',
+				'post_type' => 'mimeticbook',
 				'post_status' => 'any'
 			));
 			$post = $response[0];
@@ -1079,7 +1079,7 @@ We use some of the WP fields for our own purposes:
 				$post_id = get_option('mb_api_book_info_post_id');
 				$response = $mb_api->introspector->get_posts(array(
 					'p' => $post_id,
-					'post_type' => 'book'
+					'post_type' => 'mimeticbook'
 				));
 				$post = $response[0];
 			} else {
@@ -1109,7 +1109,7 @@ We use some of the WP fields for our own purposes:
 		$posts = $mb_api->introspector->get_posts(array(
 			'meta_key' => 'mb_book_id',
 			'meta_value' => $id,
-			'post_type' => 'book',
+			'post_type' => 'mimeticbook',
 			'post_status' => 'any',
 			'posts_per_page'	=> 1
 		), true);
@@ -1126,7 +1126,7 @@ We use some of the WP fields for our own purposes:
 	/*
 	private function get_book_post_from_category_id( $id ) {
 		global $mb_api;
-		$posts = $mb_api->introspector->get_posts(array( 'cat' => $id, 'post-type' => 'book', 'post_status' => 'any' ));	
+		$posts = $mb_api->introspector->get_posts(array( 'cat' => $id, 'post-type' => 'mimeticbook', 'post_status' => 'any' ));	
 		if ($posts) {
 			$book_post = $posts[0];
 		}
@@ -1136,7 +1136,7 @@ We use some of the WP fields for our own purposes:
 
 	private function get_book_post_from_category_slug( $slug ) {
 		global $mb_api;
-		$posts = $mb_api->introspector->get_posts(array( 'category_name' => $slug, 'post-type' => 'book', 'post_status' => 'any' ));	
+		$posts = $mb_api->introspector->get_posts(array( 'category_name' => $slug, 'post-type' => 'mimeticbook', 'post_status' => 'any' ));	
 		if ($posts) {
 			$book_post = $posts[0];
 		}

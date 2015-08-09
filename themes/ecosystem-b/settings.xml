@@ -11,6 +11,19 @@
 		<pageBackgroundMarkColorG value="120" />
 		<pageBackgroundMarkColorB value="120" />
 		
+		<floatingBookCloseButtonReferencePoint value="Center" />
+		<floatingBookCloseButtonX value="1000" />
+		<floatingBookCloseButtonY value="53" />
+
+		<floatingBookCloseButtonLabel value="Close" />
+		<floatingBookCloseButtonLabelFont value = "Avenir-Light" />
+		<floatingBookCloseButtonLabelFontSize value = "16" />
+		<floatingBookCloseButtonLabelXOffset value="0" />
+		<floatingBookCloseButtonLabelYOffset value="40" />
+		<floatingBookCloseButtonLabelColor value="250,250,250,255" />
+		<floatingBookCloseButtonLabelOverColor value="180,180,180,100%" />
+
+
 		<!-- must be zero or embedded formatting will screw up the shadow, making it black! -->
 		<captionTextShadowAlpha value="0" />
 		<textblockTextShadowAlpha value="0" />
@@ -24,16 +37,9 @@
 		### set, ,,,,,,,50%
 		— {{pageNumberInBook}} —
 		</captionFooterText>
-		<captionPlaceFormat>{sublocation} {city}{citySeparator}{state}{stateSeparator}{country}</captionPlaceFormat>
+		<captionPlaceFormat></captionPlaceFormat>
 
 		<overlayFilename value="*/images/card-overlay.png" />
-
-
-		<bookBackgroundAlpha value="0" />
-
-		<chapterBackgroundAlpha value="0" />
-
-		<pageBackgroundAlpha value="10%" />
 
 	</slideview>
 

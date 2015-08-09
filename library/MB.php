@@ -662,6 +662,16 @@ class Mimetic_Book
 			}
 			
 		}
+		
+		// Add the page's tags in a custom field called "tags"
+		$tags = array();
+		foreach ($wp_page->tags as $tag) {
+		
+			//$mb_api->write_log(print_r($tag,true));
+		
+			$tags[] = $tag->title;
+		}
+		$fields["tags"] = implode ( "," , $tags );
 
 		
 		// Post label for the navigation bar
@@ -1044,7 +1054,7 @@ print ("-----------\n");
 		if (!$doc) {
 			$errors = libxml_get_errors();
 			foreach ($errors as $error) {
-				$mb_api->write_log(  $this->display_xml_error($error, $text) );
+				$mb_api->write_log(  __FILE__ . ":" . __FUNCTION__.":". __LINE__ . ":" . $this->display_xml_error($error, $text) );
 			}
 			libxml_clear_errors();
 		}
@@ -1058,6 +1068,8 @@ print ("-----------\n");
 			$element['name'] = $node->nodeName;
 			$element['value'] = $node->nodeValue;
 			$element['type'] = $node->nodeType;
+
+
 			$attributes = array();
 			foreach ($node->attributes as $attr) {
 				$attributes[$attr->name] = $attr->nodeValue;
@@ -1069,6 +1081,8 @@ print ("-----------\n");
 			
 			$attributes['id'] = $id;
 			
+//$mb_api->write_log (__FUNCTION__ . ": element = " . print_r($node, true));
+
 			// SUBTYPE? AUDIO/VIDEO, etc.
 			// Check if this is a tag which links to audio, video, etc., which
 			// means a subtype. Such tags are <a href="myfile.mp3"...> so we need to check
@@ -1155,7 +1169,7 @@ print ("-----------\n");
 		}
 	
 
-//$mb_api->write_log (__FUNCTION__ . "Page Elements:" . print_r($page_elements));
+//$mb_api->write_log (__FUNCTION__ . ":Page Elements = " . print_r($page_elements, true) . "\n\n");
 		return $page_elements;
 	}
 	
@@ -1286,6 +1300,9 @@ print ("-----------\n");
 				$post = get_post( $attr['id'], ARRAY_A );
 				$src = $post['guid'];	// src file name (not a resized file)
 
+
+//$mb_api->write_log(__FUNCTION__.": Image Post fields:" . print_r($post, true) );
+
 /*		
 $image=wp_get_attachment_image($attr['id'], 'large', false);
 $imagepieces = explode('"', $image);
@@ -1297,9 +1314,10 @@ $mb_api->write_log(__FUNCTION__.": image path is $imagepath");
 $mb_api->write_log(__FUNCTION__.": SRC = $src");
 */
 
-
 				if ($src == "") {
-					$mb_api->write_log(__FUNCTION__.": Missing source for image!" . print_r($element, true) );
+					//$mb_api->write_log(__FUNCTION__.": Missing source for image!" . print_r($element, true) );
+					$mb_api->write_log(__FUNCTION__.": *** The source might a remote URL, which we cannot use: " . $element['attributes']['src'] );
+					//$mb_api->write_log(__FUNCTION__.": Image Post fields:" . print_r($post, true) );
 					return "";
 				}
 				
@@ -1355,7 +1373,7 @@ $mb_api->write_log(__FUNCTION__.": SRC = $src");
 				
 					if ($w <= $targetW && $h <= $targetH) {			
 						$image->resize( $targetW, $targetH, false );	// false = no-crop
-$mb_api->write_log(__FUNCTION__.": Did not resize " . $mb_element['filename'] . " because it is already $w x $h ");
+//$mb_api->write_log(__FUNCTION__.": Did not resize " . $mb_element['filename'] . " because it is already $w x $h ");
 					}
 					$image->set_quality( 80 );
 					$image->save($filepath);
