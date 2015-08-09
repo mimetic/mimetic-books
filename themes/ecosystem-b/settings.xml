@@ -15,11 +15,6 @@
 		<floatingBookCloseButtonX value="1000" />
 		<floatingBookCloseButtonY value="53" />
 
-		<floatingBookCloseButton value="*/images/button-x.png" />
-		<floatingBookCloseButtonOver value="*/images/button-x-over.png" />
-		<floatingBookCloseButtonWidth value="44" />
-		<floatingBookCloseButtonHeight value="44" />
-
 		<floatingBookCloseButtonLabel value="Close" />
 		<floatingBookCloseButtonLabelFont value = "Avenir-Light" />
 		<floatingBookCloseButtonLabelFontSize value = "16" />

@@ -225,10 +225,36 @@ class MB_API_Themes
 			$custom_fields = explode(",", trim($f));
 //$mb_api->write_log(__FUNCTION__.": custom fields? : {$theme->fields} : ".print_r($custom_fields,true) );	
 		}
+
+		// HELP TEXT"
+		$custom_fields_help = array ();
+		if ($theme->fields_help) {
+			$f = trim($theme->fields_help);
+			$f = preg_replace ("/,\s*/",",",$f);
+			$f = preg_replace ("/\s+/"," ",$f);
+			$custom_fields_help = explode(",", trim($f));
+//print_r($custom_fields_help);
+		}
+
+
+		// OPTION LIST VALUES
+		$custom_fields_options = array ();
+		if ($theme->fields_options) {
+			$f = trim($theme->fields_options);
+			$f = preg_replace ("/,\s*/",",",$f);
+			$f = preg_replace ("/\s+/"," ",$f);
+			$custom_fields_options = explode(",", trim($f));
+//print_r($custom_fields_help);
+		}
+
+
+
 		$details = array (
 			'format_ids' => $theme_ids,
 			'format_is_toc' => $toc,
-			'custom_fields'	=> $custom_fields
+			'custom_fields'	=> $custom_fields,
+			'custom_fields_help'	=> $custom_fields_help,
+			'custom_fields_options'	=> $custom_fields_options
 			);
 		$details = (object) $details;
 		

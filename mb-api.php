@@ -1681,7 +1681,16 @@ function mb_post_mb_page_theme_meta_box( $post) {
 
 
 
-/* Display the post custom fields meta box. */
+
+/* ------------------------------------------------------------------------
+	------------------------------------------------------------------------
+	Display the post custom fields meta box.
+	
+	Shows a list of custom fields for use with the Mimetic Books viewer, 
+	esp. for plugins such as the ecosystem-game.
+	------------------------------------------------------------------------
+	------------------------------------------------------------------------ */
+
 function mb_post_mb_page_fields_meta_box( $post) { 
 	global $mb_api;
 	
@@ -1714,19 +1723,65 @@ function mb_post_mb_page_fields_meta_box( $post) {
 		// --------
 		// Show any custom fields listed in the theme
 		$custom_fields = $mb_api->themes->themes[$theme_id]->details->custom_fields;
-		sort($custom_fields);
+
+		$custom_fields_help = $mb_api->themes->themes[$theme_id]->details->custom_fields_help;
+
+		$custom_fields_options = $mb_api->themes->themes[$theme_id]->details->custom_fields_options;
+
+		//sort($custom_fields);
+		
 		if ($custom_fields) {
+			$cfi = 0;
 			foreach ($custom_fields as $fieldname) {
 				$f = "mb_custom_".$fieldname;
 				$curval = get_post_meta($post->ID, $f, true);
+				if (isset($custom_fields_help[$cfi]) ) {
+					$helptxt = "<br><i><smaller>".$custom_fields_help[$cfi]."</smaller></i>";
+				} else {
+					$helptxt = "";
+				}
+				
+				// OPTION LIST
+				$custom_fields_options ? $values = $custom_fields_options[$cfi] : $values = null;
+				if ($values) {
+					$values = explode("|", trim($values));
+					$varray = array();
+					foreach ($values as $v) {
+						$varray[$v] = $v;
+					}
+					// Get current checked item -- pass the index in the list of options, not the value!
+					$checked = array_search($curval, $varray);
+					empty($checked) && $checked = 0;
+					$sort = true;
+					$size = true;
+					$extrahtml = "";
+					$extraline = array();
+					$menu = $mb_api->funx->OptionListFromArray ($varray, $f, $checked, $sort, $size, $extrahtml, $extraline);
+					
+					
+				} else {
+					$menu = "";
+				}
+				
+				
+				
+				
 				?>
-					<div class="mb-settings-section no-border">
+					<div class="mb-settings-section">
 						<label for="<?php echo $f; ?>">
-							<?php echo $fieldname; ?> :
+							<?php print "<b>$fieldname</b>$helptxt";?>&nbsp;: 
 						</label><br>
-						<input type="text" style="width:90%;" id="<?php echo $f; ?>" name="<?php echo $f; ?>" value="<?php print $curval;  ?>" />
-					</div>
-			<?php
+						<?php if ($menu) {
+							echo $menu;
+						
+						} else {
+							?>
+							<input type="text" style="width:90%;" id="<?php echo $f; ?>" name="<?php echo $f; ?>" value="<?php print $curval;  ?>" />
+							<?php
+						}
+					?></div>
+				<?php
+				$cfi++;
 
 			} // for
 		}	// if custom fields

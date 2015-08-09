@@ -22,8 +22,68 @@
 		ecosystem-cards-b
 	</uniqueid>
 	<fields>
-		card-consumes-title,icon-1-label,icon-2-label,icon-3-label,link-1,link-2,link-3,link-4,link-5,link-6,icon-1,icon-2,icon-3,thumbnail,level,clue,consumption_rate,reproduction_rate,in_ecosystem_game,zone,size,speed,direction_of_picture,longevity,swim_on_page
+		card-consumes-title,icon-1-label,icon-2-label,icon-3-label,link-1,link-2,link-3,link-4,link-5,link-6,icon-1,icon-2,icon-3,thumbnail,level,clue,consumption_rate,reproduction_rate,in_ecosystem_game,zone,size,speed,direction_of_picture,longevity,swim_on_page,animation_style
 	</fields>
+<!-- DO NOT USE COMMAS INSIDE EACH ENTRY! -->
+	<fields_help>
+Title for the section showing the items this species eats,
+Icon #1 — Contribution to the food web,
+Icon #2 — Kind of food this eats,
+Icon #3 — Zone in habitat,
+Permalink of prey #1,
+Permalink of prey #2,
+Permalink of prey #3,
+Permalink of prey #4,
+Permalink of prey #5,
+Permalink of prey #6,
+Filename for the icon for icon #1. Leave blank for built-in,
+Filename for the icon for icon #2. Leave blank for built-in,
+Filename for the icon for icon #3. Leave blank for built-in,
+Ecosystem Game: PNG image to use. Usually identical to the permalink for this species. *** If empty this species will not appear in the Ecosystem game! ***,
+Food Web Game: Tropic level — used to determine where in the food web game this species is. 0 is the bottom (like minerals or sunlight),
+A clue for the reader to identify the species,
+Ecosystem Game: How fast does this species consume? "0" means it does not eat and is not consumed by other creatures (e.g. the sun),
+Ecosystem Game: How fast does this species reproduce? "0" = does not reproduce,
+Ecosystem Game: Can this species be shown in the ecosystem game?,
+Ecosystem Game: Which zone in its habitat does this creature live?,
+Ecosystem Game: Show the species at this percent of the maximum size allowed as set in the book plugin XML (maxItemSizeH). If blank we use the default size. Large is about 30 and small is about 10,
+Ecosystem Game: How fast does this species move? 0 = stationary,
+Ecosystem Game: Which way does the picture of this species face? Default is "left",
+Ecosystem Game: How long does this card live before dying of old age? 0 = lives for ever — like the sun,
+Swim on Page Plugin: Does this species swim through chapters?,
+Ecosystem Game/Swim Plugin: How does this creature move when animated?
+	</fields_help>
+	
+<!-- DO NOT USE COMMAS INSIDE EACH ENTRY! -->
+	<fields_options>
+,
+consumer|producer,
+carnivore|omnivore|herbivore,
+top|middle|bottom|floor|canopy,
+,
+,
+,
+,
+,
+,
+,
+,
+,
+,
+0|1|2|3|4,
+,
+0|10|20|30|40|50|60|70|80|90,
+0|10|20|30|40|50|60|70|80|90,
+true|false,
+top|middle|bottom|floor|canopy,
+10|20|30|40|50,
+0|5|10|20|30,
+left|right,
+longevity,
+true|false,
+still|walk|swim|fly
+	</fields_options>	
+	
 	<description>
 		Ecosystem Cards
 	</description>
