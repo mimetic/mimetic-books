@@ -319,7 +319,10 @@ class MB_API {
 			</tr>
 		</table>
 
-		<h3>Book</h3>
+
+<!--
+		
+			<h3>Book</h3>
 		<p>Choose which book you wish to publish. Maybe better if this lives on the book's post page, but I don't know how to do that right now.</p>
 		<table class="form-table">
 		<tr valign="top">
@@ -364,6 +367,8 @@ class MB_API {
 		</table>
 		
 					<input type="button" id="update_publishers" class="button-primary" value="<?php _e('Update Publishers') ?>" />
+
+-->
 
 		<h3>Publisher</h3>
 		<p>

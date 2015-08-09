@@ -3,7 +3,7 @@ Contributors: mimetic
 Tags: Mimetic Books, Mimetic, iPad
 Requires at least: 4.0
 Tested up to: 4.2.2
-Stable tag: 0.2.3
+Stable tag: 0.2.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,11 @@ Nothing yet.
 
 
 == Changelog ==
+= 0.2.4 =
+* Added help text and pop-up menus for Mimetic Books Custom Fields, if defined in the templates file of a theme.
+* Now the WordPress tags are captured and included in the book XML file, for use by page conditionals and plugins.
+* Remove book publishing from the settings page
+
 
 = 0.2.2 =
 * Fixed the problem with jQuery popup dialogs not working since the WordPress update changed how jQuery worked.
