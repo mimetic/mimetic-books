@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <book xml:space="preserve">
 	<title>
-		Ecosystem
+		Ecosystem B
 	</title>
 	<author>
 		David Gross
@@ -10,16 +10,16 @@
 		landscape
 	</orientation>
 	<documentPath>
-		/Volumes/Macintosh HD/Users/dgross/Corona Projects/Photobook Tools/Themes DEV/Ecosystem Cards Theme Folder/theme
+		/Volumes/Macintosh HD/Users/dgross/Corona Projects/Photobook Tools/Themes DEV/Ecosystem Cards Theme Folder/theme-b
 	</documentPath>
 	<imagePath>
-		~/Corona%20Projects/Photobook%20Tools/Themes%20DEV/Ecosystem%20Cards%20Theme%20Folder/themeundefined
+		~/Corona%20Projects/Photobook%20Tools/Themes%20DEV/Ecosystem%20Cards%20Theme%20Folder/theme-bundefined
 	</imagePath>
 	<previewPath>
-		~/Corona%20Projects/Photobook%20Tools/Themes%20DEV/Ecosystem%20Cards%20Theme%20Folder/theme/template_previews
+		~/Corona%20Projects/Photobook%20Tools/Themes%20DEV/Ecosystem%20Cards%20Theme%20Folder/theme-b/template_previews
 	</previewPath>
 	<uniqueid>
-		ecosystem-cards
+		ecosystem-cards-b
 	</uniqueid>
 	<fields>
 		card-consumes-title,icon-1-label,icon-2-label,icon-3-label,link-1,link-2,link-3,link-4,link-5,link-6,icon-1,icon-2,icon-3,thumbnail,level,clue,consumption_rate,reproduction_rate,in_ecosystem_game,zone,size,speed,direction_of_picture,longevity,swim_on_page,animation_style
@@ -53,7 +53,7 @@ Ecosystem Game: How long does this card live before dying of old age? 0 = lives 
 Swim on Page Plugin: Does this species swim through chapters?,
 Ecosystem Game/Swim Plugin: How does this creature move when animated?
 	</fields_help>
-
+	
 <!-- DO NOT USE COMMAS INSIDE EACH ENTRY! -->
 	<fields_options>
 ,
@@ -105,7 +105,7 @@ still|walk|swim|fly
 			</overlay>
 			<textblocks absolute="true">
 				<textblock>
-					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="436" height="52" absolute="true">
 					</title>
 				</textblock>
 				<textblock>
@@ -115,11 +115,11 @@ still|walk|swim|fly
 				</textblock>
 			</textblocks>
 			<pictures>
-				<picture noThumbnail="true" filename="" noShadow="true" restoreLayersOnZoomOut="true" x="913" y="76" width="44" height="44" absolute="true">
+				<picture noThumbnail="true" filename="" noShadow="true" grungeEdgeMask="true" restoreLayersOnZoomOut="true" x="548" y="91" width="382" height="574" absolute="true">
 				</picture>
 			</pictures>
 			<buttons absolute="true">
-				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				<button x="940" y="53" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="Center" valign="Center" sizeToFit="true">
 				</button>
 			</buttons>
 		</page>
@@ -130,7 +130,7 @@ still|walk|swim|fly
 			<overlay>
 			</overlay>
 			<pictures>
-				<picture filename="" noShadow="true" restoreLayersOnZoomOut="true" zoomedScale="1" x="569" y="201" width="374" height="141" absolute="true">
+				<picture noThumbnail="true" filename="" noShadow="true" addCorners="true" restoreLayersOnZoomOut="true" zoomedScale="1" x="558" y="107" width="388" height="259" absolute="true" align="center">
 				</picture>
 				<picture custom="{{icon-1}}" condition="custom,is not, blank" noThumbnail="true" filename="*/images/{{icon-1}}.png" noShadow="true" restoreLayersOnZoomOut="true" x="60" y="167" width="120" height="120" absolute="true">
 				</picture>
@@ -138,12 +138,10 @@ still|walk|swim|fly
 				</picture>
 				<picture custom="{{icon-3}}" condition="custom,is not, blank" noThumbnail="true" filename="*/images/{{icon-3}}.png" noShadow="true" restoreLayersOnZoomOut="true" x="392" y="167" width="120" height="120" absolute="true">
 				</picture>
-				<picture noThumbnail="true" filename="" noShadow="true" restoreLayersOnZoomOut="true" x="913" y="76" width="44" height="44" absolute="true">
-				</picture>
 			</pictures>
 			<textblocks absolute="true">
 				<textblock>
-					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="436" height="52" absolute="true">
 					</title>
 				</textblock>
 				<textblock>
@@ -181,8 +179,9 @@ still|walk|swim|fly
 				<button x="885" y="592" height="100" width="100" id="Button 6" custom="{{link-6}}" condition="custom,is not, blank" params="{{link-6}}" action="goPageByID" imagefile="*/pictures/{{link-6}}-card.png" over="" align="center" valign="center" sizeToFit="true">
 				</button>
 				
-				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				<button x="940" y="53" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="Center" valign="Center" sizeToFit="true">
 				</button>
+
 			</buttons>
 		</page>
 		<page id="AC" ignoreExtraSourceElements="true" order="3">
@@ -192,14 +191,12 @@ still|walk|swim|fly
 			<overlay>
 			</overlay>
 			<pictures>
-				<picture filename="" noShadow="true" restoreLayersOnZoomOut="true" zoomedScale="1" x="569" y="201" width="374" height="141" absolute="true">
-				</picture>
-				<picture noThumbnail="true" filename="" noShadow="true" restoreLayersOnZoomOut="true" x="913" y="76" width="44" height="44" absolute="true">
+				<picture noThumbnail="true" filename="" noShadow="true" addCorners="true" restoreLayersOnZoomOut="true" zoomedScale="1" x="558" y="107" width="388" height="259" absolute="true">
 				</picture>
 			</pictures>
 			<textblocks absolute="true">
 				<textblock>
-					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="871" height="52" absolute="true">
+					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="436" height="52" absolute="true">
 					</title>
 				</textblock>
 				<textblock>
@@ -208,7 +205,7 @@ still|walk|swim|fly
 				</textblock>
 			</textblocks>
 			<buttons absolute="true">
-				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				<button x="940" y="53" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="Center" valign="Center" sizeToFit="true">
 				</button>
 			</buttons>
 		</page>
@@ -229,12 +226,10 @@ still|walk|swim|fly
 				</textblock>
 			</textblocks>
 			<buttons absolute="true">
-				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				<button x="940" y="53" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="Center" valign="Center" sizeToFit="true">
 				</button>
 			</buttons>
 			<pictures>
-				<picture noThumbnail="true" filename="*/images/button-back.png" noShadow="true" restoreLayersOnZoomOut="true" noReplace="true" x="913" y="76" width="45" height="45" absolute="true">
-				</picture>
 			</pictures>
 		</page>
 		<page id="AE" ignoreExtraSourceElements="true" order="5">
@@ -254,11 +249,11 @@ still|walk|swim|fly
 				</textblock>
 			</textblocks>
 			<pictures>
-				<picture noThumbnail="true" filename="" noShadow="true" restoreLayersOnZoomOut="true" x="680" y="166" width="250" height="500" absolute="true">
+				<picture noThumbnail="true" filename="" noShadow="true" grungeEdgeMask="true" restoreLayersOnZoomOut="true" x="597" y="166" width="333" height="500" absolute="true">
 				</picture>
 			</pictures>
 			<buttons absolute="true">
-				<button x="91%" y="12.5%" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="center" valign="center" sizeToFit="true">
+				<button x="940" y="53" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="Center" valign="Center" sizeToFit="true">
 				</button>
 			</buttons>
 		</page>

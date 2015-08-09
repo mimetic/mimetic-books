@@ -62,7 +62,7 @@ class MB_API_Funx
 		while (list($ID, $name) = each ($values)) {
 			$ID = trim($ID);
 			$name = trim($name);
-			if ($name && $name[0] != "/") {
+			if ($name != null && $name[0] != "/") {
 				in_array($ID, $checked) ? $check = " selected" : $check = "";
 				$optionlist .= "<OPTION $class VALUE=\"$ID\" $check>$name</OPTION>\n";
 				$k++;
