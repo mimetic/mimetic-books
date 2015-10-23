@@ -22,7 +22,7 @@
 		ecosystem-cards-b
 	</uniqueid>
 	<fields>
-		card-consumes-title,icon-1-label,icon-2-label,icon-3-label,link-1,link-2,link-3,link-4,link-5,link-6,icon-1,icon-2,icon-3,thumbnail,level,clue,consumption_rate,reproduction_rate,in_ecosystem_game,zone,size,speed,direction_of_picture,longevity,swim_on_page,animation_style
+		card-consumes-title,icon-1-label,icon-2-label,icon-3-label,icon-1,icon-2,icon-3,link-1,link-2,link-3,link-4,link-5,link-6,thumbnail,level,clue,long-clue,consumption_rate,reproduction_rate,in_ecosystem_game,zone,size,speed,direction_of_picture,longevity,swim_on_page,animation_style
 	</fields>
 <!-- DO NOT USE COMMAS INSIDE EACH ENTRY! -->
 	<fields_help>
@@ -30,18 +30,19 @@ Title for the section showing the items this species eats,
 Icon #1 — Contribution to the food web,
 Icon #2 — Kind of food this eats,
 Icon #3 — Zone in habitat,
+Filename for the icon for icon #1. Leave blank for built-in,
+Filename for the icon for icon #2. Leave blank for built-in,
+Filename for the icon for icon #3. Leave blank for built-in,
 Permalink of prey #1,
 Permalink of prey #2,
 Permalink of prey #3,
 Permalink of prey #4,
 Permalink of prey #5,
 Permalink of prey #6,
-Filename for the icon for icon #1. Leave blank for built-in,
-Filename for the icon for icon #2. Leave blank for built-in,
-Filename for the icon for icon #3. Leave blank for built-in,
 Ecosystem Game: PNG image to use. Usually identical to the permalink for this species. *** If empty this species will not appear in the Ecosystem game! ***,
 Food Web Game: Tropic level — used to determine where in the food web game this species is. 0 is the bottom (like minerals or sunlight),
-A clue for the reader to identify the species,
+A clue for the reader to identify the species (for the food-web game),
+A long clue for the reader to identify the species (for trails),
 Ecosystem Game: How fast does this species consume? "0" means it does not eat and is not consumed by other creatures (e.g. the sun),
 Ecosystem Game: How fast does this species reproduce? "0" = does not reproduce,
 Ecosystem Game: Can this species be shown in the ecosystem game?,
@@ -58,11 +59,11 @@ Ecosystem Game/Swim Plugin: How does this creature move when animated?
 	<fields_options>
 ,
 consumer|producer,
-carnivore|omnivore|herbivore,
-top|middle|bottom|floor|canopy,
-,
-,
-,
+carnivore|omnivore|herbivore|detritivore|autotroph,
+surface|top-layer|mid-layer|bottom|canopy|all-layers|sea-floor|splitms|splitcm|,
+icon-consumer|icon-producer,
+icon-carnivore|icon-omnivore|icon-herbivore|icon-autotroph,
+icon-all-layers|icon-bottom|icon-mid-layer|icon-sea-floor|icon-splitcm|icon-splitms|icon-surface|icon-top-layer,
 ,
 ,
 ,
@@ -72,14 +73,15 @@ top|middle|bottom|floor|canopy,
 ,
 0|1|2|3|4,
 ,
-0|10|20|30|40|50|60|70|80|90,
-0|10|20|30|40|50|60|70|80|90,
+,
+0|10|20|30|40|50|60|70|80|90|100,
+0|10|20|30|40|50|60|70|80|90|100,
 true|false,
 top|middle|bottom|floor|canopy,
 10|20|30|40|50,
 0|5|10|20|30,
-left|right,
-longevity,
+right|left,
+0|10|20|30|40|50|60|70|80|90|100,
 true|false,
 still|walk|swim|fly
 	</fields_options>	
@@ -132,6 +134,11 @@ still|walk|swim|fly
 			<pictures>
 				<picture noThumbnail="true" filename="" noShadow="true" addCorners="true" restoreLayersOnZoomOut="true" zoomedScale="1" x="558" y="107" width="388" height="259" absolute="true" align="center">
 				</picture>
+
+				<picture noThumbnail="true" filename="" alpha="0.1" layer="0" noShadow="true" addCorners="false" x="15%" y="35%" width="50%" height="50%" absolute="true" align="center">
+				</picture>
+
+
 				<picture custom="{{icon-1}}" condition="custom,is not, blank" noThumbnail="true" filename="*/images/{{icon-1}}.png" noShadow="true" restoreLayersOnZoomOut="true" x="60" y="167" width="120" height="120" absolute="true">
 				</picture>
 				<picture custom="{{icon-2}}" condition="custom,is not, blank" noThumbnail="true" filename="*/images/{{icon-2}}.png" noShadow="true" restoreLayersOnZoomOut="true" x="226" y="167" width="120" height="120" absolute="true">
@@ -256,6 +263,15 @@ still|walk|swim|fly
 				<button x="940" y="53" height="44" width="44" id="Back" action="goBack" imagefile="*/images/button-back.png" over="" align="Center" valign="Center" sizeToFit="true">
 				</button>
 			</buttons>
+		</page>
+		<page id="AF" ignoreExtraSourceElements="true" order="6">
+			<backgroundfile>
+				*/backgrounds/card-background-blank.png
+			</backgroundfile>
+			<pictures>
+				<picture noThumbnail="true" filename="" noShadow="true" restoreLayersOnZoomOut="true" noReplace="false" x="0" y="0" width="1024" height="768" absolute="true">
+				</picture>
+			</pictures>
 		</page>
 	</chapter>
 </book>
