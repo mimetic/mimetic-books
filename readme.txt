@@ -3,7 +3,7 @@ Contributors: mimetic
 Tags: Mimetic Books, Mimetic, iPad
 Requires at least: 4.0
 Tested up to: 4.2.2
-Stable tag: 0.2.5
+Stable tag: 0.2.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,9 @@ Nothing yet.
 
 
 == Changelog ==
+= 0.2.6 =
+* Updated ecosystem-b theme, added cover template and updated overlays
+
 = 0.2.5 =
 * Retina backgrounds for ecosystem-b theme
 * Fixed 'longevity' custom field values for ecosystem-b theme
