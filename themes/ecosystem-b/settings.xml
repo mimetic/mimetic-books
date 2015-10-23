@@ -7,6 +7,8 @@
 
 		<orientations value="landscapeLeft,landscapeRight" />
 
+		<noAutoscrollTextblocks value="false" />
+
 		<pageBackgroundMarkColorR value="120" />
 		<pageBackgroundMarkColorG value="120" />
 		<pageBackgroundMarkColorB value="120" />
