@@ -2,8 +2,8 @@
 Contributors: mimetic
 Tags: Mimetic Books, Mimetic, iPad
 Requires at least: 4.0
-Tested up to: 4.2.2
-Stable tag: 0.2.6
+Tested up to: 4.5.2
+Stable tag: 0.2.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,16 @@ Nothing yet.
 
 
 == Changelog ==
+= 0.2.9 =
+* Argh! Git issues! Fixed.
+
+= 0.2.8 =
+* The 'option' for a field in a template can now be a code instead of a pop-up menu option list. The only code right now is "!textarea". This code makes the field a textarea instead of a text field.
+
+= 0.2.7 =
+* Fixed resizing of images to fit templates.
+* Fixed creation of extra -card files.
+
 = 0.2.6 =
 * Updated ecosystem-b theme, added cover template and updated overlays
 
