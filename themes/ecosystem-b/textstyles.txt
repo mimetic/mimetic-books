@@ -5,3 +5,7 @@ card-title=AvenirNext-DemiBold,36,43.2,0,0,0,,100%,NORMAL,center,0,0,0,0,0
 card-body=AvenirNext-Regular,18,21.6,0,0,0,,100%,NORMAL,left,0,6,0,0,0
 card-consumes-title=AvenirNext-DemiBold,16,19.2,0,0,0,,100%,NORMAL,center,0,0,0,0,0
 card-icon-label=AvenirNext-DemiBold,14,16.8,0,0,0,,100%,ALL_CAPS,center,0,0,0,0,0
+
+# Styles that appear from Wordpress but that we ignore
+preview-image-wrapper=,
+preview-image-container=,

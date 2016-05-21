@@ -17,7 +17,7 @@ class MB_API_Funx
 	/* 
 	Constructor 
 	*/
- 	function MB_API_Funx()
+ 	function __construct()
 	{
 	}
 	

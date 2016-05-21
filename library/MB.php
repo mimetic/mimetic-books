@@ -118,7 +118,7 @@ class Mimetic_Book
     *                                   bubble up with an error, so all return values
     *                                   from encode() should be checked with isError()
     */
-    function Mimetic_Book($book_info, $options = array() )
+    function __construct($book_info, $options = array() )
     {
 
     	$this->id = ($book_info['id'] ? $book_info['id'] : "mb_".uniqid() );
@@ -702,7 +702,7 @@ class Mimetic_Book
 			//'audiofile'		=> '',
 			//'video'			=> '',
 			'textblocks'		=> $textblocks,
-			'fields'			=> $fields,
+			'fields'				=> $fields,
 			'template'			=> $themePageID,
 			'caption'			=> $caption,
 			'label'				=> $nav_label
@@ -1370,25 +1370,51 @@ $mb_api->write_log(__FUNCTION__.": SRC = $src");
 				// Save normal sized image
 				$image = wp_get_image_editor( $src);
 				if (! is_wp_error($image) ) {
+
+// $time_start = microtime(true);
+// $mb_api->write_log(__FUNCTION__."------------------------- BEGIN image resizing for: $filename");
+
+// Add extra time for processing. This takes whereever we were in the 30 sec. default counter, 
+// and adds an addition 30 seconds from right now.
+set_time_limit ( 30 );
 				
-					if ($w <= $targetW && $h <= $targetH) {			
+					// RESIZE: ENLARGE TO FIT TEMPLATE???
+					// This resizes when it is smaller the target area.
+					/*
+					if ( $w < $targetW && $h < $targetH ) {
+$mb_api->write_log(__FUNCTION__.": Try to resize $filename from $w x $h ---> $targetW x $targetH.");
 						$image->resize( $targetW, $targetH, false );	// false = no-crop
-//$mb_api->write_log(__FUNCTION__.": Did not resize " . $mb_element['filename'] . " because it is already $w x $h ");
+$mb_api->write_log(__FUNCTION__.": (success)");
 					}
+					*/
+					
+					// RESIZE: REDUCE TO FIT TEMPLATE???
+					// This resizes when it is smaller the target area, not when it is too large!
+					if ($w > $targetW || $h > $targetH) {			
+//$mb_api->write_log(__FUNCTION__.": Try to resize $filename from $w x $h ---> $targetW x $targetH.");
+						$image->resize( $targetW, $targetH, false );	// false = no-crop
+//$mb_api->write_log(__FUNCTION__.": (success)");
+					}
+					
+					
 					$image->set_quality( 80 );
 					$image->save($filepath);
 										
 					// Make card-sized pictures if this book can be used as a cards list
 					// Save thumbnail 300x300 image
-					
+					// If this is not a card picture (doesn't end in "-card") then rename it to ...-card
 					if ($this->is_card_list) {
+//$mb_api->write_log(__FUNCTION__.": Try to resize $filename to card size (300x300).");
 						$image->resize( 300, 300, false );	// false = no-crop
 						$image->set_quality( 80 );
 
 						$info = pathinfo($src);
 						$ext = '.' . $info['extension'];
 						$name = $info['filename'];
-						$filepath = $dir.$name."-card{$ext}";
+						if (!preg_match("/-card$/", $name)) {
+							$name = $name."-card";
+						}
+						$filepath = $dir.$name.$ext;
 						$image->save($filepath);
 					}
 					
@@ -1398,6 +1424,7 @@ $mb_api->write_log(__FUNCTION__.": SRC = $src");
 					if ($this->options['save2x'] && ( ($w > ($targetW*2) || ($h > ($targetH*2)) ) ) ) {
 						$image = wp_get_image_editor( $src);
 						if (! is_wp_error($image) ) {
+//$mb_api->write_log(__FUNCTION__.": Try to resize $filename to @2x size.");
 							$image->resize( $targetW*2, $targetH*2, false );	// false = no-crop
 							$image->set_quality( 80 );
 
@@ -1410,6 +1437,11 @@ $mb_api->write_log(__FUNCTION__.": SRC = $src");
 							return null;
 						}
 					}
+
+// $time_end = microtime(true);
+// $time = $time_end - $time_start;
+// $mb_api->write_log("------------------------- total time = $time sec");
+// $mb_api->write_log("------------------------- END");
 				
 				} else {
 					return null;

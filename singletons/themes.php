@@ -17,7 +17,7 @@ class MB_API_Themes
 	/* 
 	Constructor 
 	*/
- 	function MB_API_Themes($dir)
+ 	function __construct($dir)
 	{
 		$this->themes = array();
 		$this->themes_list = array();

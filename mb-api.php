@@ -1741,9 +1741,22 @@ function mb_post_mb_page_fields_meta_box( $post) {
 					$helptxt = "";
 				}
 				
-				// OPTION LIST
+				// Field options: could be a list of options (menu) or a code, e.g. *textarea
 				$custom_fields_options ? $values = $custom_fields_options[$cfi] : $values = null;
-				if ($values) {
+				
+				// Default text field
+				$fieldtype = "text";
+
+				
+				if ($values && $values[0] == "!") {
+					// It's a code
+					$code = substr($values, 1);
+					switch ($code) {
+						case "textarea" :
+							$fieldtype = $code;
+							break;
+					}
+				} else if ($values) {
 					$values = explode("|", trim($values));
 					$varray = array();
 					foreach ($values as $v) {
@@ -1775,9 +1788,17 @@ function mb_post_mb_page_fields_meta_box( $post) {
 							echo $menu;
 						
 						} else {
+							if ($fieldtype == "text") {
 							?>
 							<input type="text" style="width:90%;" id="<?php echo $f; ?>" name="<?php echo $f; ?>" value="<?php print $curval;  ?>" />
 							<?php
+							} elseif ($fieldtype == "textarea") {
+							?>
+							<textarea style="width:90%;" id="<?php echo $f; ?>" name="<?php echo $f; ?>" value="<?php print $curval;  ?>" rows="4" />
+								<?php print $curval;  ?>
+							</textarea>
+							<?php
+							}
 						}
 					?></div>
 				<?php

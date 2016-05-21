@@ -56,14 +56,16 @@ Ecosystem Game/Swim Plugin: How does this creature move when animated?
 	</fields_help>
 	
 <!-- DO NOT USE COMMAS INSIDE EACH ENTRY! -->
+<!-- multiple choice: text|text|text -->
+<!-- Textfield: *textarea -->
 	<fields_options>
 ,
 consumer|producer,
 carnivore|omnivore|herbivore|detritivore|autotroph,
-surface|top-layer|mid-layer|bottom|canopy|all-layers|sea-floor|splitms|splitcm|,
+surface|top-layer|mid-layer|bottom|canopy|all-layers|sea-floor|splitms|splitcm|aquatic|terrestrial,
 icon-consumer|icon-producer,
 icon-carnivore|icon-omnivore|icon-herbivore|icon-autotroph,
-icon-all-layers|icon-bottom|icon-mid-layer|icon-sea-floor|icon-splitcm|icon-splitms|icon-surface|icon-top-layer,
+icon-all-layers|icon-bottom|icon-mid-layer|icon-sea-floor|icon-splitcm|icon-splitms|icon-surface|icon-top-layer|icon-aquatic|icon-terrestrial,
 ,
 ,
 ,
@@ -72,12 +74,14 @@ icon-all-layers|icon-bottom|icon-mid-layer|icon-sea-floor|icon-splitcm|icon-spli
 ,
 ,
 0|1|2|3|4,
+<!-- short clue -->
 ,
-,
+<!-- long clue -->
+!textarea,
 0|10|20|30|40|50|60|70|80|90|100,
 0|10|20|30|40|50|60|70|80|90|100,
 true|false,
-top|middle|bottom|floor|canopy,
+all|sky|surface|upper|top|middle|bottom|lower|floor,
 10|20|30|40|50,
 0|5|10|20|30,
 right|left,
@@ -148,11 +152,11 @@ still|walk|swim|fly
 			</pictures>
 			<textblocks absolute="true">
 				<textblock>
-					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="77" y="81" width="436" height="52" absolute="true">
+					<title isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-title" x="67" y="81" width="456" height="52" absolute="true">
 					</title>
 				</textblock>
 				<textblock>
-					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-consumes-title" source="card-consumes-title" noReplace="true" x="576" y="404" width="349" height="27" absolute="true">
+					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-consumes-title" source="card-consumes-title" noReplace="true" x="576" y="390" width="349" height="27" absolute="true">
 					</text>
 				</textblock>
 				<textblock>

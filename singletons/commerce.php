@@ -14,7 +14,7 @@ class MB_API_Commerce
 	/* 
 	Constructor 
 	*/
- 	function MB_API_Commerce($dir)
+ 	function __construct($dir)
 	{
 		$this->logfile = $dir . DIRECTORY_SEPARATOR . "mb-books-api-commerce.log";
 	}
