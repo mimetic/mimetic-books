@@ -69,7 +69,7 @@ We use some of the WP fields for our own purposes:
 			}
 
 		$this->write_log("\n======================= singleton:".__FUNCTION__.": Begin");
-
+		
 		extract($mb_api->query->get(array('remote'), $params));
 		
 		$local = false;		
@@ -127,9 +127,12 @@ We use some of the WP fields for our own purposes:
 			$use_local_book_file = true;
 			
 		} else {
+		
+
+
+			// -------------------------
 			// LOCAL PUBLISHING
-			
-			
+						
 			$user = wp_get_current_user();
 			
 			// Get book ID
@@ -166,7 +169,11 @@ We use some of the WP fields for our own purposes:
 					'ID'=>$id
 				));
 			}
-
+			
+			// Name of the director to hold the book
+			$book_basedir = strtolower($book_id);
+			
+			// Full path for the book
 			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
 
 			// Overwrite any existing file without asking
@@ -423,6 +430,8 @@ We use some of the WP fields for our own purposes:
 			//data,textStatus
 			$error['data'] = $error;
 			$error = json_encode($error);
+		} else {
+			$error = array ('status'=>"ok");
 		}
 		
 		$this->write_log(__FUNCTION__.": End\n=======================\n");
@@ -492,7 +501,9 @@ We use some of the WP fields for our own purposes:
 		// Build the tar file from the files, ready for sending.
 		//$success = $mb_api->funx->tar_dir($mb->tempDir, "{$mb->id}.tar");
 		$tarfilename = $mb_api->package_dir . DIRECTORY_SEPARATOR . $mb->id . ".tar";
-		
+
+//$this->write_log("Controller:".__FUNCTION__.": tarfilename = $tarfilename");
+
 		// Delete previous version of the package
 		if (file_exists($tarfilename))
 			unlink ($tarfilename);
@@ -902,6 +913,7 @@ We use some of the WP fields for our own purposes:
 		
 		// be sure there's an ending slash
 		$url = preg_replace("/(\/*)$/", '', $url) . "/";
+		$baseurl = $url;
 		
 		if (isset($url)) {
 			$url .=  "mb/book/publish_book_package/";
@@ -942,7 +954,7 @@ We use some of the WP fields for our own purposes:
 		$success = curl_exec($ch); 
 		curl_close($ch); 
 		
-		// delete the book package
+		// delete the book package in any case
 		unlink ($localfile);
 		
 		
@@ -1021,9 +1033,6 @@ We use some of the WP fields for our own purposes:
 			);
 			$response = $mb_api->introspector->get_posts($arr);
 			$post = $response[0];
-			// WP functions
-			//$post = get_post($arr);
-			//$post = new MB_API_Post($post);
 		} elseif ($category_id) {
 			$post = get_book_post_from_category_id( $category_id );
 		} elseif ($category_slug) {
@@ -1294,6 +1303,7 @@ foreach ($posts as $p) {
 				'post_type' => 'post',
 				'post_status' => 'publish,private',
 				'posts_per_page' => -1,
+				// These are required by Advanced Post Types plugin if it is set to manual, but not with auto setting
 				//'orderby' => 'menu_order',
 				//'order' => 'ASC',
 				'tax_query' => array (	
@@ -1305,6 +1315,7 @@ foreach ($posts as $p) {
 									)
 								)
 				);
+			
 			//$posts = get_posts($q);
 			$posts = $mb_api->introspector->get_posts($q);
 
@@ -1960,7 +1971,7 @@ foreach ($posts as $p) {
 		return $backtrace[2]['function'];
 	}
 
-	
-}
+
+}	// end of class definition
 
 ?>

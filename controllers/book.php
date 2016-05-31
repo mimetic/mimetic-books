@@ -62,6 +62,7 @@ We use some of the WP fields for our own purposes:
 
 */
 	
+	
 	/*
 	 * Get a converted tar file book from a client site, or from this site.
 	 * $book_id = book unique id
@@ -95,6 +96,16 @@ We use some of the WP fields for our own purposes:
 				$this->write_log("Authorization not accepted.");
 				return false;
 			}
+			
+			
+		// AJAX STUFF
+		header('Content-Type: text/event-stream');
+		// recommended to prevent caching of event data.
+		header('Cache-Control: no-cache'); 
+		// ------
+	
+	
+	
 
 		$this->write_log("\n======================= controller:".__FUNCTION__.": Begin");
 
@@ -185,6 +196,9 @@ We use some of the WP fields for our own purposes:
 				
 			// If this book is UPDATING, then the unique ID is modified.
 			$mb_updating_book = mb_checkbox_is_checked( get_post_meta($id, "mb_updating_book", true) );
+			if ($mb_updating_book) {
+				$book_id .= ".draft";
+			}
 
 			// Update the book post so the modification date for this book is Now.
 			if (!$mb_updating_book) {
@@ -201,6 +215,22 @@ We use some of the WP fields for our own purposes:
 
 			// Overwrite any existing file without asking
 			$filename = $dir . DIRECTORY_SEPARATOR . "item.tar";
+
+
+			// Progress Tracking
+$this->write_log(__FUNCTION__.": Update Progress!");
+			
+			// Update the progress
+			$mb_api->update_publish_progress( $id, array (
+				'message' 	=> "——— Begin ———",
+				'progress'	=> 0,
+				'status' 	=> 'begin',
+				'total'		=> 0
+			));
+			
+			// Send an update via AJAX
+			$mb_api->send_ajax_update ( $id );
+
 
 			//----
 			// Don't build from posts, use an uploaded book package?
@@ -352,7 +382,7 @@ We use some of the WP fields for our own purposes:
 				$info->publisherid = $book_info_from_wp['publisher_id'];
 				
 				// Now, merge info from the WP book post back into the info file
-				$book_info_from_wp['build_files_dir'] = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_basedir;
+				$book_info_from_wp['build_files_dir'] = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . strtolower($book_basedir);
 
 //$this->write_log(print_r($info,true));
 
@@ -459,6 +489,9 @@ We use some of the WP fields for our own purposes:
 		}
 		
 		$this->write_log(__FUNCTION__.": End\n=======================\n");
+		
+		// AJAX message that we're done
+		$mb_api->send_message('——— End ———', 100, 'end');
 
 		return $error;
 	}
@@ -656,6 +689,13 @@ We use some of the WP fields for our own purposes:
 			$not_in_contents = ($book['chapters'] <= 1);
 				
 			foreach($book['chapters'] as $chapter) {
+
+				// Update the progress
+				$mb_api->update_publish_progress( $id, array (
+					'message' 	=> __FUNCTION__ . ": Chapter $index",
+				));
+
+
 				$mb->convert_chapter($chapter, $index, $not_in_contents);
 				$index++;
 			}
@@ -1993,13 +2033,13 @@ foreach ($posts as $p) {
 		error_log (date('Y-m-d H:i:s') . ": {$text}\n", 3, $mb_api->logfile);
 	}
 	
-	
 	public function error($message = 'Unknown error', $status = 'error') {
 		global $mb_api;
 		$mb_api->error($message, $status);
 	}
 
 
+	// --------------------
 	// Return name of calling function.
 	// Use this to find out which function invoked the current function
 	function getCallingFunction() {

@@ -120,6 +120,11 @@ class Mimetic_Book
     */
     function __construct($book_info, $options = array() )
     {
+    
+    	//increase max execution time of this script to 10 min:
+		ini_set('max_execution_time', 600);
+		//increase Allowed Memory Size of this script:
+		//ini_set('memory_limit','960M');
 
     	$this->id = ($book_info['id'] ? $book_info['id'] : "mb_".uniqid() );
     	$this->title = ($book_info['title'] ? $book_info['title'] : "Untitled");
@@ -322,13 +327,31 @@ class Mimetic_Book
 	*/
 	private function convert_pages ($wp_posts, $category)
 	{
+		global $mb_api;
+		
+		// Update the publishing status, and send an update via AJAX
+		$mb_api->send_ajax_update ( $this->id, array (
+			'message'	=> "Chapter has ".count($wp_posts)." pages.",
+			'status' 	=> 'set_total',
+			'total'		=> count($wp_posts)
+		));
+
+		
 		$pages = array();
 		$settings = array();
+		$k = 1;
+		$pagecount = count($wp_posts);
 		foreach ($wp_posts as $page) {
-			 $p =  $this->convert_page($page, $category);
-			 $pages[] = $p;
-			 if ($p['caption'])
-				 $settings['hasCaptions'] = "true";
+
+			$p =  $this->convert_page($page, $k, $category);
+			$pages[] = $p;
+			if ($p['caption'])
+				$settings['hasCaptions'] = "true";
+
+			// Update the publishing status, and send an update via AJAX
+			$mb_api->send_ajax_update ( $this->id, array (
+				'progress'	=>	$k++
+			));
 		}
 
 		return array($pages, $settings);
@@ -353,12 +376,12 @@ class Mimetic_Book
 				
 	*/
 	
-	private function convert_page ($wp_page, $category)
+	private function convert_page ($wp_page, $pagenum, $category)
 	{
 		global $mb_api, $more;
 		
-//$mb_api->write_log(print_r($wp_page, true));
-		
+$mb_api->write_log(print_r($wp_page, true));
+	
 		// Get page attributes from the post
 		$attr = array ();
 		$attr_items = array ( "id", "caption", "city", "state", "country", "date", "headline", "imagefile", "label", "order", "pagedate", "modified");
@@ -765,6 +788,12 @@ class Mimetic_Book
 		$this->get_attachments ($wp_page, $this->attached_items_already_on_pages, true);
 
 
+		// USER FEEDBACK: Update the publishing status, and send an update via AJAX
+		$mb_api->send_ajax_update ( $this->id, array (
+			'message' 	=> "$pagenum : $title",
+		));
+
+
 		return $page;
 	}
 
@@ -903,6 +932,9 @@ print ("-----------\n");
 		$page_elements = array();
 		if ( $attachments ) {
 			foreach ( $attachments as $attachment ) {
+
+				// Avoid time-out
+				ob_start();
 			
 				$element = array();
 				$element['name'] = preg_replace('|/.*$|', '', $attachment->post_mime_type);
@@ -967,6 +999,10 @@ print ("-----------\n");
 				} else {
 //$mb_api->write_log(__FUNCTION__.": Ignored attached picture:" . basename($attributes['src']));
 				}
+				
+				// Avoid time-out!
+				echo ob_get_contents();
+				ob_end_flush();
 			}
 		}
 
@@ -1037,6 +1073,9 @@ print ("-----------\n");
 	*/
 	private function get_embedded_elements($wp_page, $element_type="", $subtype = "") {
 		global $mb_api;
+		
+		
+		
 		$text = $wp_page->content;
 		// This worked before...
 		$text = apply_filters('the_content', $text);
@@ -1809,7 +1848,7 @@ $mb_api->write_log(__FUNCTION__.": (success)");
 	 {
 		 public $chapters;
 		 
-		 function book() {
+		 function __construct() {
 			$this->chapters = array();
 		 }
 		 
@@ -1829,7 +1868,7 @@ if (class_exists('PEAR_Error')) {
 
     class Services_MB_Error extends PEAR_Error
     {
-        function Services_MB_Error($message = 'unknown error', $code = null,
+        function __construct($message = 'unknown error', $code = null,
                                      $mode = null, $options = null, $userinfo = null)
         {
             parent::PEAR_Error($message, $code, $mode, $options, $userinfo);
@@ -1843,7 +1882,7 @@ if (class_exists('PEAR_Error')) {
      */
     class Services_MB_Error
     {
-        function Services_MB_Error($message = 'unknown error', $code = null,
+        function __construct($message = 'unknown error', $code = null,
                                      $mode = null, $options = null, $userinfo = null)
         {
 

@@ -2,6 +2,9 @@
 
 class MB_API {
   
+	// Table for tracking publishing of books	
+	public $publish_progress_table = array ();			
+
 	function __construct() {
 		
 		$dir = mb_api_dir();
@@ -19,6 +22,8 @@ class MB_API {
 		$this->themes = new MB_API_Themes($this->themes_dir);
 
 		$this->set_error_messages();
+		
+		$this->publish_progress = array ();
 
 		// Special "Do Not Use Me" marker for title or text blocks.
 		// Anything beginning with this code will be ignored!
@@ -52,6 +57,7 @@ class MB_API {
 		$this->publishers_dir = $uploads['basedir'] . DIRECTORY_SEPARATOR . $this->settings['publishers_dir_name'];
 		if(! is_dir($this->publishers_dir))
 			mkdir($this->publishers_dir);
+			
 
 
 		add_action('template_redirect', array(&$this, 'template_redirect'));
@@ -1293,6 +1299,43 @@ if ($post->post_password || isset($info['post_password'])) {
  
  
 	/* 
+		AJAX: returns the progress of the publishing 
+	
+	*/
+	function publishing_progress_ajax () {
+		global $mb_api, $wpdb;
+
+/*
+		// Get book value
+		isset($_POST['book_id']) ? $book_id = intval( $_POST['book_id'] ) : $book_id = null;
+		// Get post ID
+		isset($_POST['post_id']) ? $post_id = intval( $_POST['post_id'] ) : $post_id = null;
+		// Get name of the HTML DOM element that we will replace
+		isset($_POST['chooser_element_id']) ? $chooser_element_id = intval( $_POST['chooser_element_id'] ) : $chooser_element_id = null;
+	
+		if (!$book_id) {
+			echo ("Chose a book.");
+			die();
+		}
+		if (!$post_id) {
+			echo ("NO POST ID FOUND ON PAGE! post_id=$post_id");
+			die();
+		}
+*/		
+		$progress = array (
+			'loaded' => 1,
+			'position' => 5,
+			'total' => 10
+		);
+		
+		$output = json_encode($publishers);
+		echo $output;
+	
+		die(); // this is required to return a proper result
+}
+
+
+/* 
 		AJAX: returns the page design choose for a given theme, e.g. "photobook" theme 
 	
 	*/
@@ -1879,7 +1922,6 @@ if ($post->post_password || isset($info['post_password'])) {
 	}
 
 
-
 	function set_error_messages() {
 		$this->errors = new WP_Error();
 		$this->errors->add('item_file_missing', __('An uploaded book package must contain an item.json file.'));
@@ -1887,6 +1929,71 @@ if ($post->post_password || isset($info['post_password'])) {
 		$this->errors->add('no-publish-book', __('Could not publish this book. Check the log.'));
 		
 	}
+
+
+
+	// --------------------
+	// AJAX
+	
+	// Update the publishing tracking table
+	/* 
+	$publish_progress_table[$id] = array (
+		message	string
+		progress	int
+		status	string
+		params = array ()
+	)
+	*/		
+	public function update_publish_progress( $id, $arr ) {
+		isset($this->publish_progress_table[$id]) || $this->publish_progress_table[$id] = array ( 'message' => '', 'progress' => 0, 'status' => '', 'total' => 0);
+			
+		$this->publish_progress_table[$id] = array_merge($this->publish_progress_table[$id], $arr);
+		
+		// if no message passed, clear previous
+		isset($arr['message']) || $arr['message'] = '';
+		$this->publish_progress_table[$id]['message'] = $arr['message'];
+	}
+
+	// Send an AJAX update for publishing for book $id
+	// $arr is option, and simply does the update_publish_progress as well in one step.
+	public function send_ajax_update ( $id, $arr = null ) {
+	
+		if ($arr) {
+			$this->update_publish_progress( $id, $arr );
+		}
+	
+		$message = $this->publish_progress_table[$id]['message'];
+		$progress = $this->publish_progress_table[$id]['progress'];
+		$status = $this->publish_progress_table[$id]['status'];
+		$params = array (
+			'total'	=>	$this->publish_progress_table[$id]['total']
+		);
+		$this->send_message( $message, $progress, $status, $params );
+	}
+	
+	
+	// Send a JSON message/progress for an AJAX call.
+	public function send_message($message = '', $progress = null, $status = null, $params = null) 
+	{
+		 $d = array(
+		 	'message' => $message, 
+		 	'progress' => $progress, 
+		 	'params' => $params,
+		 	'status'	=> $status
+		 	);
+	  
+		 echo "data: " . json_encode($d) . PHP_EOL;
+		 echo PHP_EOL;
+	  
+		 //PUSH THE data out by all FORCE POSSIBLE
+		 ob_flush();
+		 flush();
+		 
+		 //Delay for network
+		 sleep(1);
+	}
+	
+
 
 
 

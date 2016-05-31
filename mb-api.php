@@ -733,9 +733,11 @@ function mb_book_post_publish_meta_box( $post) {
 							</div>
 							<div class="clear"></div>
 							<br>
-							<?php _e( "<i>* Be sure to publish the book again if you change any settings, authors, etc.</i>"); ?>
-					
-							<?php
+							<?php 
+							_e( "<i>* Be sure to publish the book again if you change any settings, authors, etc.</i>");
+							
+							include_once "singletons/progress.inc";
+
 					} else {
 							?>
 							This book is hidden. To show it, check the "Show on Shelves" box in the Book Settings pane. 
