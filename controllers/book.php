@@ -107,7 +107,7 @@ We use some of the WP fields for our own purposes:
 	
 	
 
-		$this->write_log("\n======================= controller:".__FUNCTION__.": Begin");
+		$this->write_log("\n======================= CONTROLLER VERSION :".__FUNCTION__.": Begin");
 
 		extract($mb_api->query->get(array('remote'), $params));
 		
@@ -119,6 +119,9 @@ We use some of the WP fields for our own purposes:
 		
 		// Default is we build book from posts
 		$use_local_book_file = false;
+
+
+		$this->write_log(__FUNCTION__.": Remote or Local?");
 
 		if ($remote) {
 			// REMOTE PUBLISHING
@@ -166,6 +169,7 @@ We use some of the WP fields for our own purposes:
 		} else {
 		
 
+		$this->write_log(__FUNCTION__.": Local book");
 
 			// -------------------------
 			// LOCAL PUBLISHING
@@ -218,7 +222,7 @@ We use some of the WP fields for our own purposes:
 
 
 			// Progress Tracking
-$this->write_log(__FUNCTION__.": Update Progress!");
+//$this->write_log(__FUNCTION__.": Update Progress!");
 			
 			// Update the progress
 			$mb_api->update_publish_progress( $id, array (
@@ -231,6 +235,7 @@ $this->write_log(__FUNCTION__.": Update Progress!");
 			// Send an update via AJAX
 			$mb_api->send_ajax_update ( $id );
 
+//$this->write_log(__FUNCTION__.": Get ready to build!");
 
 			//----
 			// Don't build from posts, use an uploaded book package?
@@ -295,25 +300,45 @@ $this->write_log(__FUNCTION__.": Update Progress!");
 
 				if ($phar->offsetExists('icon.png'))
 					$phar->extractTo($dir, array('icon.png'), true);
-				else
-					$this->write_log(__FUNCTION__.": No icon.");
+// 				else
+// 					$this->write_log(__FUNCTION__.": WARNING: No icon.");
+// 							// Update the publishing status, and send an update via AJAX
+// 					$mb_api->send_ajax_update ( $book_id, array (
+// 						'message'	=> "No icon.",
+// 						'warning'	=> true
+// 					));
 
 				if ($phar->offsetExists('poster.jpg'))
 					$phar->extractTo($dir, array('poster.jpg'), true);
-				else
-					$this->write_log(__FUNCTION__.": No poster.");
+// 				else
+// 					$this->write_log(__FUNCTION__.": WARNING: No poster.");
+// 					$mb_api->send_ajax_update ( $book_id, array (
+// 						'message'	=> "No poster.",
+// 						'warning'	=> true
+// 					));
 
 				if ($phar->offsetExists('item.json'))
 					$phar->extractTo($dir, array('item.json'), true);	
-				else
-					$this->write_log(__FUNCTION__.": No item.json file.");
+// 				else
+// 					$this->write_log(__FUNCTION__.": WARNING: No item.json file.");
+// 					$mb_api->send_ajax_update ( $book_id, array (
+// 						'message'	=> "No <b>item.json</b> file.",
+// 						'warning'	=> true
+// 					));
 			} catch (Exception $e) {
 				// handle errors
 				// This includes missing files, when the poster or icon files are missing.
 				// DON'T quit here, it is probably just be a missing file.
 				$error = "Error extracting icon or poster or item from the book package. Probably missing poster or icon.";
-				$this->write_log(__FUNCTION__.": Error: $error");
+				$this->write_log(__FUNCTION__.": ERROR: $error");
 				$mb_api->error(__FUNCTION__.": Failed to open the tar file to get the icon, poster, and item: " . $e);
+
+					$this->write_log(__FUNCTION__.": WARNING: Failed to open the tar file to get the icon, poster, and item: $e");
+					
+					$mb_api->send_ajax_update ( $book_id, array (
+						'message'	=> "WARNING: Failed to open the tar file to get the icon, poster, and item: $e",
+						'warning'	=> true
+					));
 			}
 		}
 		
@@ -564,6 +589,11 @@ $this->write_log(__FUNCTION__.": Update Progress!");
 		// Delete previous version of the package
 		if (file_exists($tarfilename))
 			unlink ($tarfilename);
+
+		// Update the publishing status, and send an update via AJAX
+		$mb_api->send_ajax_update ( $this->id, array (
+			'message'	=> "Compressing book package."
+		));
 		
 		// Build the tar file package in the packages folder.
 		try {
@@ -579,6 +609,12 @@ $this->write_log(__FUNCTION__.": Update Progress!");
 		
 		// Delete the build files
 		$mb->cleanup();
+
+		// Update the publishing status, and send an update via AJAX
+		$mb_api->send_ajax_update ( $this->id, array (
+			'message'	=> "Cleanup."
+		));
+
 		
 		// This will use the query to get the book post.
 		$book_post = $this->get_book_post($id);

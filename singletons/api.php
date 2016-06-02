@@ -1963,6 +1963,14 @@ if ($post->post_password || isset($info['post_password'])) {
 		}
 	
 		$message = $this->publish_progress_table[$id]['message'];
+		
+		if ($arr['warning']) {
+			$message = "<span style='color:#FF8000;'>$message</span>";
+		} elseif ($arr['error']) {
+			$message = "<span style='color:#F00;'>$message</span>";
+		}
+		
+		
 		$progress = $this->publish_progress_table[$id]['progress'];
 		$status = $this->publish_progress_table[$id]['status'];
 		$params = array (
@@ -1989,8 +1997,8 @@ if ($post->post_password || isset($info['post_password'])) {
 		 ob_flush();
 		 flush();
 		 
-		 //Delay for network
-		 sleep(1);
+		 //Delay for network?
+		 //sleep(1);
 	}
 	
 

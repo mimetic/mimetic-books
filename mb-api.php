@@ -78,12 +78,12 @@ function mb_api_init() {
 	mb_add_custom_metaboxes_to_posts();
 	
 	// Add custom column to the book posts listing
-	add_filter('manage_book_posts_columns', 'mb_book_custom_columns_head');
-	add_action('manage_posts_custom_column', 'mb_book_custom_columns_content', 10, 2);
+ 	add_filter('manage_mimeticbook_posts_columns', 'mb_book_custom_columns_head');
+ 	add_action('manage_posts_custom_column', 'mb_book_custom_columns_content', 10, 2);
 	
 	// Add custom column to posts listings (for keywords, etc.)
-// 	add_filter('manage_post_posts_columns', 'mb_book_post_custom_columns_head');
-// 	add_action('manage_posts_custom_column', 'mb_book_post_custom_columns_content', 10, 2);
+//  	add_filter('manage_mimeticbook_posts_columns', 'mb_book_custom_columns_head');
+//  	add_action('manage_posts_custom_column', 'mb_book_post_custom_columns_content', 10, 2);
 	
 	// Add cleanup actions to handle deleting of books and publishers.
 	// Note, we do 'before' the delete so we still have access to the post info.
@@ -139,33 +139,32 @@ function mb_api_dir() {
 /*
  * ----------------------------------------------------------------------
  * Add custom COLUMNS to the posts
- * NOT IN USE
- * ----------------------------------------------------------------------
+  * ----------------------------------------------------------------------
  */
 
 
 
 
 
-// ADD NEW COLUMN  
-// function mb_book_post_custom_columns_head($defaults) {  
-//     $defaults['keywords'] = 'Keywords';  
-//     return $defaults;  
-// }  
+// ADD AJAX FEEDBACK COLUMN  
+function mb_book_post_custom_columns_head($defaults) {  
+    $defaults['keywords'] = 'Keywords';  
+    return $defaults;  
+}  
   
 // SHOW THE PUBLISH BUTTON
-// function mb_book_post_custom_columns_content($column_name, $post_ID) {  
-// 	switch ( $column_name ) {
-// 	case 'keywords':
-// 
-// 		$jsURL = plugins_url( 'js/mb_api.js', __FILE__ );
-// 		wp_register_script('my-keywords', $jsURL, array('jquery'));
-// 		wp_enqueue_script('my-keywords');
-// 
-// 		print ("KEYWORDS HERE");	  
-// 		break;
-//     }  
-// }  
+function mb_book_post_custom_columns_content($column_name, $post_ID) {  
+	switch ( $column_name ) {
+	case 'keywords':
+
+		$jsURL = plugins_url( 'js/mb_api.js', __FILE__ );
+		wp_register_script('my-keywords', $jsURL, array('jquery'));
+		wp_enqueue_script('my-keywords');
+
+		print ("KEYWORDS HERE");	  
+		break;
+    }  
+}  
 
 
 
@@ -476,7 +475,7 @@ function mb_rewrite_flush() {
 	*/
 function mb_delete_all_attachments($post_id, $filesToKeep = "" )
 {
-	$goodfiles = split(",", $filesToKeep);
+	$goodfiles = explode(",", $filesToKeep);
 	$args = array(
 		'post_type' => 'attachment',
 		'posts_per_page' => -1,
@@ -523,27 +522,41 @@ function mb_delete_book_post($post_id)
 /* MODIFY BOOK LISTING */
 
 // ADD NEW COLUMN  
-function mb_book_custom_columns_head($defaults) {  
-    $defaults['publish_book'] = 'Publish';  
-    return $defaults;  
+function mb_book_custom_columns_head($columns) {  
+    //$defaults['publish_book'] = 'Publish'; 
+    unset($columns['comments']);
+    return array_merge($columns, 
+		array('publish_book' => __( 'Publish' ),
+      		'progress' =>__( 'Progress' )));
 }  
   
 // SHOW THE PUBLISH BUTTON
 function mb_book_custom_columns_content($column_name, $post_ID) {  
 	switch ( $column_name ) {
-	case 'publish_book':
+		case 'publish_book':
 
-		$jsURL = plugins_url( 'js/mb_api.js', __FILE__ );
-		wp_register_script('my-publish', $jsURL, array('jquery'));
-		wp_enqueue_script('my-publish');
+			$jsURL = plugins_url( 'js/mb_api.js', __FILE__ );
+			wp_register_script('my-publish', $jsURL, array('jquery'));
+			wp_enqueue_script('my-publish');
 
-		$jsCSS = plugins_url( 'js/style.css', __FILE__ );
-		wp_register_style( 'mb_api_style', $jsCSS);
-		wp_enqueue_style('mb_api_style');
+			$jsCSS = plugins_url( 'js/style.css', __FILE__ );
+			wp_register_style( 'mb_api_style', $jsCSS);
+			wp_enqueue_style('mb_api_style');
 
-		mb_show_publish_button($post_ID) ;	  
-		break;
-    }  
+			mb_show_publish_button($post_ID) ;	  
+			break;
+
+		case 'progress':
+			// Feedback <div> for AJAX
+			
+			$mb_book_id = get_post_meta($post_ID, "mb_book_id", true);
+
+			?>
+			<progress id="progress<?php echo $mb_book_id; ?>" value="0" style="width:100%"></progress><br />
+			<div id="results<?php echo $mb_book_id; ?>" style="border:1px solid #000; font-size:0.7em; padding:10px; width:92%; height:4.0em; overflow:auto; background:#eee;"></div>
+			<?php
+			break;
+	}  
 }  
 
 function mb_show_publish_button($post_ID) {
@@ -808,7 +821,7 @@ function mb_book_post_publish_meta_box( $post) {
 				</div>
 				
 				<div class="mb-settings-section-break">
-					<h3>Special Settings</h3>
+					<h2>Special Settings</h2>
 				</div>
 				
 				<div class="mb-settings-section">		
@@ -987,6 +1000,11 @@ function mb_book_post_settings_meta_box( $post) {
 					</label>
 				</div>
 				
+				<div class="mb-settings-section">
+					<h4>Book Icon</h4>
+					Upload your book icon to the "Featured Image" box. It should be 512x512 pixels, PNG format.
+				</div>
+
 				<div class="mb-settings-section mb-settings-section-last">
 					<label for="mb_poster_attachment_url">
 						<div id="wp-content-media-buttons" class="wp-media-buttons" style="float:right;margin-bottom:8px;">
@@ -998,6 +1016,7 @@ function mb_book_post_settings_meta_box( $post) {
 						<input class="poster_id" type="hidden" name="mb_poster_attachment_id" value="<?php echo $mb_poster_attachment_id;  ?>">
 					</label>
 				</div>
+			
 			</div>
 		</div>
 		

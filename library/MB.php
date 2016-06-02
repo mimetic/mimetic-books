@@ -380,7 +380,19 @@ class Mimetic_Book
 	{
 		global $mb_api, $more;
 		
-$mb_api->write_log(print_r($wp_page, true));
+		// --------------------
+		// Build the textblock
+		$text = $wp_page->content;
+		$title = $wp_page->title;
+		
+
+		// USER FEEDBACK: Update the publishing status, and send an update via AJAX
+		$mb_api->send_ajax_update ( $this->id, array (
+			'message' 	=> "$pagenum : $title",
+		));
+
+
+//$mb_api->write_log(print_r($wp_page, true));
 	
 		// Get page attributes from the post
 		$attr = array ();
@@ -398,11 +410,9 @@ $mb_api->write_log(print_r($wp_page, true));
 		}
 		*/
 		
-		// --------------------
-		// Build the textblock
-		$text = $wp_page->content;
-		$title = $wp_page->title;
-		
+		$mb_api->write_log(__FUNCTION__.": Building page $title");
+
+
 		// "MORE" shows up at this point with a <span id=more-xxx></span>
 		// So, let's find those, turn them back into <!--more--> so we can break with them.
 //$mb_api->write_log(__FUNCTION__.": \r\r\r****************************");
@@ -788,12 +798,6 @@ $mb_api->write_log(print_r($wp_page, true));
 		$this->get_attachments ($wp_page, $this->attached_items_already_on_pages, true);
 
 
-		// USER FEEDBACK: Update the publishing status, and send an update via AJAX
-		$mb_api->send_ajax_update ( $this->id, array (
-			'message' 	=> "$pagenum : $title",
-		));
-
-
 		return $page;
 	}
 
@@ -934,7 +938,7 @@ print ("-----------\n");
 			foreach ( $attachments as $attachment ) {
 
 				// Avoid time-out
-				ob_start();
+				//ob_start();
 			
 				$element = array();
 				$element['name'] = preg_replace('|/.*$|', '', $attachment->post_mime_type);
@@ -1001,8 +1005,8 @@ print ("-----------\n");
 				}
 				
 				// Avoid time-out!
-				echo ob_get_contents();
-				ob_end_flush();
+// 				echo ob_get_contents();
+// 				ob_end_flush();
 			}
 		}
 
@@ -1113,11 +1117,21 @@ print ("-----------\n");
 			foreach ($node->attributes as $attr) {
 				$attributes[$attr->name] = $attr->nodeValue;
 			}
-			if (isset($attributes['class']))
-				$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
-			else
-				$id = "";
-			
+			if (isset($attributes['class'])) {
+				if (preg_match("/wp-image-([0-9]*)/", $attributes['class'], $matches) === false) {
+					$id = '';
+					$mb_api->write_log (__FUNCTION__ . ": ERROR: No ID found for this element: ". $attributes['class']);
+						$mb_api->send_ajax_update ( $this->id, array (
+							'message' 	=> "<span style='color:red;'>Error: Missing picture, no ID found for HTML img element!</span>",
+							'error' => true
+						));
+				} else {
+					$id = $matches[1];
+				}
+				
+			} else {
+				$id = '';
+			}
 			$attributes['id'] = $id;
 			
 //$mb_api->write_log (__FUNCTION__ . ": element = " . print_r($node, true));
@@ -1201,9 +1215,12 @@ print ("-----------\n");
 						$page_elements[$mb_encaps_name] = array ();
 					}
 					$page_elements[$mb_encaps_name][$mb_name][] = $e;
-				} else if ($element) {
-					$page_elements[$mb_name] = $this->element_to_mb($element);
+				} else if ($e) {
+					$page_elements[$mb_name] = $e;
 				}
+// 				} else if ($element) {
+// 					$page_elements[$mb_name] = $this->element_to_mb($element);
+// 				}
 			}
 		}
 	
@@ -1231,20 +1248,6 @@ print ("-----------\n");
 		$page_elements = array();
 		// Get all elements in the HTML
 		foreach ($doc->getElementsbytagname($element_type) as $node) {
-			/*
-			//$item = $doc->saveHTML($node);
-			$element = array();
-			$element['name'] = $node->nodeName;
-			$element['value'] = $node->nodeValue;
-			$element['type'] = $node->nodeType;
-			$attributes = array();
-			foreach ($node->attributes as $attr) {
-				$attributes[$attr->name] = $attr->nodeValue;
-			}
-			$element['attributes'] = $attributes;
-			$id = preg_replace("/.*?wp-image-/", "", $attributes['class']);
-			$page_elements[$id] = $element;
-			 */
 
 			$attributes = array();
 			foreach ($node->attributes as $attr) {
@@ -1298,8 +1301,13 @@ print ("-----------\n");
 		zoomedRotation
 
 	*/
-	private function element_to_mb($element) {
+	private function element_to_mb($element = null) {
 		global $mb_api;
+		
+		$testing = false;
+		
+		if (!$element)
+			return null;
 
 		$attr = $element['attributes'];
 		$mb_element = array ();
@@ -1335,36 +1343,101 @@ print ("-----------\n");
 					$mb_element['x'] = $attr['x'];
 				*/
 				
+//$mb_api->write_log(__FUNCTION__.": Look for post id : {$attr['id']}" );
 				
 				$post = get_post( $attr['id'], ARRAY_A );
-				$src = $post['guid'];	// src file name (not a resized file)
+				
+				// If no post for this ID, let us look for the correct post
+				// using the src URL we found in the embedded HTML element.
+				// It can happen that an element is showing a valid image
+				// because the URL is right, but the WP embedded ID (hidden as a class, wp-image-XXXX
+				// where XXXX is the ID), is old and wrong, due to images being updated, replaced, etc.
+				if (!$post) {
+					$mb_api->write_log(__FUNCTION__.": WARNING: ID #".$attr['id'] . " is missing. Looking for the real post.");
+//$mb_api->write_log(__FUNCTION__.": *** Element Attributes: " . print_r($attr, true) );
+					
+					$id = $this->fjarrett_get_attachment_id_by_url($attr['src']);
+					if ($id)
+						$post = get_post( $id, ARRAY_A );
+
+					if (!$post) {
+						$mb_api->write_log(__FUNCTION__.": ERROR: Could not find a post for the image: {$attr['src']}. This image is ignored." );
+						$mb_api->send_ajax_update ( $this->id, array (
+							'message' 	=> "<span style='color:red;'>ERROR: Picture in the HTML text (".$attr['src'].") is not part of this WordPress system. If you can see it, it must be located elsewhere or is not a WordPress media item.</span>",
+							'error' => true
+						));
+						return;
+					} else {
+						$mb_api->write_log(__FUNCTION__.": WARNING: Fix this post! The media image in the HTML text has an old id. Better to insert the media again so the ID is current." );
+						// USER FEEDBACK: Update the publishing status, and send an update via AJAX
+						$mb_api->send_ajax_update ( $this->id, array (
+							'message' 	=> "<span style='color:red;'>Warning: Picture in the HTML text (".basename($attr['src']).") has old ID hidden in the wp-image class! You should fix this by removing the image, then inserting again in your text. This is a weird effect of replacing, moving, or updating images in WordPress.</span>",
+							'error' => true
+						));
+
+					
+					}
+
+				}
+				
+				// URL version
+				// src URL of the original file, NOT a file name, not a resized file
+				/*
+				$src = $post['guid'];				
+				$mb_element['filename'] = "*" . DIRECTORY_SEPARATOR . $this->pictureFolder . basename( $src );
+				*/
+
+				// Filename version
+				// Path to the original file
+				$attachment_id = $post['ID'];
+				
+				// WRONG image ID?
+				// If the "wp-image-XXX" class that we use to discover the ID of the <img> tag in the
+				// html of the page is wrong, the we don't know the correct ID of the image!
+				// Weirdly enough, this can happen. In that case, it's really hard to figure out what to do.
+				// Either the user has to remove the image (which will appear, since the URL is correct)
+				// and insert it again, OR we have to figure out the right image!
+				if (!$attachment_id) {
 
 
 //$mb_api->write_log(__FUNCTION__.": Image Post fields:" . print_r($post, true) );
 
-/*		
-$image=wp_get_attachment_image($attr['id'], 'large', false);
-$imagepieces = explode('"', $image);
-$imagepath = $imagepieces[1];
-$mb_api->write_log(__FUNCTION__.": image path is $imagepath");
 
-				$post = get_post( $imagepath, ARRAY_A );
-				$src = $post['guid'];	// src file name (not a resized file)
-$mb_api->write_log(__FUNCTION__.": SRC = $src");
-*/
-
+				}
+				
+				// Full path to file
+				$src = get_attached_file( $attachment_id ); 
+				
+//$mb_api->write_log(__FUNCTION__.": Image file name (src): $src" );
+//$mb_api->write_log(__FUNCTION__.": Image Post fields:" . print_r($post, true) );
+				
+				if (!$src) {
+				
+//$mb_api->write_log(__FUNCTION__.": Image file name : $src" );
+//$mb_api->write_log(__FUNCTION__.": Image Post fields:" . print_r($post, true) );
+//$mb_api->write_log(__FUNCTION__.": *** Element Attributes: " . print_r($attr, true) );
+				
+					$src = $post['guid'];
+				}
+				
 				if ($src == "") {
 					//$mb_api->write_log(__FUNCTION__.": Missing source for image!" . print_r($element, true) );
 					$mb_api->write_log(__FUNCTION__.": *** The source might a remote URL, which we cannot use: " . $element['attributes']['src'] );
+					
 					//$mb_api->write_log(__FUNCTION__.": Image Post fields:" . print_r($post, true) );
+						// USER FEEDBACK: Update the publishing status, and send an update via AJAX
+						$mb_api->send_ajax_update ( $this->id, array (
+							'message' 	=> "<span style='color:red;'>Error: Missing picture:<br \> ({$element['attributes']['src']})</span>",
+							'error' => true
+						));
+
 					return "";
 				}
 				
+
 				$mb_element['filename'] = "*" . DIRECTORY_SEPARATOR . $this->pictureFolder . basename( $src );
+
 				
-				// This would use the $attr class for the id, but we get it free from $attr already. Somehow.
-				//$id = preg_replace("/.*?wp-image-/", "", $attr['class']);
-				//
 				// zoomedScale is set by the templates, now! We won't worry about it here.
 				//$mb_element['zoomedScale'] = "1";
 				
@@ -1380,8 +1453,16 @@ $mb_api->write_log(__FUNCTION__.": SRC = $src");
 				//$w = $attr['width'];
 				//$h = $attr['height'];
 				
-				list($w,$h) = getimagesize($src);
-				//$s = $attr['src'];
+				$metadata = wp_get_attachment_metadata( $attachment_id );
+				$w = $metadata['width'];
+				$h = $metadata['height'];
+
+				//list($w,$h) = getimagesize($src);
+
+// $mb_api->write_log(__FUNCTION__.": Image Filename and Size: $src, w=$w, h=$h");
+// $mb_api->write_log(__FUNCTION__.": Filename for book: {$mb_element['filename']}");
+// $mb_api->write_log(__FUNCTION__."---");
+
 				
 				$targetW = $this->options['dimensions']['width'];
 				$targetH = $this->options['dimensions']['height'];
@@ -1407,15 +1488,15 @@ $mb_api->write_log(__FUNCTION__.": SRC = $src");
 				$filepath = $dir.$filename;
 
 				// Save normal sized image
-				$image = wp_get_image_editor( $src);
+				$image = wp_get_image_editor( $src );
 				if (! is_wp_error($image) ) {
 
-// $time_start = microtime(true);
-// $mb_api->write_log(__FUNCTION__."------------------------- BEGIN image resizing for: $filename");
+$testing && $time_start = microtime(true);
+$mb_api->write_log(__FUNCTION__."---BEGIN image resizing for: $filepath");
 
-// Add extra time for processing. This takes whereever we were in the 30 sec. default counter, 
-// and adds an addition 30 seconds from right now.
-set_time_limit ( 30 );
+					// Add extra time for processing. This takes whereever we were in the 30 sec. default counter, 
+					// and adds an addition 30 seconds from right now.
+					set_time_limit ( 30 );
 				
 					// RESIZE: ENLARGE TO FIT TEMPLATE???
 					// This resizes when it is smaller the target area.
@@ -1458,6 +1539,10 @@ $mb_api->write_log(__FUNCTION__.": (success)");
 					}
 					
 
+// $time_end = microtime(true);
+// $time = $time_end - $time_start;
+// $mb_api->write_log("--- time for normal sized image = $time sec");
+
 
 					// Save double-sized image
 					if ($this->options['save2x'] && ( ($w > ($targetW*2) || ($h > ($targetH*2)) ) ) ) {
@@ -1477,11 +1562,15 @@ $mb_api->write_log(__FUNCTION__.": (success)");
 						}
 					}
 
-// $time_end = microtime(true);
-// $time = $time_end - $time_start;
-// $mb_api->write_log("------------------------- total time = $time sec");
-// $mb_api->write_log("------------------------- END");
-				
+					//-----
+					if ($testing) {
+						$time_end = microtime(true);
+						$time = round($time_end - $time_start, 2);
+						$mb_api->write_log("--- resize time (normal + 2x) = \t\t$time sec");
+						$mb_api->write_log("---");
+					}
+					//-----
+					
 				} else {
 					return null;
 				}				
@@ -1514,7 +1603,51 @@ $mb_api->write_log(__FUNCTION__.": (success)");
 		return $mb_element;
 	}
 
-	
+
+
+
+	// retrieves the attachment ID from the file URL
+	private function get_image_id_from_guid($guid) {
+		global $wpdb;
+		$attachment = null;
+		if ($guid)
+			$attachment = $wpdb->get_col($wpdb->prepare("SELECT ID FROM $wpdb->posts WHERE guid='%s';", $guid ));
+		return !empty( $attachment ) ? $attachment[0] : null;
+	}
+	/**
+	 * Return an ID of an attachment by searching the database with the file URL.
+	 *
+	 * Thanks to: https://gist.github.com/fjarrett/5544469
+	 * 
+	 * First checks to see if the $url is pointing to a file that exists in
+	 * the wp-content directory. If so, then we search the database for a
+	 * partial match consisting of the remaining path AFTER the wp-content
+	 * directory. Finally, if a match is found the attachment ID will be
+	 * returned.
+	 *
+	 * @param string $url The URL of the image (ex: http://mysite.com/wp-content/uploads/2013/05/test-image.jpg)
+	 * 
+	 * @return int|null $attachment Returns an attachment ID, or null if no attachment is found
+	 */
+	function fjarrett_get_attachment_id_by_url( $url ) {
+		// Split the $url into two parts with the wp-content directory as the separator
+		$parsed_url  = explode( parse_url( WP_CONTENT_URL, PHP_URL_PATH ), $url );
+		// Get the host of the current site and the host of the $url, ignoring www
+		$this_host = str_ireplace( 'www.', '', parse_url( home_url(), PHP_URL_HOST ) );
+		$file_host = str_ireplace( 'www.', '', parse_url( $url, PHP_URL_HOST ) );
+		// Return nothing if there aren't any $url parts or if the current host and $url host do not match
+		if ( ! isset( $parsed_url[1] ) || empty( $parsed_url[1] ) || ( $this_host != $file_host ) ) {
+			return;
+		}
+		// Now we're going to quickly search the DB for any attachment GUID with a partial path match
+		// Example: /uploads/2013/05/test-image.jpg
+		global $wpdb;
+		$attachment = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM {$wpdb->prefix}posts WHERE guid RLIKE %s;", $parsed_url[1] ) );
+		// Returns null if no attachment is found
+		return $attachment[0];
+	}
+
+
 	/*
 	 * Copy an audio file to the proper folder
 	 */

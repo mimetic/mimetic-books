@@ -36,9 +36,9 @@ jQuery(document).ready(function($){
 			res = confirm ("Publish this book on this website?");
 		}
 
-console.log("distURL"+distURL);
-console.log("url"+url);
-console.log("distURL"+distURL);
+// console.log("distURL"+distURL);
+// console.log("url"+url);
+// console.log("distURL"+distURL);
 
 		if (res && id) {
 

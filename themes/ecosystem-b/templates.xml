@@ -136,7 +136,7 @@ still|walk|swim|fly
 			<overlay>
 			</overlay>
 			<pictures>
-				<picture noThumbnail="true" filename="" noShadow="true" addCorners="true" restoreLayersOnZoomOut="true" zoomedScale="1" x="558" y="107" width="388" height="259" absolute="true" align="center">
+				<picture noThumbnail="true" filename="" noShadow="true" addCorners="true" restoreLayersOnZoomOut="true" zoomedScale="1" x="752" y="230" referencePoint="Center" width="388" height="259" absolute="true">
 				</picture>
 
 				<picture noThumbnail="true" filename="" alpha="0.1" layer="0" noShadow="true" addCorners="false" x="15%" y="35%" width="50%" height="50%" absolute="true" align="center">
@@ -202,8 +202,12 @@ still|walk|swim|fly
 			<overlay>
 			</overlay>
 			<pictures>
-				<picture noThumbnail="true" filename="" noShadow="true" addCorners="true" restoreLayersOnZoomOut="true" zoomedScale="1" x="558" y="107" width="388" height="259" absolute="true">
+				<picture noThumbnail="true" filename="" noShadow="true" addCorners="true" restoreLayersOnZoomOut="true" zoomedScale="1" x="752" y="230" referencePoint="Center" width="388" height="259" absolute="true">
 				</picture>
+
+				<picture noThumbnail="true" filename="" alpha="0" layer="0" noShadow="true" addCorners="false" x="15%" y="35%" width="50%" height="50%" absolute="true" align="center">
+				</picture>
+
 			</pictures>
 			<textblocks absolute="true">
 				<textblock>

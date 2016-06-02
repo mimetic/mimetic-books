@@ -242,17 +242,17 @@ We use some of the WP fields for our own purposes:
 				if ($phar->offsetExists('icon.png'))
 					$phar->extractTo($dir, array('icon.png'), true);
 				else
-					$this->write_log(__FUNCTION__.": No icon.");
+					$this->write_log(__FUNCTION__.": WARNING: No icon.");
 
 				if ($phar->offsetExists('poster.jpg'))
 					$phar->extractTo($dir, array('poster.jpg'), true);
 				else
-					$this->write_log(__FUNCTION__.": No poster.");
+					$this->write_log(__FUNCTION__.": WARNING: No poster.");
 
 				if ($phar->offsetExists('item.json'))
 					$phar->extractTo($dir, array('item.json'), true);	
 				else
-					$this->write_log(__FUNCTION__.": No item.json file.");
+					$this->write_log(__FUNCTION__.": WARNING: No item.json file.");
 			} catch (Exception $e) {
 				// handle errors
 				// This includes missing files, when the poster or icon files are missing.
