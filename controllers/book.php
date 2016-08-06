@@ -12,6 +12,8 @@ https://github.com/mattberg/wp-json-api-auth
 
 */
 
+
+
 class MB_API_Book_Controller {
 	
 /*
@@ -111,7 +113,7 @@ We use some of the WP fields for our own purposes:
 
 		extract($mb_api->query->get(array('remote'), $params));
 		
-		$local = false;		
+		$local = false;
 		$distribution_url = trim(get_option('mb_api_book_publisher_url'));
 		$error = "";
 				
@@ -169,7 +171,7 @@ We use some of the WP fields for our own purposes:
 		} else {
 		
 
-		$this->write_log(__FUNCTION__.": Local book");
+			$this->write_log(__FUNCTION__.": Local book");
 
 			// -------------------------
 			// LOCAL PUBLISHING
@@ -318,7 +320,7 @@ We use some of the WP fields for our own purposes:
 // 					));
 
 				if ($phar->offsetExists('item.json'))
-					$phar->extractTo($dir, array('item.json'), true);	
+					$phar->extractTo($dir, array('item.json'), true);
 // 				else
 // 					$this->write_log(__FUNCTION__.": WARNING: No item.json file.");
 // 					$mb_api->send_ajax_update ( $book_id, array (
@@ -459,16 +461,16 @@ We use some of the WP fields for our own purposes:
 			$this->attach_file_to_post($filename, $post_id);
 
 			// Attach the icon file to the book posting
-			$filename = $dir . DIRECTORY_SEPARATOR . "icon.png";
-			$this->attach_file_to_post($filename, $post_id);
+			$f = $dir . DIRECTORY_SEPARATOR . "icon.png";
+			$this->attach_file_to_post($f, $post_id);
 
 			// Attach the poster file to the book posting
-			$filename = $dir . DIRECTORY_SEPARATOR . "poster.jpg";
-			$this->attach_file_to_post($filename, $post_id);
+			$f = $dir . DIRECTORY_SEPARATOR . "poster.jpg";
+			$this->attach_file_to_post($f, $post_id);
 
 			// Attach the item.json file to the book posting
-			$filename = $dir . DIRECTORY_SEPARATOR . "item.json";
-			$this->attach_file_to_post($filename, $post_id);
+			$f = $dir . DIRECTORY_SEPARATOR . "item.json";
+			$this->attach_file_to_post($f, $post_id);
 					
 			// Mark the book as published so it will appear in the shelves
 			update_post_meta($post_id, 'mb_book_id', $book_id);
@@ -504,6 +506,64 @@ We use some of the WP fields for our own purposes:
 		// Update the publishers file
 		$mb_api->write_publishers_file();
 		$this->write_log(__FUNCTION__.": Wrote the publishers file.");
+		
+		
+		// Upload to Amazon S3?
+		$send_to_amazon_s3 =get_post_meta($book_post->ID, "mb_upload_to_amazon_s3", true);
+		if ($send_to_amazon_s3) {
+		
+		
+				
+			$accessKey = get_option('mb_api_s3_accessKey');
+			$secretKey = get_option('mb_api_s3_secretKey');
+			$bucket = get_option('mb_api_s3_bucketPath');
+
+			require_once mb_api_dir() . "/library/s3.php";
+
+			$mbs3 = new MB_S3( $accessKey, $secretKey );
+
+			$this->write_log(__FUNCTION__.": Send book to Amazon S3.");
+			$mb_api->send_message("——— AWS S3 Upload Begin ———");
+			//$this->write_log(__FUNCTION__.": pathToFile = $filename");
+
+			$pathToFile = $filename;
+			
+			// the key for the bucket is the book_id
+			$key = $book_id . "/". basename($filename);
+
+			// Upload the book file
+			$res =  $mbs3->uploadFile ($pathToFile, $key, $bucket);
+
+			// $res = [ 'url' => $url, 'result' => $result]
+			$s3_url = $res['url'];
+			$s3_location = $res['location'];
+			$s3_result = $res['result'];
+			
+			$this->write_log(__FUNCTION__.": URL = $s3_url, Location = $s3_location");
+			$this->write_log(__FUNCTION__.": S3 Result = " . print_r($s3_result));
+			$this->write_log(__FUNCTION__.": END UPLOADING TO S3");
+
+			// Upload supporting files
+			// Attach the icon file to the book posting
+			$f = $dir . DIRECTORY_SEPARATOR . "icon.png";
+			$key = $book_id . "/". basename($f);
+			$res = $mbs3->uploadFile ($f, $key, $bucket);
+
+			// Attach the poster file to the book posting
+			$f = $dir . DIRECTORY_SEPARATOR . "poster.jpg";
+			$key = $book_id . "/". basename($f);
+			$res = $mbs3->uploadFile ($f, $key, $bucket);
+
+			// Attach the item.json file to the book posting
+			$f = $dir . DIRECTORY_SEPARATOR . "item.json";
+			$key = $book_id . "/". basename($f);
+			$res = $mbs3->uploadFile ($f, $key, $bucket);
+		
+			$mb_api->send_message("——— AWS S3 Upload End ———");
+			
+		}
+
+
 		
 		if ($error) {
 			//data,textStatus
@@ -570,7 +630,7 @@ We use some of the WP fields for our own purposes:
 		// Write the XML to the book.xml file.
 		$xml = $mb->book_to_xml();
 		$filename = "book.xml";
-		file_put_contents ( $build_files_dir.DIRECTORY_SEPARATOR.$filename , $xml, LOCK_EX );		
+		file_put_contents ( $build_files_dir.DIRECTORY_SEPARATOR.$filename , $xml, LOCK_EX );
 
 		// Copy the book promo art, i.e. icon and poster files, based on the book info.
 		$mb->get_book_promo_art( $build_files_dir);
@@ -591,7 +651,7 @@ We use some of the WP fields for our own purposes:
 			unlink ($tarfilename);
 
 		// Update the publishing status, and send an update via AJAX
-		$mb_api->send_ajax_update ( $this->id, array (
+		$mb_api->send_ajax_update ( $id, array (
 			'message'	=> "Compressing book package."
 		));
 		
@@ -611,7 +671,7 @@ We use some of the WP fields for our own purposes:
 		$mb->cleanup();
 
 		// Update the publishing status, and send an update via AJAX
-		$mb_api->send_ajax_update ( $this->id, array (
+		$mb_api->send_ajax_update ( $id, array (
 			'message'	=> "Cleanup."
 		));
 
@@ -791,7 +851,7 @@ We use some of the WP fields for our own purposes:
 				$build_files_dir = $book_obj->build_files_dir;
 			}
 			$build_files_dir = trim($build_files_dir);
-			$fn = $build_files_dir . DIRECTORY_SEPARATOR . "item.json";			
+			$fn = $build_files_dir . DIRECTORY_SEPARATOR . "item.json";
 			$output = json_encode($info);
 	
 			
@@ -804,7 +864,7 @@ We use some of the WP fields for our own purposes:
 				file_put_contents ($fn, $output, LOCK_EX);
 			} else {
 				$mb_api->error(__FUNCTION__.": No book directory: $build_files_dir, called by $caller");
-				return false;				
+				return false;
 			}
 		} else {
 			$mb_api->error(__FUNCTION__.": No book object passed.");
@@ -1021,7 +1081,7 @@ We use some of the WP fields for our own purposes:
 			);
 			
 			$result = json_decode( $this->callRemoteController("{$baseurl}mb/auth/generate_auth_cookie", $postdata) );
-			//$mb_api->write_log(__FUNCTION__.": D: Tried for a cookie: ".print_r($postdata, true)."\n".print_r($result, true));
+			//$this->write_log(__FUNCTION__.": D: Tried for a cookie: ".print_r($postdata, true)."\n".print_r($result, true));
 			
 			if (!$result || $result->status != "ok" ) {
 				$mb_api->error("Failed to get a cookie.");
@@ -1063,7 +1123,7 @@ We use some of the WP fields for our own purposes:
 
 		$result = json_decode( $this->callRemoteController("{$baseurl}mb/book/publish_book_package", $postdata) );
 
-		$mb_api->write_log(__FUNCTION__.": Sent the book: status = ".$result->status);
+		$this->write_log(__FUNCTION__.": Sent the book: status = ".$result->status);
 
 //xdebug_break();
 		
@@ -1202,7 +1262,7 @@ We use some of the WP fields for our own purposes:
 	/*
 	private function get_book_post_from_category_id( $id ) {
 		global $mb_api;
-		$posts = $mb_api->introspector->get_posts(array( 'cat' => $id, 'post-type' => 'mimeticbook', 'post_status' => 'any' ));	
+		$posts = $mb_api->introspector->get_posts(array( 'cat' => $id, 'post-type' => 'mimeticbook', 'post_status' => 'any' ));
 		if ($posts) {
 			$book_post = $posts[0];
 		}
@@ -1212,7 +1272,7 @@ We use some of the WP fields for our own purposes:
 
 	private function get_book_post_from_category_slug( $slug ) {
 		global $mb_api;
-		$posts = $mb_api->introspector->get_posts(array( 'category_name' => $slug, 'post-type' => 'mimeticbook', 'post_status' => 'any' ));	
+		$posts = $mb_api->introspector->get_posts(array( 'category_name' => $slug, 'post-type' => 'mimeticbook', 'post_status' => 'any' ));
 		if ($posts) {
 			$book_post = $posts[0];
 		}
@@ -1395,9 +1455,9 @@ We use some of the WP fields for our own purposes:
 		}
 
 /*
-$mb_api->write_log("*** There are ".count($posts)." pages found in category id=$category_id");
+$this->write_log("*** There are ".count($posts)." pages found in category id=$category_id");
 foreach ($posts as $p) {
-	$mb_api->write_log ("   Page: ".$p->title);
+	$this->write_log ("   Page: ".$p->title);
 }
 */
 

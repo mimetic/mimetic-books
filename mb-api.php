@@ -682,6 +682,9 @@ function mb_book_post_publish_meta_box( $post) {
 		$mb_book_publisher_id = get_option('mb_publisher_id', '1');
 	$mb_use_local_book_file = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_use_local_book_file", true) );
 	$mb_book_available = get_post_meta($post->ID, "mb_book_available", true);
+
+	// Amazon S3
+	$mb_upload_to_amazon_s3 = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_upload_to_amazon_s3", true) );
 	
 	// Posts link
 	$cats = get_the_category( $post->ID );
@@ -826,6 +829,15 @@ function mb_book_post_publish_meta_box( $post) {
 				
 				<div class="mb-settings-section">		
 					
+					<h4>Deliver with Amazon S3</h4>
+					<i>To deliver the book package from Amazon S3, be sure the plugin settings have your Amazon S3 credentials set.</i>					
+					<br>
+					<br>
+					<input type="checkbox" name="mb_upload_to_amazon_s3" value="true" <?php echo($mb_upload_to_amazon_s3); ?>/> <label for="mb_upload_to_amazon_s3">Upload to Amazon S3</label>
+				</div>
+
+				<div class="mb-settings-section">		
+					
 					<h4>Use an Uploaded Book Package</h4>
 					<i>To make a package, use the shell command, <code>tar cfo item.tar *</code> from within the directory of book files. Use the resulting item.tar file.</i>					
 					<br>
@@ -913,6 +925,8 @@ function mb_book_post_settings_meta_box( $post) {
 	$mb_book_remote_url = get_post_meta( $post->ID, 'mb_book_remote_url', true );
 	
 	$mb_use_local_book_file = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_use_local_book_file", true) );
+
+	$mb_upload_to_amazon_s3 = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_upload_to_amazon_s3", true) );
 
 	$mb_book_available = mb_checkbox_is_checked( get_post_meta($post->ID, "mb_book_available", true) );
 
@@ -1178,6 +1192,10 @@ function mb_book_post_meta_save_postdata( $post_id) {
 		// Update mb book settings, checkbox to not build the book but to use an uploaded book package
 		$tmp = isset($_POST['mb_use_local_book_file']);
 		update_post_meta( $post_id, 'mb_use_local_book_file', $tmp );
+
+		// Amazon S3
+		$tmp = isset($_POST['mb_upload_to_amazon_s3']);
+		update_post_meta( $post_id, 'mb_upload_to_amazon_s3', $tmp );
 
 		// target device
 		update_post_meta( $post_id, 'mb_target_device', $_POST['mb_target_device'] );
@@ -1897,7 +1915,65 @@ function mb_write_log($text) {
 	error_log (date('Y-m-d H:i:s') . ": {$text}\n", 3, $mb_api->logfile);
 }
 
-	
+/* ====== */
+/* Internal system for getting and saving vars */
+function vars_get($key, $default = null) {
+	if (empty($this->vars)) {
+		$this->vars = empty($this->nonce) ? array() : get_site_option("mba_vars_".$this->nonce, array());
+		if (!is_array($this->vars)) return $default;
+	}
+	return isset($this->vars[$key]) ? $this->vars[$key] : $default;
+}
+
+function vars_set($key, $value) {
+	if (empty($this->vars)) {
+		$this->vars = empty($this->nonce) ? array() : get_site_option("mba_vars_".$this->nonce);
+		if (!is_array($this->vars)) $this->vars = array();
+	}
+	$this->vars[$key] = $value;
+	if ($this->nonce) update_site_option("mba_vars_".$this->nonce, $this->vars);
+}
+
+function vars_delete($key) {
+	if (!is_array($this->vars)) {
+		$this->vars = empty($this->nonce) ? array() : get_site_option("mba_vars_".$this->nonce);
+		if (!is_array($this->vars)) $this->vars = array();
+	}
+	unset($this->vars[$key]);
+	if ($this->nonce) update_site_option("mba_vars_".$this->nonce, $this->vars);
+}
+/* ====== */
+
+// This function is used by cloud methods to provide standardised logging, but more importantly to help us detect that meaningful activity took place during a resumption run, so that we can schedule further resumptions if it is worthwhile
+function record_uploaded_chunk($percent, $extra = '', $file_path = false, $log_it = true) {
+
+		// Touch the original file, which helps prevent overlapping runs
+	if ($file_path) touch($file_path);
+
+	// What this means in effect is that at least one of the files touched during the run must reach this percentage (so lapping round from 100 is OK)
+	if ($percent > 0.7 * ($this->current_resumption - max($this->vars_get('uploaded_lastreset'), 9))) $this->something_useful_happened();
+
+	// Log it
+	$log = (!empty($this->current_service)) ? ucfirst($this->current_service)." chunked upload: $percent % uploaded" : '';
+	if ($log && $log_it) mb_write_log($log.(($extra) ? " ($extra)" : ''));
+	// If we are on an 'overtime' resumption run, and we are still meaningfully uploading, then schedule a new resumption
+	// Our definition of meaningful is that we must maintain an overall average of at least 0.7% per run, after allowing 9 runs for everything else to get going
+	// i.e. Max 100/.7 + 9 = 150 runs = 760 minutes = 12 hrs 40, if spaced at 5 minute intervals. However, our algorithm now decreases the intervals if it can, so this should not really come into play
+	// If they get 2 minutes on each run, and the file is 1GB, then that equals 10.2MB/120s = minimum 59KB/s upload speed required
+
+	$upload_status = $this->vars_get('uploading_substatus');
+	if (is_array($upload_status)) {
+		$upload_status['p'] = $percent/100;
+		$this->vars_set('uploading_substatus', $upload_status);
+	}
+
+}
+
+
+
+
+
+
 // DOES NOT WORK. DON'T KNOW WHY.
 // ============================================================
 // Modify the posts listing in the wp-admin.

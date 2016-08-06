@@ -5,6 +5,16 @@ class MB_API {
 	// Table for tracking publishing of books	
 	public $publish_progress_table = array ();			
 
+	private $vars;
+
+	public $something_useful_happened = false;
+	public $have_addons = false;
+	// Used to schedule resumption attempts beyond the tenth, if needed
+	public $current_resumption;
+	public $newresumption_scheduled = false;
+
+
+
 	function __construct() {
 		
 		$dir = mb_api_dir();
@@ -288,6 +298,17 @@ class MB_API {
 		$this->save_option('mb_api_book_info_post_id', $_REQUEST['mb_api_book_info_post_id']);
 	}
 	
+	// Amazon S3
+	if (isset($_REQUEST['mb_api_s3_accessKey'])) {
+		$this->save_option('mb_api_s3_accessKey', $_REQUEST['mb_api_s3_accessKey']);
+	}
+	if (isset($_REQUEST['mb_api_s3_secretKey'])) {
+		$this->save_option('mb_api_s3_secretKey', $_REQUEST['mb_api_s3_secretKey']);
+	}
+	if (isset($_REQUEST['mb_api_s3_bucketPath'])) {
+		$this->save_option('mb_api_s3_bucketPath', $_REQUEST['mb_api_s3_bucketPath']);
+	}
+	
 	if (isset($_REQUEST['mb_api_show_only_my_posts'])) {
 		$this->save_option('mb_api_show_only_my_posts', true);
 	} else {
@@ -298,167 +319,146 @@ class MB_API {
 	// ---------- END CONTROLLERS ------------
     
     // API Key
-    $mb_api_key = trim(get_option('mb_api_key'));
-    if (!$mb_api_key) {
-	$mb_api_key = $this->funx->getNewAPIKey();
-    }
+	$mb_api_key = trim(get_option('mb_api_key'));
+	if (!$mb_api_key) {
+		$mb_api_key = $this->funx->getNewAPIKey();
+	}
     
+   // ------- AMAZON S3 SETTINGS ---------
+   
+   // The default bucket is the URL of this wordpress installation
+	$defaultBucketPath = esc_url(home_url() );
+	// Strip http
+	$defaultBucketPath = preg_replace ("/http.?:\/+/","",	$defaultBucketPath);
+	// convert slash to period
+ 	$defaultBucketPath = preg_replace ("/\/+/",".",	$defaultBucketPath);
+   
     
     ?>
+    
+    <style type="text/css" media="all">
+    	div.mbapi-box {
+    		border: 1px solid #ccc; 
+    		background-color:rgba(0,0,0,0.1); 
+    		padding:10px; 
+    		margin-bottom:20px;
+    	}
+    	
+		ul.mbapi {
+			list-style-type: square;
+			list-style-position: inside;
+			margin-before: 1em;
+			margin-after: 1em;
+			margin-start: 0;
+			margin-end: 0;
+			padding-start: 40px;
+		}
+    	
+    </style>
+    
 <div class="wrap">
   <div id="icon-options-general" class="icon32"><br /></div>
   <h2>Mimetic Books API Settings</h2>
   <form action="options-general.php?page=mb-api" method="post">
     <?php wp_nonce_field('update-options'); ?>
-
-	<div style="padding:1em 3em 1em 3em; margin-top:1em; margin-bottom:1em; background-color:#f0f6f6;">
-		<h3>API Key</h3>
-		<p>
-			This is the API key for your website. Any other system that wants to talk to this website must use this API key.</i>
-		</p>
-		<table class="form-table">
-			<tr valign="top">
-				<th scope="row">API Key:</th>
-				<td>
-					<input type="text" size="64" name="mb_api_key" value="<?php echo $mb_api_key;	 ?>" />
-				</td>
-			</tr>
-		</table>
-
-
-<!--
-		
-			<h3>Book</h3>
-		<p>Choose which book you wish to publish. Maybe better if this lives on the book's post page, but I don't know how to do that right now.</p>
-		<table class="form-table">
-		<tr valign="top">
-			<th scope="row">Book:</th>
-				<td>
-					<?php
-						$args = array (
-							'post_type' => 'mimeticbook',
-							'posts_per_page' => -1
-						);
-
-						$my_query = null;
-						$my_query = new WP_Query($args);
-
-						$selected = get_option('mb_api_book_info_post_id');
-
-						echo '<select id="mb_api_book_info_post_id" name="mb_api_book_info_post_id">';
-						if( $my_query->have_posts() ) {
-							while ( $my_query->have_posts() ) : $my_query->the_post();
-								$id = get_the_ID();
-								$title = get_the_title();
-								if ($id == $selected) {
-									echo '<option selected="selected" value="'. $id .'">'. $title . '</option>';
-								} else {
-									echo '<option value="'. $id.'">'. $title. '</option>';
-								}
-							endwhile;
-						}
-						echo '</select>';
-						wp_reset_query();	 // Restore global post data stomped by the_post().
-					?>	  
-
-					<span style="margin-right:2em;">&nbsp;</span>
-					<input type="button" id="publish_book_button" class="button-primary" value="<?php _e('Publish Book') ?>" />
-					<span style="margin-left:20px;" id="publishing_progress_message" ></span>
-				</td>
-			</tr>
-			<tr valign="top">
-				<th scope="row">Layout Theme:</th>
-				<td><?php echo $this->theme_popup_menu() ?> </td>
-			</tr>
-		</table>
-		
-					<input type="button" id="update_publishers" class="button-primary" value="<?php _e('Update Publishers') ?>" />
-
--->
-
-		<h3>Publisher</h3>
-		<p>
-			Enter the URL for your publisher's website <em>to which you wish to send published books</em>. Leave this empty if you are distributing books from this website. <i>Do not add "http://", we will do that for you.</i>
-		</p>
 	
-		<table class="form-table">
-			<tr valign="top">
-				<th scope="row">Publish Books to Website:</th>
-				<td>
-					http://<input type="text" id="distribution_url" name="mb_api_book_publisher_url" size="64" value="<?php print get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url']));  ?>" />
-					<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
-				</td>
-			</tr>
-		</table>
-		<p>
-			Enter your Default Publisher ID, the unique code that identifies you as a publisher. You can choose your publisher ID for each book, as well, on the book information pages.
-		</p>
-		<table class="form-table">
-			<tr valign="top">				
-				<th scope="row">Default Publisher ID:</th>
-				<td>
-					<input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id', 'public'); ?>" size="32" />
-				</td>
-			</tr>
-		</table>
-		
-		<h3>Misc. Settings</h3>
-		<p>
-			<input type="checkbox" name="mb_api_show_only_my_posts[]" value="<?php if ( get_option('mb_api_show_only_my_posts', '') ) { echo "1"; } ?>" <?php if ( get_option('mb_api_show_only_my_posts', '') ) { echo "checked"; } ?>/> Show Only My Posts. <i>Check this box so that users will only see their posts. They cannot share posts, but the don't have to see everyone else's, either.</i>
-		</p>
-		
-		
-		<h3>Hints</h3>
-		<ul style="list-style-type:circle;">
-			<li>Any title or text block that begins with "<?php echo $this->ignore_me_code; ?>" will be ignored. This is useful for design templates that don't use titles, for example.
-			</li>
-			<li>You can add returns to titles, which is cool if you want a multi-line title. Using our magic return code: <tt>[[[br]]]</tt> 
-			</li>
-			<li>For each publisher, you should make a new Page (not a post), and set the publisher ID on the page.
-			</li>
-		</ul>
+	<div>
+		<div class="mbapi-box">
 
-		
-		
-		<!--
-		<tr valign="top">
-			<th scope="row">Title</th>
-			<td><input type="text" name="mb_api_book_title" value="<?php echo get_option('mb_api_book_title', 'Untitled'); ?>" size="64" /></td>
-			</tr>
-			<tr valign="top">
-			<th scope="row">Author(s)</th>
-			<td><input type="text" name="mb_api_book_author" value="<?php echo get_option('mb_api_book_author', 'Anonymous'); ?>" size="64" /></td>
-			</tr>
-			<tr valign="top">
-			<th scope="row">Book ID</th>
-			<td><input type="text" name="mb_api_book_id" value="<?php echo get_option('mb_api_book_id', "mb_".uniqid()); ?>" size="64" /></td>
-		</tr>
-		-->
-		<!--
-		<tr valign="top">
-			<th scope="row">Icon</th>
-			<td>
-				<label for="upload_image">
-				<input id="upload_image" type="text" size="36" name="upload_image" value="" />
-				<input id="upload_image_button" type="button" value="Upload Image" />
-				<br />
-				Enter an URL or upload an image for the banner.
-				</label>
-			</td>
-		</tr>
-		-->
+			<h3>API Key</h3>
+			<p>
+				This is the API key for your website. Any other system that wants to talk to this website must use this API key.</i>
+			</p>
+			<table class="form-table">
+				<tr valign="top">
+					<th scope="row">API Key:</th>
+					<td>
+						<input type="text" size="64" name="mb_api_key" value="<?php echo $mb_api_key;	 ?>" />
+					</td>
+				</tr>
+			</table>
+		</div>
+
+		<div class="mbapi-box">
+			<h3>Publisher</h3>
+			<p>
+				Enter the URL for your publisher's website <em>to which you wish to send published books</em>. Leave this empty if you are distributing books from this website. <i>Do not add "http://", we will do that for you.</i>
+			</p>
 	
-		</table>
-		<!--
-		<h3>Address</h3>
-		<p>Specify a base URL for MB API. For example, using <code>mb</code> as your API base URL would enable the following <code><?php bloginfo('url'); ?>/mb/get_recent_posts/</code>. If you assign a blank value the API will only be available by setting a <code>mb</code> query variable.</p>
-		<table class="form-table">
-		<tr valign="top">
-			<th scope="row">API base</th>
-			<td><code><?php bloginfo('url'); ?>/</code><input type="text" name="mb_api_base" value="<?php echo get_option('mb_api_base', 'mb'); ?>" size="15" /></td>
-		</tr>
-		</table>
-		-->
+			<table class="form-table">
+				<tr valign="top">
+					<th scope="row">Publish Books to Website:</th>
+					<td>
+						http://<input type="text" id="distribution_url" name="mb_api_book_publisher_url" size="64" value="<?php print get_option('mb_api_book_publisher_url', trim($this->settings['distribution_url']));  ?>" />
+						<input type="hidden" id="base_url" value="<?php print get_bloginfo('url');  ?>" />
+					</td>
+				</tr>
+			</table>
+			<p>
+				Enter your Default Publisher ID, the unique code that identifies you as a publisher. You can choose your publisher ID for each book, as well, on the book information pages.
+			</p>
+			<table class="form-table">
+				<tr valign="top">				
+					<th scope="row">Default Publisher ID:</th>
+					<td>
+						<input type="text" name="mb_api_book_publisher_id" value="<?php echo get_option('mb_api_book_publisher_id'); ?>" size="32" />
+					</td>
+				</tr>
+			</table>
+		</div>
+		
+		<div class="mbapi-box">
+			<h3>Amazon AWS S3</h3>
+			<p>
+			Get your access key and secret key from your <a href="https://aws.amazon.com/console/" target="_blank">AWS console</a>. Next pick a unique bucket name (letters and numbers) (and optionally a path) to use for storage. This bucket will be created for you if it does not already exist.
+			</p>
+			<p>
+				
+			</p>
+			
+			<table class="form-table">
+				<tr valign="top">
+					<th scope="row">S3 Access Key:</th>
+					<td>
+						<input type="text" name="mb_api_s3_accessKey" value="<?php echo get_option('mb_api_s3_accessKey'); ?>" size="32" />
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row">S3 Secret Key:</th>
+					<td>
+						<input type="text" name="mb_api_s3_secretKey" value="<?php echo get_option('mb_api_s3_secretKey'); ?>" size="32" />
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row">S3 Bucket Name &amp; Path:</th>
+					<td>
+						s3://<input type="text" name="mb_api_s3_bucketPath" value="<?php echo get_option('mb_api_s3_bucketPath', $defaultBucketPath); ?>" size="32" />
+					</td>
+				</tr>
+			</table>
+
+			
+			
+		</div>
+		
+		<div class="mbapi-box">
+			<h3>Misc. Settings</h3>
+			<p>
+				<input type="checkbox" name="mb_api_show_only_my_posts[]" value="<?php if ( get_option('mb_api_show_only_my_posts', '') ) { echo "1"; } ?>" <?php if ( get_option('mb_api_show_only_my_posts', '') ) { echo "checked"; } ?>/> Show Only My Posts. <i>Check this box so that users will only see their posts. They cannot share posts, but the don't have to see everyone else's, either.</i>
+			</p>
+		</div>
+		
+		<div class="mbapi-box">
+			<h3>Hints</h3>
+			<ul class="mbapi">
+				<li>Any title or text block that begins with "<?php echo $this->ignore_me_code; ?>" will be ignored. This is useful for design templates that don't use titles, for example.
+				</li>
+				<li>You can add returns to titles, which is cool if you want a multi-line title. Using our magic return code: <tt>[[[br]]]</tt> 
+				</li>
+				<li>For each publisher, you should make a new Page (not a post), and set the publisher ID on the page.
+				</li>
+			</ul>
+		</div>
 
 		<?php if (!get_option('permalink_structure', '')) { ?>
 		<br />
@@ -473,21 +473,21 @@ class MB_API {
 	  <h3>Controllers</h3>
     <?php $this->print_controller_actions(); ?>
     <table id="all-plugins-table" class="widefat">
-	<thead>
-	  <tr>
-	    <th class="manage-column check-column" scope="col"><input type="checkbox" /></th>
-	    <th class="manage-column" scope="col">Controller</th>
-	    <th class="manage-column" scope="col">Description</th>
-	  </tr>
-	</thead>
-	<tfoot>
-	  <tr>
-	    <th class="manage-column check-column" scope="col"><input type="checkbox" /></th>
-	    <th class="manage-column" scope="col">Controller</th>
-	    <th class="manage-column" scope="col">Description</th>
-	  </tr>
-	</tfoot>
-	<tbody class="plugins">
+		<thead>
+		  <tr>
+			 <th class="manage-column check-column" scope="col"><input type="checkbox" /></th>
+			 <th class="manage-column" scope="col">Controller</th>
+			 <th class="manage-column" scope="col">Description</th>
+		  </tr>
+		</thead>
+		<tfoot>
+		  <tr>
+			 <th class="manage-column check-column" scope="col"><input type="checkbox" /></th>
+			 <th class="manage-column" scope="col">Controller</th>
+			 <th class="manage-column" scope="col">Description</th>
+		  </tr>
+		</tfoot>
+		<tbody class="plugins">
 	  <?php
 	  
 	  foreach ($available_controllers as $controller) {
@@ -1964,9 +1964,9 @@ if ($post->post_password || isset($info['post_password'])) {
 	
 		$message = $this->publish_progress_table[$id]['message'];
 		
-		if ($arr['warning']) {
+		if (@$arr['warning']) {
 			$message = "<span style='color:#FF8000;'>$message</span>";
-		} elseif ($arr['error']) {
+		} elseif (@$arr['error']) {
 			$message = "<span style='color:#F00;'>$message</span>";
 		}
 		
@@ -1994,7 +1994,8 @@ if ($post->post_password || isset($info['post_password'])) {
 		 echo PHP_EOL;
 	  
 		 //PUSH THE data out by all FORCE POSSIBLE
-		 ob_flush();
+		 // @ prevents errors from showing
+		 @ob_flush();
 		 flush();
 		 
 		 //Delay for network?
