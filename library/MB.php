@@ -1492,7 +1492,7 @@ print ("-----------\n");
 				if (! is_wp_error($image) ) {
 
 $testing && $time_start = microtime(true);
-$mb_api->write_log(__FUNCTION__."---BEGIN image resizing for: $filepath");
+//$mb_api->write_log(__FUNCTION__."---BEGIN image resizing for: $filepath");
 
 					// Add extra time for processing. This takes whereever we were in the 30 sec. default counter, 
 					// and adds an addition 30 seconds from right now.

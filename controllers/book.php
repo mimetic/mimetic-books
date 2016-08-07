@@ -495,20 +495,7 @@ We use some of the WP fields for our own purposes:
 		update_post_meta($post_id, "mb_book_author", $info->author);
 
 
-		// Must do AFTER writing it to the directory where it can be downloaded from
-		// since we check that files are there before we really show a book as
-		// published.
-		// 
-		// Update the shelves file with the new book
-		$this->write_shelves_file();
-		$this->write_log(__FUNCTION__.": Wrote the shelves file.");
-
-		// Update the publishers file
-		$mb_api->write_publishers_file();
-		$this->write_log(__FUNCTION__.": Wrote the publishers file.");
-		
-		
-		// Upload to Amazon S3?
+		// AMAZON S3: Upload to Amazon S3?
 		$send_to_amazon_s3 =get_post_meta($book_post->ID, "mb_upload_to_amazon_s3", true);
 		if ($send_to_amazon_s3) {
 		
@@ -533,43 +520,49 @@ We use some of the WP fields for our own purposes:
 
 			// Upload the book file
 			$res =  $mbs3->uploadFile ($pathToFile, $key, $bucket);
-
-			// $res = [ 'url' => $url, 'result' => $result]
-			$s3_url = $res['url'];
-			$s3_presignedUrl = $res['presignedUrl'];
-			$s3_location = $res['location'];
-			$s3_result = $res['result'];
 			
-			//$this->write_log(__FUNCTION__.": Presigned URL = $s3_presignedUrl");
-			$this->write_log(__FUNCTION__.": URL = $s3_url, Location = $s3_location");
-			$this->write_log(__FUNCTION__.": END UPLOADING TO S3");
+				if ($res) {
 
-			// Upload supporting files
-			// Attach the icon file to the book posting
-			$f = $dir . DIRECTORY_SEPARATOR . "icon.png";
-			$key = $book_id . "/". basename($f);
-			$res = $mbs3->uploadFile ($f, $key, $bucket);
+				// $res = [ 'url' => $url, 'result' => $result]
+				$s3_url = $res['url'];
+				$s3_presignedUrl = $res['presignedUrl'];
+				$s3_location = $res['location'];
+				$s3_result = $res['result'];
+			
+				//$this->write_log(__FUNCTION__.": Presigned URL = $s3_presignedUrl");
+				$this->write_log(__FUNCTION__.": URL = $s3_url, Location = $s3_location");
+				$this->write_log(__FUNCTION__.": END UPLOADING TO S3");
 
-			// Attach the poster file to the book posting
-			$f = $dir . DIRECTORY_SEPARATOR . "poster.jpg";
-			$key = $book_id . "/". basename($f);
-			$res = $mbs3->uploadFile ($f, $key, $bucket);
+				// Upload supporting files
+				// Attach the icon file to the book posting
+				$f = $dir . DIRECTORY_SEPARATOR . "icon.png";
+				$key = $book_id . "/". basename($f);
+				$res = $mbs3->uploadFile ($f, $key, $bucket);
 
-			// Attach the item.json file to the book posting
-			$f = $dir . DIRECTORY_SEPARATOR . "item.json";
-			$key = $book_id . "/". basename($f);
-			$res = $mbs3->uploadFile ($f, $key, $bucket);
+				// Attach the poster file to the book posting
+				$f = $dir . DIRECTORY_SEPARATOR . "poster.jpg";
+				$key = $book_id . "/". basename($f);
+				$res = $mbs3->uploadFile ($f, $key, $bucket);
 
-			$mb_api->send_message("URL: $s3_url");
+				// Attach the item.json file to the book posting
+				$f = $dir . DIRECTORY_SEPARATOR . "item.json";
+				$key = $book_id . "/". basename($f);
+				$res = $mbs3->uploadFile ($f, $key, $bucket);
+
+				//$mb_api->send_message("URL: $s3_url");
 		
-			$mb_api->send_message("——— AWS S3 Upload End ———");
+				$mb_api->send_message("——— AWS S3 Upload End ———");
 			
-			// Set the remote URL to the S3 URL automatically.
-			// Use the presigned URL!!!
-			$s3_url = $s3_presignedUrl;
-			if ($s3_url) {
-				update_post_meta( $post_id, 'mb_book_remote_url', $s3_url );
-				$mb_api->send_message(null, null, 'set_url', [ 'url' => $s3_url ] );
+				// Set the remote URL to the S3 URL automatically.
+				// Use the presigned URL!!!
+				$s3_url = $s3_presignedUrl;
+				if ($s3_url) {
+					update_post_meta( $post_id, 'mb_book_remote_url', $s3_url );
+					$mb_api->send_message(null, null, 'set_url', [ 'url' => $s3_url ] );
+				}
+			} else {
+				$this->write_log(__FUNCTION__.": *** Upload Failed ***");
+				$mb_api->send_message("*** Upload Failed ***");
 			}
 			
 		} else {
@@ -579,6 +572,21 @@ We use some of the WP fields for our own purposes:
 		}
 
 
+		// Must do AFTER writing it to the directory where it can be downloaded from
+		// since we check that files are there before we really show a book as
+		// published.
+		// 
+		// Also, must do after Amazon S3 upload which discovers the presigned URL for downloading.
+		// 
+		// Update the shelves file with the new book
+		$this->write_shelves_file();
+		$this->write_log(__FUNCTION__.": Wrote the shelves file.");
+
+		// Update the publishers file
+		$mb_api->write_publishers_file();
+		$this->write_log(__FUNCTION__.": Wrote the publishers file.");
+		
+		
 		
 		if ($error) {
 			//data,textStatus

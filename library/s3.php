@@ -112,10 +112,13 @@ class MB_S3
 		self::$sslCACert = $sslCACert;
 
 		$opts = [
-			'key' => $accessKey,
-			'secret' => $secretKey,
 			'scheme' => ($useSSL) ? 'https' : 'http',
+			//'region' => $this->region,
 			'version' => self::LATEST_API_VERSION,
+			'credentials' => array(
+				'key' => $accessKey,
+				'secret' => $secretKey,
+			)
 			// Using signature v4 requires a region
 			//'signature' => 'v4',
 			//'region' => $this->region
@@ -321,7 +324,7 @@ class MB_S3
 	*/
 	public function setExceptions($enabled = true)
 	{
-		$this->useExceptions = $enabled;
+		self::$useExceptions = $enabled;
 	}
 
 	// A no-op in this compatibility layer (for now - not yet found a use)...
@@ -350,7 +353,7 @@ class MB_S3
 
 		$s3 = $this->s3;
 
-		//$mb_api->send_message("——— AWS Upload Begin ———");
+//$mb_api->send_message("——— AWS Upload Begin ———");
 
 		/*
 		Everything uploaded to Amazon S3 must belong to a bucket. These buckets are
@@ -363,6 +366,7 @@ class MB_S3
 		
 		if (!$bucket) {
 			$mb_api->write_log('No bucket specified for upload!');
+			$mb_api->send_message("ERROR: Amazon S3 is not set up!");
 			return false;
 		}
 
@@ -373,16 +377,29 @@ class MB_S3
 		}
 		//$mb_api->send_message(__FUNCTION__.": Does bucket ($bucket) exist?");
 
-		//$exists = $s3->headBucket(['Bucket' => $bucket]);
 		$exists = $this->doesBucketExist($bucket);
 
-		
-		if (!$exists ) {		
+		if (!$exists) {		
 			$mb_api->write_log("Creating bucket named {$bucket}\n");
-			$s3->createBucket(['Bucket' => $bucket]);
-
-			// Wait until the bucket is created
-			$s3->waitUntil('BucketExists', ['Bucket' => $bucket]);
+			$mb_api->send_message("Creating bucket named {$bucket}");
+			
+			try {
+				$result = $s3->createBucket(['Bucket' => $bucket]);
+				if (is_object($result) && method_exists($result, 'get') && '' != $result->get('RequestId')) {
+					$s3->waitUntil('BucketExists', array('Bucket' => $bucket));
+					return true;
+				}
+			} catch (Exception $e) {
+				if (self::$useExceptions) {
+					throw $e;
+				} else {
+					$this->log_exception($e);
+					$mb_api->write_log("Failed to create bucket: {$bucket}\n");
+					$mb_api->send_message("Failed to create bucket: {$bucket}");
+					return $this->log_exception($e);
+				}
+			}
+			
 		}
 		
 		// Get the bucket location
@@ -428,8 +445,7 @@ class MB_S3
 				'Key' => $key
 			));
 			
-			$mb_api->send_message("Uploaded " . basename($pathToFile));
-			$mb_api->send_message("Size: " . ($file_size/1024) . " kb");
+			$mb_api->send_message(basename($pathToFile) . " : " . round($file_size/1024, PHP_ROUND_HALF_UP) . " kb");
 			
 		} else {
 		
@@ -465,8 +481,7 @@ class MB_S3
 // 				$mb_api->send_message('Uploaded: Part = $partNumber');
 // 				$mb_api->send_message('Uploaded: ETag = '. $result['ETag']);
 
-				$mb_api->send_message("Uploaded " . basename($pathToFile));
-				$mb_api->send_message("Size: " . ($partNumber * $chunk_size/1024) . " kb");
+				$mb_api->send_message(basename($pathToFile) . " : " . round($partNumber * $chunk_size/1024, PHP_ROUND_HALF_UP) . " kb");
 			}
 
 			$mb_api->write_log("Parts: ". print_r($parts,true) );
@@ -506,215 +521,9 @@ class MB_S3
 	}
 
 
-/* NOT FINISHED...'BORROWED' FROM SOMEONE */
-/*
-	private function multipartUpload( $file, $shelf_dir, $bucket, $key) {
-		global $mb_api;
-		
-		$s3 = $this->s3;
-
-		$source = '/path/to/large/file.zip';
-		$uploader = new MultipartUploader($s3, $source, [
-			'bucket' => $bucket,
-			'key' => $key,
-		]);
-
-		do {
-			try {
-				$result = $uploader->upload();
-			} catch (MultipartUploadException $e) {
-				$uploader = new MultipartUploader($s3, $source, [
-					'state' => $e->getState(),
-				]);
-			}
-		} while (!isset($result));
-		
-		
-		
-		//====
-		if (!$s3->doesBucketExist( $bucket ) ) {	
-
-			$shelf_dir = trailingslashit($updraftplus->backups_dir_location());
-
-			// We upload in 5MB chunks to allow more efficient resuming and hence uploading of larger files
-			// N.B.: 5MB is Amazon's minimum. So don't go lower or you'll break it.
-			$fullpath = $shelf_dir.$file;
-			$orig_file_size = filesize($fullpath);
-			
-				$chunks = floor($orig_file_size / 5242880);
-				// There will be a remnant unless the file size was exactly on a 5MB boundary
-				if ($orig_file_size % 5242880 > 0) $chunks++;
-				$hash = md5($file);
-
-				$mb_api->write_log("S3 upload ($region): $file (chunks: $chunks) -> S3_key://$bucket_name/$bucket_path$file");
-
-				$filepath = $bucket_path.$file;
-				
-				
-				// SINGLE CHUNK TO UPLOAD
-				// This is extra code for the 1-chunk case, but less overhead (no bothering with job data)
-				if ($chunks < 2) {
-					$s3->setExceptions(true);
-					try {
-						$args = array (
-							'Key' => $key,
-							'ACL' => 'public-read',
-							'Bucket' => $bucket,
-							'SourceFile' => $filepath
-						);
-						
-						if (!$s3->putObject($args)) {
-							$mb_api->write_log("S3 regular upload: failed ($fullpath)");
-							$mb_api->write_log("$file: ".sprintf(__('%s Error: Failed to upload','updraftplus'),S3), 'error');
-						} else {
-							$this->quota_used += $orig_file_size;
-							$mb_api->write_log("S3 regular upload: success$extra_log");
-							//$mb_api->uploaded_file($file);
-						}
-					} catch (Exception $e) {
-						$mb_api->write_log("$file: ".sprintf(__('%s Error: Failed to upload','mb_api'),S3).": ".$e->getMessage().' (line: '.$e->getLine().', file: '.$e->getFile());
-						$mb_api->write_log("$file: ".sprintf(__('%s Error: Failed to upload','updraftplus'),S3), 'error');
-					}
-					$s3->setExceptions(false);
-				} else {
-					
-					// MULTI CHUNK TO UPLOAD
-					// Used to name the tracking var for this operation
-					$keys = substr($key, 0, 3);
-					
-					
-					// Retrieve the upload ID
-					$uploadId = $mba_api->vars_get("upd_${keys}_${hash}_uid");
-					if (empty($uploadId)) {
-						$s3->setExceptions(true);
-						try {
-							$args = array (
-								'Key' => $key,
-								'Bucket' => $bucket,
-							);
-								
-							$response = $s3->createMultipartUpload( $args );
-							$uploadId = $response['UploadId'];
-						} catch (Exception $e) {
-							$mb_api->write_log("S3 error whilst trying createMultipartUpload: ".$e->getMessage().' (line: '.$e->getLine().', file: '.$e->getFile().')');
-							$uploadId = false;
-						}
-						$s3->setExceptions(false);
-
-						if (empty($uploadId)) {
-							$mb_api->write_log("S3 upload: failed: could not get uploadId for multipart upload ($filepath)");
-							$mb_api->write_log(sprintf(__("%s upload: getting uploadID for multipart upload failed - see log file for more details",'updraftplus'),S3), 'error');
-							continue;
-						} else {
-							$mb_api->write_log("S3 chunked upload: got multipart ID: $uploadId");
-							$mb_api->vars_set("upd_${keys}_${hash}_uid", $uploadId);
-						}
-					} else {
-						$mb_api->write_log("S3 chunked upload: retrieved previously obtained multipart ID: $uploadId");
-					}
-					
-					// UPLOAD THE CHUNKS
-					$successes = 0;
-					$etags = array();
-					for ($i = 1 ; $i <= $chunks; $i++) {
-						# Shorted to upd here to avoid hitting the 45-character limit
-						$etag = $mba_api->vars_get("ud_${keys}_${hash}_e$i");
-						if (strlen($etag) > 0) {
-							$mb_api->write_log("S3 chunk $i: was already completed (etag: $etag)");
-							$successes++;
-							array_push($etags, $etag);
-						} else {
-							// Sanity check: we've seen a case where an overlap was truncating the file from underneath us
-							if (filesize($fullpath) < $orig_file_size) {
-								$mb_api->write_log("S3 error: $key: chunk $i: file was truncated underneath us (orig_size=$orig_file_size, now_size=".filesize($fullpath).")");
-								$mb_api->write_log(sprintf(__('%s error: file %s was shortened unexpectedly', 'updraftplus'), S3, $fullpath), 'error');
-							}
-							$etag = $s3->uploadPart($bucket_name, $filepath, $uploadId, $fullpath, $i);
-							if ($etag !== false && is_string($etag)) {
-								$updraftplus->record_uploaded_chunk(round(100*$i/$chunks,1), "$i, $etag", $fullpath);
-								array_push($etags, $etag);
-								$mb_api->vars_set("ud_${keys}_${hash}_e$i", $etag);
-								$successes++;
-							} else {
-								$mb_api->write_log("S3 chunk $i: upload failed");
-								$mb_api->write_log(sprintf(__("%s chunk %s: upload failed",'updraftplus'),S3, $i), 'error');
-							}
-						}
-					}
-					if ($successes >= $chunks) {
-						$mb_api->write_log("S3 upload: all chunks uploaded; will now instruct S3 to re-assemble");
-
-						$s3->setExceptions(true);
-						try {
-							if ($s3->completeMultipartUpload($bucket_name, $filepath, $uploadId, $etags)) {
-								$mb_api->write_log("S3 upload ($key): re-assembly succeeded");
-								// Run the post-upload function
-								//$mb_api->uploaded_file($file);
-								$this->quota_used += $orig_file_size;
-								if (method_exists($this, 's3_record_quota_info')) $this->s3_record_quota_info($this->quota_used, $config['quota']);
-							} else {
-								$mb_api->write_log("S3 upload ($key): re-assembly failed ($file)");
-								$mb_api->write_log(sprintf(__('%s upload (%s): re-assembly failed (see log for more details)','updraftplus'),S3, $key), 'error');
-							}
-						} catch (Exception $e) {
-							$mb_api->write_log("S3 re-assembly error ($key): ".$e->getMessage().' (line: '.$e->getLine().', file: '.$e->getFile().')');
-							$mb_api->write_log($e->getMessage().": ".sprintf(__('%s re-assembly error (%s): (see log file for more)','updraftplus'),S3, $e->getMessage()), 'error');
-						}
-						// Remember to unset, as the deletion code later reuses the object
-						$s3->setExceptions(false);
-					} else {
-						$mb_api->write_log("S3 upload: upload was not completely successful on this run");
-					}
-				}
-			
-			// Allows counting of the final quota accurately
-			if (method_exists($this, 's3_prune_retained_backups_finished')) {
-				add_action('updraftplus_prune_retained_backups_finished', array($this, 's3_prune_retained_backups_finished'));
-			}
-			
-			return array('s3_object' => $s3, 's3_orig_bucket_name' => $orig_bucket_name);
-		} else {
-		
-		
-		}
-	}
-*/
-
-
 	/*		------------------------------ */
 	// AWS functions
 
-	 /**
-	  * Returns the URL to an object identified by its bucket and key. If an expiration time is provided, the URL will
-	  * be signed and set to expire at the provided time.
-	  *
-	  * Note: This method does not ensure that the generated URL is valid. For example, the bucket referenced may not
-	  * exist, the key referenced may not exist, and the URL might include parameters that require it to be signed.
-	  * If you need to use parameters that require a signed URL (e.g., ResponseCacheControl), then you must sign the
-	  * URL either by providing an $expires argument or by signing the URL returned by this method in some other
-	  * manner.
-	  *
-	  * @param string $bucket	The name of the bucket where the object is located
-	  * @param string $key		The key of the object
-	  * @param mixed	$expires The time at which the URL should expire
-	  * @param array	$args		Arguments to the GetObject command. Additionally you can specify a "Scheme" if you would
-	  *								like the URL to use a different scheme than what the client is configured to use
-	  *
-	  * @return string The URL to the object
-	  */
-	 public function getObjectUrl($bucket, $key, $expires = null, array $args = array())
-	 {
-		  $command = $this->s3->getCommand('GetObject', $args + array('Bucket' => $bucket, 'Key' => $key));
-
-		  if ($command->hasKey('Scheme')) {
-				$scheme = $command['Scheme'];
-				$request = $command->remove('Scheme')->prepare()->setScheme($scheme)->setPort(null);
-		  } else {
-				$request = $command->prepare();
-		  }
-
-		  return $expires ? $this->s3->createPresignedUrl($request, $expires) : $request->getUrl();
-	 }
 
 	 /**
 	  * Determine if a string is a valid name for a DNS compatible Amazon S3
@@ -740,6 +549,14 @@ class MB_S3
 		  return true;
 	 }
 
+
+	private function log_exception($e) {
+		global $mb_api;
+		//trigger_error($e->getMessage()."\n\n (".get_class($e).") \n\n(line: ".$e->getLine().", \n\nfile: ".$e->getFile().")\n\n", E_USER_WARNING);
+		$mb_api->write_log( "s3.php : AWS ERROR: " . $e->getMessage()."\n\n(".get_class($e).") \n\n(line: ".$e->getLine()."\n\nfile: ".$e->getFile().")\n\n", E_USER_WARNING);
+		return false;
+	}
+
 	  /**
 	  * Determines whether or not a bucket exists by name
 	  *
@@ -753,22 +570,22 @@ class MB_S3
 	 {
 		global $mb_api;
 		 try {
-
-//	  Aws\S3\Exception\S3Exception
-//	  Aws\S3\Exception\NoSuchBucketException
-// use Aws\S3\Exception\S3Exception;
-
+				//$mb_api->send_message("*** doesBucketExist ****");
 				$this->s3->headBucket(['Bucket' => $bucket]);
 				$exists = true;			 
-			} catch (\Aws\S3\Exception\S3Exception $e) {
+			} catch (Aws\S3\Exception\S3Exception $e) {
+				//$mb_api->send_message("*** \Aws\S3\Exception\S3Exception ****");
 				$exists = false;
+				//$this->log_exception($e);
+//			} catch (Exception $e) {
+			} catch (Aws\S3\Exception\NoSuchBucketException $e) {
+				//$mb_api->send_message("*** Aws\S3\Exception\NoSuchBucketException ****");
+				$exists = false;
+				//$this->log_exception($e);
 			} catch (Exception $e) {
 				$exists = false;
-				if ($this->useExceptions) {
-					throw $e;
-				} else {
-					return $this->trigger_from_exception($e);
-				}
+				//$this->log_exception($e);
+				//$mb_api->send_message("*** doesBucketExist(): S3Exception ****");
 			}
 
 		  return $exists;
@@ -791,10 +608,10 @@ class MB_S3
 		} catch (Aws\S3\Exception\NoSuchBucketException $e) {
 			return false;
 		} catch (Exception $e) {
-			if ($this->useExceptions) {
+			if (self::$useExceptions) {
 				throw $e;
 			} else {
-				return $this->trigger_from_exception($e);
+				return $this->log_exception($e);
 			}
 		}
 	}

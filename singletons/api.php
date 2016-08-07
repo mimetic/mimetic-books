@@ -426,7 +426,7 @@ class MB_API {
 				<tr valign="top">
 					<th scope="row">S3 Secret Key:</th>
 					<td>
-						<input type="text" name="mb_api_s3_secretKey" value="<?php echo get_option('mb_api_s3_secretKey'); ?>" size="32" />
+						<input type="text" name="mb_api_s3_secretKey" value="<?php echo get_option('mb_api_s3_secretKey'); ?>" size="64" />
 					</td>
 				</tr>
 				<tr valign="top">
