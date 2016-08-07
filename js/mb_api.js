@@ -48,13 +48,16 @@ jQuery(document).ready(function($){
 					{
 					
 							var result = JSON.parse( e.data );
-							add_log(result.message);								 
+							
+							// Log the message
+							add_log(result.message);
 							
 							// Update progress
 							if (result.progress) {
 								progressBar.value = result.progress;
 							}
 							
+							// Do special commands
 							if(result.status == 'end') {
 									//add_log('*** END ***');
 									thisButton.prop("value", thisButtonOriginalTitle);
@@ -62,7 +65,11 @@ jQuery(document).ready(function($){
 									
 							} else if ('set_total' == result.status) {
 								progressBar.max = result.params.total;
+								
+							} else if ('set_url' == result.status) {
+								document.getElementById('mb_book_remote_url').value = result.params.url;
 							}
+
 					});
 					 
 					source.addEventListener('error' , function(e)

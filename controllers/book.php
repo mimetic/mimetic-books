@@ -536,11 +536,12 @@ We use some of the WP fields for our own purposes:
 
 			// $res = [ 'url' => $url, 'result' => $result]
 			$s3_url = $res['url'];
+			$s3_presignedUrl = $res['presignedUrl'];
 			$s3_location = $res['location'];
 			$s3_result = $res['result'];
 			
+			//$this->write_log(__FUNCTION__.": Presigned URL = $s3_presignedUrl");
 			$this->write_log(__FUNCTION__.": URL = $s3_url, Location = $s3_location");
-			$this->write_log(__FUNCTION__.": S3 Result = " . print_r($s3_result));
 			$this->write_log(__FUNCTION__.": END UPLOADING TO S3");
 
 			// Upload supporting files
@@ -558,9 +559,23 @@ We use some of the WP fields for our own purposes:
 			$f = $dir . DIRECTORY_SEPARATOR . "item.json";
 			$key = $book_id . "/". basename($f);
 			$res = $mbs3->uploadFile ($f, $key, $bucket);
+
+			$mb_api->send_message("URL: $s3_url");
 		
 			$mb_api->send_message("——— AWS S3 Upload End ———");
 			
+			// Set the remote URL to the S3 URL automatically.
+			// Use the presigned URL!!!
+			$s3_url = $s3_presignedUrl;
+			if ($s3_url) {
+				update_post_meta( $post_id, 'mb_book_remote_url', $s3_url );
+				$mb_api->send_message(null, null, 'set_url', [ 'url' => $s3_url ] );
+			}
+			
+		} else {
+			// Clear the remote URL (if it is an S3 URL)
+			$mb_book_remote_url = get_post_meta( $post->ID, 'mb_book_remote_url', true );
+			update_post_meta( $post_id, 'mb_book_remote_url', "");
 		}
 
 

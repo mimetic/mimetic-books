@@ -383,8 +383,6 @@ class MB_S3
 
 			// Wait until the bucket is created
 			$s3->waitUntil('BucketExists', ['Bucket' => $bucket]);
-		} else {
-			$mb_api->write_log("Bucket exists: {$bucket}");
 		}
 		
 		// Get the bucket location
@@ -489,9 +487,22 @@ class MB_S3
 			$location = $result['Location'];
 		}
 		
+		// 5. Get a signed URL for the object for download
+		// URL:
+		// Get a command object from the client and pass in any options
+		// available in the GetObject command (e.g. ResponseContentDisposition)
+		$command = $s3->getCommand('GetObject', array(
+						'Bucket'      => $bucket,
+						'Key'         => $key,
+		//            'ResponseContentDisposition' => 'attachment; filename="'.$key.'"'
+				  ));
+		$request = $s3->createPresignedRequest($command, "+1 week");
+		// Get the actual presigned-url
+		$presignedUrl = (string) $request->getUri();
+
 		//$mb_api->send_message("——— AWS Upload End ———");
 		
-		return [ 'url' => $url, 'location' => $location, 'result' => $result];
+		return [ 'url' => $url, 'presignedUrl' => $presignedUrl, 'location' => $location, 'result' => $result];
 	}
 
 
@@ -693,7 +704,7 @@ class MB_S3
 	  */
 	 public function getObjectUrl($bucket, $key, $expires = null, array $args = array())
 	 {
-		  $command = $this->getCommand('GetObject', $args + array('Bucket' => $bucket, 'Key' => $key));
+		  $command = $this->s3->getCommand('GetObject', $args + array('Bucket' => $bucket, 'Key' => $key));
 
 		  if ($command->hasKey('Scheme')) {
 				$scheme = $command['Scheme'];
@@ -702,7 +713,7 @@ class MB_S3
 				$request = $command->prepare();
 		  }
 
-		  return $expires ? $this->createPresignedUrl($request, $expires) : $request->getUrl();
+		  return $expires ? $this->s3->createPresignedUrl($request, $expires) : $request->getUrl();
 	 }
 
 	 /**

@@ -71,10 +71,10 @@ function mb_api_init() {
 	// THIS SHOULD PROBABLY BE IN THE MB_API CLASS!
 	mb_make_custom_post_type_init();
 	
-	// Add custom metaboxes
+	// Add custom metaboxes for pages. Pages are Publishers!!!
 	mb_add_custom_metaboxes_to_pages();
 
-	// Add custom metaboxes to posts
+	// Add custom metaboxes to posts. Posts are books, and pages in books.
 	mb_add_custom_metaboxes_to_posts();
 	
 	// Add custom column to the book posts listing
@@ -629,7 +629,7 @@ function mb_book_add_post_meta_boxes() {
 
 	add_meta_box(
 		'book-post-publish',			// Unique ID
-		esc_html__( 'Book Publishing' ),		// Title
+		esc_html__( 'Mimetic Book Publishing' ),		// Title
 		'mb_book_post_publish_meta_box',		// Callback function
 		'mimeticbook',					// Admin page (or post type)
 		'side',					// Context
@@ -649,7 +649,7 @@ function mb_book_add_post_meta_boxes() {
 
 	add_meta_box(
 		'book-post-settings',			// Unique ID
-		esc_html__( 'Book Settings' ),		// Title
+		esc_html__( 'Mimetic Book Settings' ),		// Title
 		'mb_book_post_settings_meta_box',		// Callback function
 		'mimeticbook',					// Admin page (or post type)
 		'side',					// Context
@@ -750,7 +750,7 @@ function mb_book_post_publish_meta_box( $post) {
 							<div class="clear"></div>
 							<br>
 							<?php 
-							_e( "<i>* Be sure to publish the book again if you change any settings, authors, etc.</i>");
+							_e( "<i>* Be sure to update this page if you change any settings, authors, etc.</i>");
 							
 							include_once "singletons/progress.inc";
 
@@ -830,33 +830,29 @@ function mb_book_post_publish_meta_box( $post) {
 				<div class="mb-settings-section">		
 					
 					<h4>Deliver with Amazon S3</h4>
-					<i>To deliver the book package from Amazon S3, be sure the plugin settings have your Amazon S3 credentials set.</i>					
-					<br>
-					<br>
+					<p><i>To deliver the book package from Amazon S3, be sure the plugin settings have your Amazon S3 credentials set.</i>	</p>
 					<input type="checkbox" name="mb_upload_to_amazon_s3" value="true" <?php echo($mb_upload_to_amazon_s3); ?>/> <label for="mb_upload_to_amazon_s3">Upload to Amazon S3</label>
 				</div>
 
 				<div class="mb-settings-section">		
 					
-					<h4>Use an Uploaded Book Package</h4>
-					<i>To make a package, use the shell command, <code>tar cfo item.tar *</code> from within the directory of book files. Use the resulting item.tar file.</i>					
-					<br>
-					<br>
-					<input type="checkbox" name="mb_use_local_book_file" value="true" <?php echo($mb_use_local_book_file); ?>/> <label for="mb_use_local_book_file">Use uploaded book package</label>
+					<h4>Custom URL for App:</h4>
+					<i><p>If you want the app to download the book package from a different server, usually a cloud file delivery server (CDN), then you must enter that URL below.</p>
+					<p>Amazon S3 books are sent automatically (if checked above), but to use another CDN, you will have to copy the book package we create here to that server!</p>
+					<p>Use the complete URL, including the file name, e.g.<br>
+					<b>https://myserver.com/mypath/item.tar</b></i>
+					</p></i>
+					<label for="mb_book_remote_url">Custom URL for App:</label>
+					<input type="text" style="width:95%;" id="mb_book_remote_url" name="mb_book_remote_url" value="<?php print $mb_book_remote_url;  ?>" />
 				</div>
 				
 				<div class="mb-settings-section mb-settings-section-last">		
-					
-					<h4>Custom URL for App:</h4>
-					<i>If you want the app to download the book package from a different server, usually a cloud file delivery server (CDN), then you must enter that URL below.<br>
-					<b>You will have to copy the book package we create here to that server!</b><br>
-					Use the complete URL, including the file name, e.g.<br>
-					<b>http://myserver.com/mypath/item.tar</b></i>
-					
+					<h4>Use an Uploaded Book Package</h4>
+					<i>Instead of building with WordPress, you can make your own book packages. Use 'tar' to package your files, using the 'NIX shell command, <code>tar cfo item.tar *</code> from within the directory of book files. Upload the resulting item.tar file to the shelves folder on this server with FTP.</i>					
 					<br>
 					<br>
-					<label for="mb_book_remote_url">Custom URL for App:</label>
-					<input type="text" style="width:95%;" id="mb_book_remote_url" name="mb_book_remote_url" value="<?php print $mb_book_remote_url;  ?>" />
+					<input type="checkbox" name="mb_use_local_book_file" value="true" <?php echo($mb_use_local_book_file); ?>/> <label for="mb_use_local_book_file">Use uploaded book package</label>
+					
 				</div>
 				
 		</div>
@@ -1354,7 +1350,8 @@ function mb_post_meta_boxes_scripts($hook) {
 
 /* Create one or more meta boxes to be displayed on the post editor screen. */
 function mb_post_add_page_meta_boxes() {
-
+	
+	//Mimetic Book Settings
 	add_meta_box(
 		'book-post-page-format',					// Unique ID
 		esc_html__( 'Mimetic Book Settings' ),			// Title
@@ -1364,6 +1361,7 @@ function mb_post_add_page_meta_boxes() {
 		'high'										// Priority
 	);
 	
+	//Mimetic Book Custom Fields
 	add_meta_box(
 		'book-post-page-custom-fields',					// Unique ID
 		esc_html__( 'Mimetic Book Custom Fields' ),			// Title
