@@ -495,11 +495,11 @@ class Mimetic_Book
 				$capnum = false;
 			
 			foreach ($matches[1] as $c) {
-				$capnum ? $capnumvalue = $capnum++ : $capnumvalue = "";
+				$capnum ? $capnumvalue = $capnum++ . ".&nbsp;" : $capnumvalue = "";
 				if ($c) {
 					// Strip the img from the caption...
 					$c = preg_replace('/\<img.*?\/\>/i', "", $c);
-					$caption .= '<div class="caption">' . $capnumvalue . ".&nbsp;".$c . '</div>';
+					$caption .= '<div class="caption">' . $capnumvalue . $c . '</div>';
 				}
 				$x = 1;
 			}

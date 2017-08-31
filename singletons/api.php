@@ -1018,9 +1018,15 @@ $this->write_log(__FUNCTION__.": Theme set to default!");
 		$use_local_book_file = get_post_meta($post->id, "mb_use_local_book_file", true);
 		$remoteURL = trim(get_post_meta($post->id, "mb_book_remote_url", true));
 
+		$send_to_amazon_s3 =get_post_meta($post->id, "mb_upload_to_amazon_s3", true);
+
+//$this->write_log(__FUNCTION__.":send_to_amazon_s3 = $send_to_amazon_s3");		
+
+
+
 		$modified = "";
 
-		if ($remoteURL || $use_local_book_file) {
+		if (!$send_to_amazon_s3 && ($remoteURL || $use_local_book_file) ) {
 			// USING A PRE-MADE BOOK PACKAGE: get modified from a local item.json file
 			$dir = $mb_api->shelves_dir . DIRECTORY_SEPARATOR . $book_id;
 			$fn = $dir . DIRECTORY_SEPARATOR . "item.json";

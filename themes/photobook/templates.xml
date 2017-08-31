@@ -25,7 +25,18 @@
 		A basic photography theme.
 	</description>
 	<fields>
+	unused
 	</fields>
+<!-- DO NOT USE COMMAS INSIDE EACH ENTRY! -->
+	<fields_help>
+Unused Field
+	</fields_help>
+	
+<!-- DO NOT USE COMMAS INSIDE EACH ENTRY! -->
+<!-- multiple choice: text|text|text -->
+<!-- Textfield: *textarea -->
+	<fields_options>
+	</fields_options>	
 	<chapter>
 		<title>
 			Photography Theme

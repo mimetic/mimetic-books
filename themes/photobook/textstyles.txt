@@ -1,4 +1,5 @@
-﻿[No Paragraph Style]=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+﻿#generic styles
+[No Paragraph Style]=MinionPro-Regular,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 [Basic Paragraph]=Avenir-Book,16,26,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 Basic Paragraph on Dark=Avenir-Book,16,26,220,220,220,,100%,NORMAL,left,0,0,0,0,0
 H1=,18,26,0,0,0,,100%,NORMAL,left,12,4,0,0,0
@@ -22,3 +23,11 @@ Small Body=Avenir-Book,16,22,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 Small Body Light=Avenir-Book,16,22,220,220,220,,100%,NORMAL,left,0,0,0,0,0
 Small Title Light=Avenir-Light,16,19.2,220,220,220,,100%,ALL_CAPS,left,0,0,0,0,0
 Small Title Dark=Avenir-Light,16,19.2,0,0,0,,100%,ALL_CAPS,left,0,0,0,0,0
+
+# styles for captions
+caption=Avenir-Book,14,18,0,0,0,,100%,NORMAL,left,0,6,0,0,0
+caption-title=Avenir-Book,14,18,0,0,0,,100%,NORMAL,left,0,6,0,0,0
+
+#styles for table of contents
+contents-item = Avenir-Light,18,24,60,60,60,,100%,NORMAL,left,0,24,0,0,0
+contents-list = Avenir-Light,18,24,60,60,60,,100%,NORMAL,left,0,24,0,0,0

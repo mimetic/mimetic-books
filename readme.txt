@@ -2,8 +2,8 @@
 Contributors: mimetic
 Tags: Mimetic Books, Mimetic, iPad
 Requires at least: 4.0
-Tested up to: 4.5.3
-Stable tag: 0.2.11
+Tested up to: 4.6
+Stable tag: 0.2.13
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,12 @@ Nothing yet.
 
 
 == Changelog ==
+
+= 0.2.13 =
+* Allow uploads to Amazon S3 instead of hosting the book on the WordPress website.
+
+= 0.2.12 =
+* Tweak template for Ecosystem B
 
 = 0.2.11 =
 * Automatic uploads book packages to Amazon S3 storage so you don't have to serve them from your WordPress server, and you don't have to upload packages to S3 yourself.

@@ -64,7 +64,7 @@ consumer|producer,
 carnivore|omnivore|herbivore|detritivore|autotroph,
 surface|intertidal|top-layer|mid-layer|bottom|canopy|all-layers|sea-floor|splitms|splitcm|aquatic|terrestrial,
 icon-consumer|icon-producer,
-icon-carnivore|icon-omnivore|icon-herbivore|icon-autotroph,
+icon-carnivore|icon-omnivore|icon-herbivore|icon-autotroph|icon-detritivore,
 icon-all-layers|icon-bottom|icon-mid-layer|icon-sea-floor|icon-splitcm|icon-splitms|icon-surface|icon-top-layer|icon-aquatic|icon-terrestrial|icon-intertidal,
 ,
 ,
@@ -172,7 +172,7 @@ still|walk|swim|fly
 					</text>
 				</textblock>
 				<textblock>
-					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-body" x="60" y="350" width="452" height="318" absolute="true">
+					<text isHTML="true" verticalAlignment="top" margin="0,0,0,0" style="card-body" x="60" y="340" width="452" height="336" absolute="true">
 					</text>
 				</textblock>
 			</textblocks>

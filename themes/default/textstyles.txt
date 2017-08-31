@@ -1,7 +1,25 @@
-﻿[No Paragraph Style]=Georgia,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+﻿#generic styles
+[No Paragraph Style]=Georgia,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
 [Basic Paragraph]=Georgia,16,20,0,0,0,,100%,NORMAL,left,0,0,0,0,0
-H1=Georgia-Bold,72,86.4,106,60,0,,100%,NORMAL,left,16,0,0,0,0
-H2=Georgia-Bold,36,43.2,106,60,0,,100%,NORMAL,left,14,10,0,0,0
-H3=Georgia-Bold,24,,106,60,0,,100%,NORMAL,left,14,10,0,0,0
+a = ,,,0,0,255,,100%
+Normal = Avenir-Book,16,20,255,20,20,,100%
 Body=Georgia,16,30,106,60,0,,100%,NORMAL,left,0,0,0,0,0
+Heading 1 = Avenir-Bold,16,20,20,255,20,,100%
+Title=Avenir-Light,34,50,180,180,180,,100%,NORMAL,left,0,0,0,0,0
+H1=,18,26,0,0,0,,100%,NORMAL,left,12,4,0,0,0
+H2=Avenir-Book,18,26,0,0,0,,100%,NORMAL,left,12,4,0,0,0
+H2 Light=Avenir-Book,18,26,220,220,220,,100%,NORMAL,left,12,4,0,0,0
+H3=,16,26,0,0,0,,100%,NORMAL,left,8,0,0,0,0
+H4=,16,26,0,0,0,,100%,NORMAL,left,8,0,0,0,0
+H6=,16,26,0,0,0,,100%,NORMAL,left,8,0,0,0,0
+H5=,16,26,0,0,0,,100%,NORMAL,left,8,0,0,0,0
+Quote = Avenir-Light,20,28,200,255,20,,100%
 Format Code=Courier,12,14.4,0,0,0,,100%,NORMAL,left,0,0,0,0,0
+
+# styles for captions
+caption=Avenir-Book,14,18,0,0,0,,100%,NORMAL,left,0,6,0,0,0
+caption-title=Avenir-Book,14,18,0,0,0,,100%,NORMAL,left,0,6,0,0,0
+
+#styles for table of contents
+contents-item = Avenir-Light,18,24,60,60,60,,100%,NORMAL,left,0,24,0,0,0
+contents-list = Avenir-Light,18,24,60,60,60,,100%,NORMAL,left,0,24,0,0,0
